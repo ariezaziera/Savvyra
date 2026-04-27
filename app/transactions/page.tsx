@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PageContainer from "@/components/PageContainer";
 import AddTransactionForm from "@/components/AddTransactionForm";
 import { Trash2, Pencil } from "lucide-react";
+import Toast from "@/components/Toast";
+import DeleteTransactionModal from "@/components/DeleteTransactionModal";
 
 type Transaction = {
   id: number;
@@ -33,28 +35,26 @@ export default function TransactionsPage() {
      setTransactions(data);
    };
 
-  const handleDelete = async (id: number) => {
-    const confirmDelete = confirm(
-      "Are you sure you want to delete this transaction? This action cannot be undone."
-    );
-
-    if (!confirmDelete) return;
+  const handleDelete = async () => {
+    if (!transactionToDelete) return;
 
     const response = await fetch("/api/transactions", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id: transactionToDelete.id }),
     });
 
     if (!response.ok) {
-      alert("Failed to delete transaction");
+      showToast("Failed to delete transaction.", "error");
       return;
     }
 
-    alert("Transaction deleted.");
+    setTransactionToDelete(null);
+    showToast("Transaction deleted successfully.");
     fetchTransactions();
+    scrollToTransactions();
   };
 
   const totalIncome = transactions
@@ -73,6 +73,31 @@ export default function TransactionsPage() {
     month: "short",
     year: "numeric",
   });
+
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<Transaction | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  const transactionsSectionRef = useRef<HTMLElement | null>(null);
+
+  const scrollToTransactions = () => {
+    transactionsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
 
   return (
     <PageContainer>
@@ -111,10 +136,15 @@ export default function TransactionsPage() {
           onTransactionSaved={fetchTransactions}
           editingTransaction={editingTransaction}
           onCancelEdit={() => setEditingTransaction(null)}
-        />      
+          onShowToast={showToast}
+          onScrollToTransactions={scrollToTransactions}
+        />     
       </div>
 
-      <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section
+        ref={transactionsSectionRef}
+        className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+      >
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -234,7 +264,7 @@ export default function TransactionsPage() {
                       {/* Delete */}
                       <button
                         type="button"
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => setTransactionToDelete(item)}
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-rose-50 hover:text-rose-500"
                       >
                         <Trash2 size={16} />
@@ -247,6 +277,21 @@ export default function TransactionsPage() {
           </table>
         </div>
       </section>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      <DeleteTransactionModal
+        transaction={transactionToDelete}
+        formatCurrency={formatCurrency}
+        onCancel={() => setTransactionToDelete(null)}
+        onConfirm={handleDelete}
+      />
     </PageContainer>
   );
 }

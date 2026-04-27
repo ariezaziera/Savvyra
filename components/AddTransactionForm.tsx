@@ -16,22 +16,28 @@ type AddTransactionFormProps = {
   onTransactionSaved: () => void;
   editingTransaction?: Transaction | null;
   onCancelEdit?: () => void;
+  onShowToast: (message: string, type?: "success" | "error") => void;
+  onScrollToTransactions: () => void;
+};
+
+const emptyForm = {
+  title: "",
+  category: "",
+  date: "",
+  amount: "",
+  type: "Expense",
+  status: "Completed",
 };
 
 export default function AddTransactionForm({
   onTransactionSaved,
   editingTransaction,
   onCancelEdit,
+  onShowToast,
+  onScrollToTransactions,
 }: AddTransactionFormProps) {
 
-  const [form, setForm] = useState({
-    title: "",
-    category: "",
-    date: "",
-    amount: "",
-    type: "Expense",
-    status: "Completed",
-  });
+  const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
     if (editingTransaction) {
@@ -46,6 +52,28 @@ export default function AddTransactionForm({
     }
   }, [editingTransaction]);
 
+  const resetForm = () => {
+    if (editingTransaction) {
+      setForm({
+        title: editingTransaction.title,
+        category: editingTransaction.category,
+        date: editingTransaction.date.split("T")[0],
+        amount: String(editingTransaction.amount),
+        type: editingTransaction.type,
+        status: editingTransaction.status,
+      });
+
+      return;
+    }
+
+    setForm(emptyForm);
+  };
+
+  const cancelEdit = () => {
+    setForm(emptyForm);
+    onCancelEdit?.();
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -58,29 +86,56 @@ export default function AddTransactionForm({
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const response = await fetch("/api/transactions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(form),
-  });
+    const isEditing = Boolean(editingTransaction);
 
-  if (!response.ok) {
-    alert("Failed to save transaction");
-    return;
-  }
+    const response = await fetch("/api/transactions", {
+      method: isEditing ? "PUT" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...form,
+        id: editingTransaction?.id,
+      }),
+    });
 
-  alert("Transaction saved!");
-  onTransactionSaved();
-};
+    if (!response.ok) {
+      onShowToast("Failed to save transaction.", "error");
+      return;
+    }
+
+    onShowToast("Transaction saved successfully.");
+
+    setForm({
+      title: "",
+      category: "",
+      date: "",
+      amount: "",
+      type: "Expense",
+      status: "Completed",
+    });
+
+    onShowToast(
+      isEditing
+        ? "Transaction updated successfully."
+        : "Transaction saved successfully."
+    );
+
+    setForm(emptyForm);
+
+    onTransactionSaved();
+    onScrollToTransactions();
+    onCancelEdit?.();
+  };
 
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-gray-900">Add Transaction</h2>
+        <h2 className="text-lg font-semibold text-gray-900">
+          {editingTransaction ? "Edit Transaction" : "Add Transaction"}
+        </h2>
         <p className="mt-1 text-sm text-gray-500">
           Create a new income or expense entry
         </p>
@@ -179,11 +234,22 @@ export default function AddTransactionForm({
             type="submit"
             className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
           >
-            Save Transaction
+            {editingTransaction ? "Update Transaction" : "Save Transaction"}
           </button>
 
+            {editingTransaction && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            )}
+
           <button
-            type="reset"
+            type="button"
+            onClick={resetForm}
             className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
           >
             Reset
