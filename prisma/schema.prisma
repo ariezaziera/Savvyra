@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  title     String
+  category  String
+  amount    Float
+  type      String   // Income or Expense
+  status    String   // Completed or Pending
+  date      DateTime
+  createdAt DateTime @default(now())
+}
+
+model SavingsGoal {
+  id        Int      @id @default(autoincrement())
+  name      String
+  category  String
+  target    Float
+  current   Float
+  deadline  DateTime?
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model Commitment {
+  id        Int      @id @default(autoincrement())
+  name      String
+  category  String
+  amount    Float
+  dueDate   DateTime
+  frequency String   // Monthly, Weekly, etc
+  status    String   // Upcoming, Paid, Overdue
+  note      String?
+  createdAt DateTime @default(now())
+}

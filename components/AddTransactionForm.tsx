@@ -1,8 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function AddTransactionForm() {
+type Transaction = {
+  id: number;
+  title: string;
+  category: string;
+  date: string;
+  amount: number;
+  type: "Income" | "Expense";
+  status: "Completed" | "Pending";
+};
+
+type AddTransactionFormProps = {
+  onTransactionSaved: () => void;
+  editingTransaction?: Transaction | null;
+  onCancelEdit?: () => void;
+};
+
+export default function AddTransactionForm({
+  onTransactionSaved,
+  editingTransaction,
+  onCancelEdit,
+}: AddTransactionFormProps) {
+
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -11,6 +32,19 @@ export default function AddTransactionForm() {
     type: "Expense",
     status: "Completed",
   });
+
+  useEffect(() => {
+    if (editingTransaction) {
+      setForm({
+        title: editingTransaction.title,
+        category: editingTransaction.category,
+        date: editingTransaction.date.split("T")[0],
+        amount: String(editingTransaction.amount),
+        type: editingTransaction.type,
+        status: editingTransaction.status,
+      });
+    }
+  }, [editingTransaction]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -23,6 +57,26 @@ export default function AddTransactionForm() {
     }));
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  const response = await fetch("/api/transactions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(form),
+  });
+
+  if (!response.ok) {
+    alert("Failed to save transaction");
+    return;
+  }
+
+  alert("Transaction saved!");
+  onTransactionSaved();
+};
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-5">
@@ -32,7 +86,7 @@ export default function AddTransactionForm() {
         </p>
       </div>
 
-      <form className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -122,7 +176,7 @@ export default function AddTransactionForm() {
 
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <button
-            type="button"
+            type="submit"
             className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
           >
             Save Transaction

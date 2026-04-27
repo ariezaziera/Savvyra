@@ -1,5 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import PageContainer from "@/components/PageContainer";
 import AddTransactionForm from "@/components/AddTransactionForm";
+import { Trash2, Pencil } from "lucide-react";
 
 type Transaction = {
   id: number;
@@ -11,57 +15,48 @@ type Transaction = {
   status: "Completed" | "Pending";
 };
 
-const transactions: Transaction[] = [
-  {
-    id: 1,
-    title: "Monthly Salary",
-    category: "Income",
-    date: "22 Apr 2026",
-    amount: 2100,
-    type: "Income",
-    status: "Completed",
-  },
-  {
-    id: 2,
-    title: "Shopee PayLater",
-    category: "Commitment",
-    date: "21 Apr 2026",
-    amount: 120,
-    type: "Expense",
-    status: "Completed",
-  },
-  {
-    id: 3,
-    title: "Petrol",
-    category: "Transport",
-    date: "20 Apr 2026",
-    amount: 50,
-    type: "Expense",
-    status: "Completed",
-  },
-  {
-    id: 4,
-    title: "Emergency Fund Transfer",
-    category: "Savings",
-    date: "19 Apr 2026",
-    amount: 200,
-    type: "Expense",
-    status: "Completed",
-  },
-  {
-    id: 5,
-    title: "Freelance Design",
-    category: "Side Income",
-    date: "18 Apr 2026",
-    amount: 180,
-    type: "Income",
-    status: "Pending",
-  },
-];
-
 const formatCurrency = (amount: number) => `RM ${amount.toLocaleString()}`;
 
 export default function TransactionsPage() {
+  const [editingTransaction, setEditingTransaction] =
+  useState<Transaction | null>(null);
+  
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+     const response = await fetch("/api/transactions");
+     const data = await response.json();
+     setTransactions(data);
+   };
+
+  const handleDelete = async (id: number) => {
+    const confirmDelete = confirm(
+      "Are you sure you want to delete this transaction? This action cannot be undone."
+    );
+
+    if (!confirmDelete) return;
+
+    const response = await fetch("/api/transactions", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      alert("Failed to delete transaction");
+      return;
+    }
+
+    alert("Transaction deleted.");
+    fetchTransactions();
+  };
+
   const totalIncome = transactions
     .filter((item) => item.type === "Income")
     .reduce((sum, item) => sum + item.amount, 0);
@@ -71,6 +66,13 @@ export default function TransactionsPage() {
     .reduce((sum, item) => sum + item.amount, 0);
 
   const totalTransactions = transactions.length;
+  
+  const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("en-MY", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 
   return (
     <PageContainer>
@@ -105,7 +107,11 @@ export default function TransactionsPage() {
       </div>
 
       <div className="mt-6">
-        <AddTransactionForm />
+        <AddTransactionForm
+          onTransactionSaved={fetchTransactions}
+          editingTransaction={editingTransaction}
+          onCancelEdit={() => setEditingTransaction(null)}
+        />      
       </div>
 
       <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -141,20 +147,23 @@ export default function TransactionsPage() {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
                   Title
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
                   Category
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
                   Date
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
                   Type
                 </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
                   Status
                 </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
                   Amount
+                </th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">
+                  Action
                 </th>
               </tr>
             </thead>
@@ -169,15 +178,15 @@ export default function TransactionsPage() {
                     {item.title}
                   </td>
 
-                  <td className="px-4 py-4 text-sm text-gray-600">
+                  <td className="px-4 py-4 text-center text-sm text-gray-600">
                     {item.category}
                   </td>
 
-                  <td className="px-4 py-4 text-sm text-gray-600">
-                    {item.date}
+                  <td className="px-4 py-4 text-center text-sm text-gray-600">
+                    {formatDate(item.date)}
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-4 text-center">
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-medium ${
                         item.type === "Income"
@@ -189,7 +198,7 @@ export default function TransactionsPage() {
                     </span>
                   </td>
 
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-4 text-center">
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-medium ${
                         item.status === "Completed"
@@ -202,7 +211,7 @@ export default function TransactionsPage() {
                   </td>
 
                   <td
-                    className={`rounded-r-xl px-4 py-4 text-right text-sm font-semibold ${
+                    className={`rounded-r-xl px-4 py-4 text-center text-sm font-semibold ${
                       item.type === "Income"
                         ? "text-green-600"
                         : "text-rose-500"
@@ -210,6 +219,27 @@ export default function TransactionsPage() {
                   >
                     {item.type === "Income" ? "+" : "-"}
                     {formatCurrency(item.amount)}
+                  </td>
+                  <td className="rounded-r-xl py-4 text-center">
+                    <div className="flex justify-center gap-1">
+                      {/* Edit */}
+                      <button
+                        type="button"
+                        onClick={() => setEditingTransaction(item)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      {/* Delete */}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-rose-50 hover:text-rose-500"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
