@@ -20,24 +20,30 @@ type Transaction = {
 const formatCurrency = (amount: number) => `RM ${amount.toLocaleString()}`;
 
 export default function TransactionsPage() {
-  const [editingTransaction, setEditingTransaction] =
-  useState<Transaction | null>(null);
-  
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);  
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All Types");
-
-  
+  const [typeFilter, setTypeFilter] = useState("All Types");  
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchTransactions();
   }, []);
 
   const fetchTransactions = async () => {
-     const response = await fetch("/api/transactions");
-     const data = await response.json();
-     setTransactions(data);
-   };
+    try {
+      setIsLoading(true);
+
+      const response = await fetch("/api/transactions");
+      const data = await response.json();
+
+      setTransactions(data);
+    } catch (error) {
+      showToast("Failed to load transactions.", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!transactionToDelete) return;
@@ -220,7 +226,16 @@ export default function TransactionsPage() {
             </thead>
 
             <tbody>
-              {filteredTransactions.map((item) => (
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                    Loading transactions...
+                  </td>
+                </tr>
+              )}
+              
+              {!isLoading &&
+                filteredTransactions.map((item) => (
                 <tr
                   key={item.id}
                   className="rounded-xl border border-gray-100 bg-slate-50"
@@ -294,6 +309,14 @@ export default function TransactionsPage() {
                   </td>
                 </tr>
               ))}
+
+              {!isLoading && filteredTransactions.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                    No transactions found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
