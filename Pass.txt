@@ -1,1 +1,13 @@
-Database Pass: Ariezaaziera
+Database Pass: Kyraizz_2001@
+
+git add .
+git commit -m "feat: change database password"
+git push
+
+Search + Filter working
+Loading state
+Dynamic Dashboard from database
+Savings Goals CRUD
+Commitments CRUD
+Authentication
+Deployment

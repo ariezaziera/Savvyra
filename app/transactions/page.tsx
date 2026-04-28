@@ -23,6 +23,10 @@ export default function TransactionsPage() {
   const [editingTransaction, setEditingTransaction] =
   useState<Transaction | null>(null);
   
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("All Types");
+
+  
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
@@ -99,6 +103,17 @@ export default function TransactionsPage() {
     });
   };
 
+  const filteredTransactions = transactions.filter((item) => {
+    const matchesSearch =
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesType =
+      typeFilter === "All Types" || item.type === typeFilter;
+
+    return matchesSearch && matchesType;
+  });
+
   return (
     <PageContainer>
       <div className="mb-6">
@@ -158,11 +173,17 @@ export default function TransactionsPage() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search transaction"
               className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
             />
 
-            <select className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
               <option>All Types</option>
               <option>Income</option>
               <option>Expense</option>
@@ -199,7 +220,7 @@ export default function TransactionsPage() {
             </thead>
 
             <tbody>
-              {transactions.map((item) => (
+              {filteredTransactions.map((item) => (
                 <tr
                   key={item.id}
                   className="rounded-xl border border-gray-100 bg-slate-50"
