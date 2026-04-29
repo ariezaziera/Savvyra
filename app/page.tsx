@@ -6,6 +6,7 @@ import SavingsGoalsSection from "@/components/SavingsGoalsSection";
 import PageContainer from "@/components/PageContainer";
 import { savingsGoals } from "@/lib/dashboardData";
 import { formatCurrency } from "@/lib/formatCurrency";
+import ExpenseCategoryChart from "@/components/ExpenseCategoryChart";
 
 type DashboardData = {
   balance: number;
@@ -13,6 +14,13 @@ type DashboardData = {
   expenses: number;
   savings: number;
 };
+
+const expenseCategoryData = [
+  { name: "Food", value: 420 },
+  { name: "Transport", value: 250 },
+  { name: "Commitment", value: 650 },
+  { name: "Savings", value: 500 },
+];
 
 export default function Home() {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -63,6 +71,10 @@ export default function Home() {
       </h1>
 
       <DashboardStats stats={stats} formatCurrency={formatCurrency} />
+
+      <div className="mt-6">
+        <ExpenseCategoryChart data={expenseCategoryData} />
+      </div>
 
       <SavingsGoalsSection
         savingsGoals={savingsGoals}
