@@ -59,12 +59,12 @@ export default function DashboardStats({
 
                 <div className="relative flex h-3 w-full rounded-full bg-gray-100">
                   <div
-                    className="h-full rounded-l-full bg-gradient-to-r from-blue-600 to-blue-200"
+                    className="h-full rounded-l-full bg-linear-to-r from-blue-600 to-blue-200"
                     style={{ width: `${savingsPercent}%` }}
                   ></div>
 
                   <div
-                    className="h-full rounded-r-full bg-gradient-to-r from-rose-200 to-rose-400"
+                    className="h-full rounded-r-full bg-linear-to-r from-rose-200 to-rose-400"
                     style={{ width: `${expensesPercent}%` }}
                   ></div>
 
