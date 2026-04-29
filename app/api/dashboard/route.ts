@@ -19,11 +19,33 @@ export async function GET() {
 
     const balance = income - expenses;
 
+    const expenseByCategoryMap: Record<string, number> = {};
+
+        transactions
+        .filter((item) => item.type === "Expense")
+        .forEach((item) => {
+            const key = item.category;
+
+            if (!expenseByCategoryMap[key]) {
+            expenseByCategoryMap[key] = 0;
+            }
+
+            expenseByCategoryMap[key] += item.amount;
+        });
+
+        const expenseByCategory = Object.entries(expenseByCategoryMap).map(
+        ([name, value]) => ({
+            name,
+            value,
+        })
+        );
+
     return NextResponse.json({
       balance,
       income,
       expenses,
       savings,
+      expenseByCategory,
     });
   } catch (error) {
     return NextResponse.json(

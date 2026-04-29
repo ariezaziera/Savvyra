@@ -13,14 +13,8 @@ type DashboardData = {
   income: number;
   expenses: number;
   savings: number;
+  expenseByCategory: { name: string; value: number }[];
 };
-
-const expenseCategoryData = [
-  { name: "Food", value: 420 },
-  { name: "Transport", value: 250 },
-  { name: "Commitment", value: 650 },
-  { name: "Savings", value: 500 },
-];
 
 export default function Home() {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -28,6 +22,7 @@ export default function Home() {
     income: 0,
     expenses: 0,
     savings: 0,
+    expenseByCategory: [],
   });
 
   useEffect(() => {
@@ -73,7 +68,7 @@ export default function Home() {
       <DashboardStats stats={stats} formatCurrency={formatCurrency} />
 
       <div className="mt-6">
-        <ExpenseCategoryChart data={expenseCategoryData} />
+        <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
       </div>
 
       <SavingsGoalsSection
