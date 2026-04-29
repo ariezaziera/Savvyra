@@ -14,3 +14,7 @@ Savings Goals CRUD
 Commitments CRUD
 Authentication
 Deployment
+
+“upgrade goal linking system” (proper relational DB way)
+OR
+👉 “ui polish goals section” (animations + better visuals)
