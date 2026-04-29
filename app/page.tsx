@@ -7,6 +7,7 @@ import PageContainer from "@/components/PageContainer";
 import { savingsGoals } from "@/lib/dashboardData";
 import { formatCurrency } from "@/lib/formatCurrency";
 import ExpenseCategoryChart from "@/components/ExpenseCategoryChart";
+import IncomeExpenseBarChart from "@/components/IncomeExpenseBarChart";
 
 type DashboardData = {
   balance: number;
@@ -14,6 +15,7 @@ type DashboardData = {
   expenses: number;
   savings: number;
   expenseByCategory: { name: string; value: number }[];
+  incomeExpenseSummary: { name: string; income: number; expenses: number }[];
 };
 
 export default function Home() {
@@ -23,6 +25,7 @@ export default function Home() {
     expenses: 0,
     savings: 0,
     expenseByCategory: [],
+    incomeExpenseSummary: [],
   });
 
   useEffect(() => {
@@ -69,6 +72,10 @@ export default function Home() {
 
       <div className="mt-6">
         <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
+      </div>
+
+      <div className="mt-6">
+        <IncomeExpenseBarChart data={dashboardData.incomeExpenseSummary} />
       </div>
 
       <SavingsGoalsSection

@@ -32,13 +32,21 @@ export async function GET() {
 
             expenseByCategoryMap[key] += item.amount;
         });
-
-        const expenseByCategory = Object.entries(expenseByCategoryMap).map(
+    
+     const expenseByCategory = Object.entries(expenseByCategoryMap).map(
         ([name, value]) => ({
             name,
             value,
         })
-        );
+    );
+
+    const incomeExpenseSummary = [
+    {
+        name: "Total",
+        income,
+        expenses,
+    },
+    ];
 
     return NextResponse.json({
       balance,
@@ -46,6 +54,7 @@ export async function GET() {
       expenses,
       savings,
       expenseByCategory,
+      incomeExpenseSummary,
     });
   } catch (error) {
     return NextResponse.json(

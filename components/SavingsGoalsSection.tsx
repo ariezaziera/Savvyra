@@ -77,7 +77,7 @@ export default function SavingsGoalsSection({
 
                 <div className="h-2.5 w-full rounded-full bg-gray-100">
                   <div
-                    className={`h-full rounded-full bg-gradient-to-r ${goal.color}`}
+                    className={`h-full rounded-full bg-linear-to-r ${goal.color}`}
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
