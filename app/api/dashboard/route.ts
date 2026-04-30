@@ -48,6 +48,38 @@ export async function GET() {
     },
     ];
 
+    const monthlyMap: Record<
+    string,
+    { income: number; expenses: number }
+    > = {};
+
+    transactions.forEach((item) => {
+    const date = new Date(item.date);
+
+    const month = date.toLocaleString("en-MY", {
+        month: "short",
+        year: "numeric",
+    });
+
+    if (!monthlyMap[month]) {
+        monthlyMap[month] = { income: 0, expenses: 0 };
+    }
+
+    if (item.type === "Income") {
+        monthlyMap[month].income += item.amount;
+    } else {
+        monthlyMap[month].expenses += item.amount;
+    }
+    });
+
+    const monthlyTrend = Object.entries(monthlyMap).map(
+    ([month, value]) => ({
+        month,
+        income: value.income,
+        expenses: value.expenses,
+    })
+    );
+
     return NextResponse.json({
       balance,
       income,
@@ -55,6 +87,7 @@ export async function GET() {
       savings,
       expenseByCategory,
       incomeExpenseSummary,
+      monthlyTrend,
     });
   } catch (error) {
     return NextResponse.json(

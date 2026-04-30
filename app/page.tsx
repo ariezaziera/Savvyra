@@ -8,6 +8,7 @@ import { savingsGoals } from "@/lib/dashboardData";
 import { formatCurrency } from "@/lib/formatCurrency";
 import ExpenseCategoryChart from "@/components/ExpenseCategoryChart";
 import IncomeExpenseBarChart from "@/components/IncomeExpenseBarChart";
+import MonthlyTrendChart from "@/components/MonthlyTrendChart";
 
 type DashboardData = {
   balance: number;
@@ -16,6 +17,11 @@ type DashboardData = {
   savings: number;
   expenseByCategory: { name: string; value: number }[];
   incomeExpenseSummary: { name: string; income: number; expenses: number }[];
+  monthlyTrend: {
+    month: string;
+    income: number;
+    expenses: number;
+  }[];
 };
 
 export default function Home() {
@@ -26,6 +32,7 @@ export default function Home() {
     savings: 0,
     expenseByCategory: [],
     incomeExpenseSummary: [],
+    monthlyTrend: [],
   });
 
   useEffect(() => {
@@ -76,6 +83,10 @@ export default function Home() {
 
       <div className="mt-6">
         <IncomeExpenseBarChart data={dashboardData.incomeExpenseSummary} />
+      </div>
+
+      <div className="mt-6">
+        <MonthlyTrendChart data={dashboardData.monthlyTrend} />
       </div>
 
       <SavingsGoalsSection
