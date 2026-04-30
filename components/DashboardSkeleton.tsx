@@ -20,7 +20,9 @@ export default function DashboardSkeleton() {
 
         {/* Donut Skeleton */}
         <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="h-4 w-40 rounded bg-gray-200" />
+          <div className="relative h-4 w-40 overflow-hidden rounded bg-gray-200">
+            <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          </div>
           <div className="mt-2 h-3 w-52 rounded bg-gray-100" />
 
           <div className="mt-6 flex items-center justify-center">
