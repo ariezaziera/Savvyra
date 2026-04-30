@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import ExpenseCategoryChart from "@/components/ExpenseCategoryChart";
 import IncomeExpenseBarChart from "@/components/IncomeExpenseBarChart";
 import MonthlyTrendChart from "@/components/MonthlyTrendChart";
+import DashboardSkeleton from "@/components/DashboardSkeleton";
 
 type DashboardData = {
   balance: number;
@@ -35,12 +36,20 @@ export default function Home() {
     monthlyTrend: [],
   });
 
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     const fetchDashboard = async () => {
-      const response = await fetch("/api/dashboard");
-      const data = await response.json();
+      try {
+        setIsLoading(true);
 
-      setDashboardData(data);
+        const response = await fetch("/api/dashboard");
+        const data = await response.json();
+
+        setDashboardData(data);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchDashboard();
@@ -67,6 +76,7 @@ export default function Home() {
       value: dashboardData.savings,
       color: "text-purple-600",
     },
+    
   ];
 
   return (
@@ -75,24 +85,25 @@ export default function Home() {
         Savvyra Dashboard
       </h1>
 
-      <DashboardStats stats={stats} formatCurrency={formatCurrency} />
+      {isLoading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+          <DashboardStats stats={stats} formatCurrency={formatCurrency} />
 
-      <div className="mt-6">
-        <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
-      </div>
+          <div className="mt-6">
+            <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
+          </div>
 
-      <div className="mt-6">
-        <IncomeExpenseBarChart data={dashboardData.incomeExpenseSummary} />
-      </div>
+          <div className="mt-6">
+            <IncomeExpenseBarChart data={dashboardData.incomeExpenseSummary} />
+          </div>
 
-      <div className="mt-6">
-        <MonthlyTrendChart data={dashboardData.monthlyTrend} />
-      </div>
-
-      <SavingsGoalsSection
-        savingsGoals={savingsGoals}
-        formatCurrency={formatCurrency}
-      />
+          <div className="mt-6">
+            <MonthlyTrendChart data={dashboardData.monthlyTrend} />
+          </div>
+        </>
+      )}
     </PageContainer>
   );
 }
