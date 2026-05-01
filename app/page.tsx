@@ -57,6 +57,7 @@ export default function Home() {
     };
 
     fetchDashboard();
+    fetchGoals();
   }, []);
 
   const stats = [
@@ -83,13 +84,39 @@ export default function Home() {
     
   ];
 
-  const savingsGoals = [
-    { name: "Emergency Fund", current: 1200, target: 3000 },
-    { name: "Car Service", current: 300, target: 700 },
-    { name: "Convo Savings", current: 990, target: 1000 },
-    { name: "Birthday Savings", current: 200, target: 200 },
-    { name: "Insurance Savings", current: 2000, target: 5000 },
-  ];
+  const [goals, setGoals] = useState<any[]>([]);
+
+  const fetchGoals = async () => {
+    const res = await fetch("/api/savings-goals");
+    const data = await res.json();
+    setGoals(data);
+  };
+
+  const [goalName, setGoalName] = useState("");
+  const [goalTarget, setGoalTarget] = useState("");
+
+  const handleAddGoal = async () => {
+    if (!goalName || !goalTarget) return;
+
+    await fetch("/api/savings-goals", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: goalName,
+        category: "Cash Savings",
+        target: goalTarget,
+        current: 0,
+        deadline: null,
+        note: null,
+      }),
+    });
+
+    setGoalName("");
+    setGoalTarget("");
+    fetchGoals();
+  };
 
   return (
     <PageContainer>
@@ -124,7 +151,28 @@ export default function Home() {
             </div>
           </section>
 
-          <SavingsGoalsCarousel goals={savingsGoals} />
+          <SavingsGoalsCarousel goals={goals} />
+
+          <div className="mt-6 flex gap-2">
+            <input
+              value={goalName}
+              onChange={(e) => setGoalName(e.target.value)}
+              placeholder="Goal name"
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+            <input
+              value={goalTarget}
+              onChange={(e) => setGoalTarget(e.target.value)}
+              placeholder="Target"
+              className="rounded-xl border px-3 py-2 text-sm"
+            />
+            <button
+              onClick={handleAddGoal}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-white text-sm"
+            >
+              Add
+            </button>
+          </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ExpenseCategoryChart data={dashboardData.expenseByCategory} />

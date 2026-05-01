@@ -3,9 +3,13 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type Goal = {
+  id: number;
   name: string;
-  current: number;
+  category: string;
   target: number;
+  current: number;
+  deadline?: string | null;
+  note?: string | null;
 };
 
 type Props = {
@@ -13,6 +17,7 @@ type Props = {
 };
 
 export default function SavingsGoalsCarousel({ goals }: Props) {
+
   return (
     <section className="mt-6">
       <h2 className="mb-3 text-lg font-semibold text-gray-900">
@@ -22,6 +27,7 @@ export default function SavingsGoalsCarousel({ goals }: Props) {
       <div className="flex gap-4 overflow-x-auto pb-2">
         {goals.map((goal, index) => {
           const progress = Math.min(goal.current / goal.target, 1);
+        // const progress = 0;
 
           const data = [
             { name: "Progress", value: progress },
@@ -31,7 +37,7 @@ export default function SavingsGoalsCarousel({ goals }: Props) {
           return (
             <div
               key={goal.name}
-              className="min-w-[220px] rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="min-w-55 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <p className="text-sm text-gray-500">{goal.name}</p>
 
@@ -61,8 +67,9 @@ export default function SavingsGoalsCarousel({ goals }: Props) {
 
               {/* Amount */}
               <p className="mt-1 text-center text-xs text-gray-500">
-                RM {goal.current.toLocaleString()} / RM{" "}
-                {goal.target.toLocaleString()}
+                {/* RM {goal.current.toLocaleString()} / RM{" "}
+                {goal.target.toLocaleString()} */}
+                RM {goal.current.toLocaleString()} / RM {goal.target.toLocaleString()}
               </p>
             </div>
           );
