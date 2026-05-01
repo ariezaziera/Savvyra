@@ -1,6 +1,8 @@
 "use client";
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { useState } from "react";
+import ChartTooltip from "@/components/ChartTooltip";
 
 type CategoryData = {
   name: string;
@@ -13,9 +15,13 @@ type ExpenseCategoryChartProps = {
 
 const COLORS = ["#2563EB", "#60A5FA", "#93C5FD", "#DBEAFE", "#CBD5E1"];
 
+
 export default function ExpenseCategoryChart({
   data,
 }: ExpenseCategoryChartProps) {
+
+  const [activeIndex, setActiveIndex] = useState(0);
+
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-4">
@@ -37,12 +43,14 @@ export default function ExpenseCategoryChart({
               innerRadius={65}
               outerRadius={95}
               paddingAngle={3}
+              activeIndex={activeIndex}
+              onMouseEnter={(_, index) => setActiveIndex(index)}
             >
               {data.map((entry, index) => (
                 <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip content={<ChartTooltip />} />
           </PieChart>
         </ResponsiveContainer>
       </div>

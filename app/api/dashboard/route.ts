@@ -13,8 +13,27 @@ export async function GET() {
       .filter((item) => item.type === "Expense")
       .reduce((sum, item) => sum + item.amount, 0);
 
-    const savings = transactions
-      .filter((item) => item.category.toLowerCase() === "savings")
+    const savingsTransactions = transactions.filter(
+      (item) =>
+        item.type === "Expense" &&
+        item.category.toLowerCase().includes("savings")
+    );
+
+    const totalSavings = savingsTransactions.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const cashSavings = savingsTransactions
+      .filter((item) =>
+        item.category.toLowerCase().includes("cash")
+      )
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    const goldSavings = savingsTransactions
+      .filter((item) =>
+        item.category.toLowerCase().includes("gold")
+      )
       .reduce((sum, item) => sum + item.amount, 0);
 
     const balance = income - expenses;
@@ -24,7 +43,7 @@ export async function GET() {
         transactions
         .filter((item) => item.type === "Expense")
         .forEach((item) => {
-            const key = item.category;
+            const key = item.category.trim();
 
             if (!expenseByCategoryMap[key]) {
             expenseByCategoryMap[key] = 0;
@@ -84,7 +103,9 @@ export async function GET() {
       balance,
       income,
       expenses,
-      savings,
+      savings: totalSavings,
+      cashSavings,
+      goldSavings,
       expenseByCategory,
       incomeExpenseSummary,
       monthlyTrend,

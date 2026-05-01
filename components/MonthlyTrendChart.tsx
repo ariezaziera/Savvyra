@@ -1,5 +1,7 @@
 "use client";
 
+import ChartTooltip from "@/components/ChartTooltip";
+
 import {
   LineChart,
   Line,
@@ -36,14 +38,16 @@ export default function MonthlyTrendChart({ data }: Props) {
           <LineChart data={data}>
             <XAxis dataKey="month" stroke="#9CA3AF" />
             <YAxis stroke="#9CA3AF" />
-            <Tooltip />
+            <Tooltip content={<ChartTooltip />} />
 
             <Line
               type="monotone"
               dataKey="income"
               stroke="#2563EB"
               strokeWidth={2}
-              dot={false}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+              animationDuration={500}
             />
 
             <Line
@@ -51,7 +55,9 @@ export default function MonthlyTrendChart({ data }: Props) {
               dataKey="expenses"
               stroke="#F43F5E"
               strokeWidth={2}
-              dot={false}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
+              animationDuration={500}
             />
           </LineChart>
         </ResponsiveContainer>

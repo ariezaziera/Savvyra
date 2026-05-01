@@ -1,5 +1,7 @@
 "use client";
 
+import ChartTooltip from "@/components/ChartTooltip";
+
 import {
   Bar,
   BarChart,
@@ -19,6 +21,7 @@ type Props = {
   data: Data[];
 };
 
+
 export default function IncomeExpenseBarChart({ data }: Props) {
   return (
     <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -36,10 +39,21 @@ export default function IncomeExpenseBarChart({ data }: Props) {
           <BarChart data={data}>
             <XAxis dataKey="name" stroke="#9CA3AF" />
             <YAxis stroke="#9CA3AF" />
-            <Tooltip />
+            <Tooltip content={<ChartTooltip />} />
 
-            <Bar dataKey="income" fill="#2563EB" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="expenses" fill="#F43F5E" radius={[6, 6, 0, 0]} />
+            <Bar
+              dataKey="income"
+              fill="#2563EB"
+              radius={[6, 6, 0, 0]}
+              animationDuration={500}
+            />
+
+            <Bar
+              dataKey="expenses"
+              fill="#F43F5E"
+              radius={[6, 6, 0, 0]}
+              animationDuration={500}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>

@@ -9,8 +9,11 @@ export default function DashboardStats({
   stats,
   formatCurrency,
 }: DashboardStatsProps) {
-  const savings = stats.find((item) => item.label === "Savings")?.value || 0;
-  const expenses = stats.find((item) => item.label === "Expenses")?.value || 0;
+  const savings =
+    stats.find((item) => item.label === "Total Savings")?.value || 0;
+
+  const expenses =
+    stats.find((item) => item.label === "Expenses")?.value || 0;
 
   const total = savings + expenses;
   const savingsPercent = total ? (savings / total) * 100 : 0;
@@ -38,7 +41,7 @@ export default function DashboardStats({
         return (
           <div
             key={label}
-            className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md space-y-1 ${
+            className={`space-y-1 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md ${
               isBalance ? "row-span-2" : ""
             }`}
           >
@@ -59,14 +62,14 @@ export default function DashboardStats({
 
                 <div className="relative flex h-3 w-full rounded-full bg-gray-100">
                   <div
-                    className="h-full rounded-l-full bg-linear-to-r from-blue-600 to-blue-200"
+                    className="h-full rounded-l-full bg-gradient-to-r from-blue-600 to-blue-200"
                     style={{ width: `${savingsPercent}%` }}
-                  ></div>
+                  />
 
                   <div
-                    className="h-full rounded-r-full bg-linear-to-r from-rose-200 to-rose-400"
+                    className="h-full rounded-r-full bg-gradient-to-r from-rose-200 to-rose-400"
                     style={{ width: `${expensesPercent}%` }}
-                  ></div>
+                  />
 
                   <div
                     className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 bg-white transition-all duration-300 ${dominantColor} ${glowColor} shadow-sm`}
@@ -79,7 +82,7 @@ export default function DashboardStats({
                           ? "0 0 6px rgba(244,63,94,0.3)"
                           : "0 0 6px rgba(156,163,175,0.3)",
                     }}
-                  ></div>
+                  />
                 </div>
 
                 <div className="flex justify-between text-xs text-gray-500">
