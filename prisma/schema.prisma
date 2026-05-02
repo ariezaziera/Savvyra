@@ -8,14 +8,16 @@ datasource db {
 }
 
 model Transaction {
-  id        Int      @id @default(autoincrement())
-  title     String
-  category  String
-  amount    Float
-  type      String   // Income or Expense
-  status    String   // Completed or Pending
-  date      DateTime
-  createdAt DateTime @default(now())
+id Int @id @default(autoincrement())
+title String
+category String
+amount Float
+type String
+status String
+date DateTime
+createdAt DateTime @default(now())
+savingsGoalId Int?
+savingsGoal SavingsGoal? @relation(fields: [savingsGoalId], references: [id])
 }
 
 model SavingsGoal {

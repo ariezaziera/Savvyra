@@ -99,6 +99,31 @@ export async function GET() {
     })
     );
 
+    const goals = await prisma.savingsGoal.findMany();
+
+    const goalsWithProgress = goals.map((goal) => {
+
+    const current = transactions
+      .filter(
+        (item) =>
+          item.type === "Expense" &&
+          item.category
+            .toLowerCase()
+            .includes(goal.name.toLowerCase())
+      )
+      .reduce((sum, item) => sum + item.amount, 0);
+
+    return {
+      id: goal.id,
+      name: goal.name,
+      category: goal.category,
+      target: goal.target,
+      current: goal.current,
+      deadline: goal.deadline,
+      note: goal.note,
+    };
+  });
+
     return NextResponse.json({
       balance,
       income,
@@ -116,4 +141,5 @@ export async function GET() {
       { status: 500 }
     );
   }
+  
 }
