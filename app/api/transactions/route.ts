@@ -13,6 +13,7 @@ export async function POST(request: Request) {
         type: body.type,
         status: body.status,
         date: new Date(body.date),
+        savingsGoalId: body.savingsGoalId ? Number(body.savingsGoalId) : null,
       },
     });
 
@@ -76,6 +77,7 @@ export async function PUT(request: Request) {
         type: body.type,
         status: body.status,
         date: new Date(body.date),
+        savingsGoalId: body.savingsGoalId ? Number(body.savingsGoalId) : null,
       },
     });
 

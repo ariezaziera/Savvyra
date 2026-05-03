@@ -10,6 +10,7 @@ type Transaction = {
   amount: number;
   type: "Income" | "Expense";
   status: "Completed" | "Pending";
+  savingsGoalId?: number | null;
 };
 
 type AddTransactionFormProps = {
@@ -20,6 +21,11 @@ type AddTransactionFormProps = {
   onScrollToTransactions: () => void;
 };
 
+type SavingsGoal = {
+  id: number;
+  name: string;
+};
+
 const emptyForm = {
   title: "",
   category: "",
@@ -27,6 +33,7 @@ const emptyForm = {
   amount: "",
   type: "Expense",
   status: "Completed",
+  savingsGoalId: "",
 };
 
 export default function AddTransactionForm({
@@ -48,9 +55,24 @@ export default function AddTransactionForm({
         amount: String(editingTransaction.amount),
         type: editingTransaction.type,
         status: editingTransaction.status,
+        savingsGoalId: editingTransaction.savingsGoalId
+        ? String(editingTransaction.savingsGoalId)
+        : "",
       });
     }
   }, [editingTransaction]);
+
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
+
+  useEffect(() => {
+  const fetchGoals = async () => {
+    const response = await fetch("/api/savings-goals");
+    const data = await response.json();
+    setGoals(data);
+  };
+
+  fetchGoals();
+}, []);
 
   const resetForm = () => {
     if (editingTransaction) {
@@ -61,6 +83,9 @@ export default function AddTransactionForm({
         amount: String(editingTransaction.amount),
         type: editingTransaction.type,
         status: editingTransaction.status,
+        savingsGoalId: editingTransaction.savingsGoalId
+        ? String(editingTransaction.savingsGoalId)
+        : "",
       });
 
       return;
@@ -98,6 +123,9 @@ export default function AddTransactionForm({
       body: JSON.stringify({
         ...form,
         id: editingTransaction?.id,
+        savingsGoalId: form.savingsGoalId
+          ? Number(form.savingsGoalId)
+          : null,
       }),
     });
 
@@ -105,17 +133,6 @@ export default function AddTransactionForm({
       onShowToast("Failed to save transaction.", "error");
       return;
     }
-
-    onShowToast("Transaction saved successfully.");
-
-    setForm({
-      title: "",
-      category: "",
-      date: "",
-      amount: "",
-      type: "Expense",
-      status: "Completed",
-    });
 
     onShowToast(
       isEditing
@@ -227,6 +244,29 @@ export default function AddTransactionForm({
               <option value="Pending">Pending</option>
             </select>
           </div>
+
+          {form.type === "Expense" && (
+            <div>
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Assign to Savings Goal
+              </label>
+
+              <select
+                name="savingsGoalId"
+                value={form.savingsGoalId}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="">No savings goal</option>
+
+                {goals.map((goal) => (
+                  <option key={goal.id} value={goal.id}>
+                    {goal.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">

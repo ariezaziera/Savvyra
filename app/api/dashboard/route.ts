@@ -102,27 +102,20 @@ export async function GET() {
     const goals = await prisma.savingsGoal.findMany();
 
     const goalsWithProgress = goals.map((goal) => {
+      const current = transactions
+        .filter((item) => item.savingsGoalId === goal.id)
+        .reduce((sum, item) => sum + item.amount, 0);
 
-    const current = transactions
-      .filter(
-        (item) =>
-          item.type === "Expense" &&
-          item.category
-            .toLowerCase()
-            .includes(goal.name.toLowerCase())
-      )
-      .reduce((sum, item) => sum + item.amount, 0);
-
-    return {
-      id: goal.id,
-      name: goal.name,
-      category: goal.category,
-      target: goal.target,
-      current: goal.current,
-      deadline: goal.deadline,
-      note: goal.note,
-    };
-  });
+      return {
+        id: goal.id,
+        name: goal.name,
+        category: goal.category,
+        target: goal.target,
+        current,
+        deadline: goal.deadline,
+        note: goal.note,
+      };
+    });
 
     return NextResponse.json({
       balance,
@@ -134,6 +127,7 @@ export async function GET() {
       expenseByCategory,
       incomeExpenseSummary,
       monthlyTrend,
+      goals: goalsWithProgress,
     });
   } catch (error) {
     return NextResponse.json(

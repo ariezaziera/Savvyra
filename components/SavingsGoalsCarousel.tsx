@@ -53,7 +53,7 @@ export default function SavingsGoalsCarousel({ goals }: Props) {
                       startAngle={90}
                       endAngle={-270}
                     >
-                      <Cell fill="#2563EB" />
+                      <Cell fill={progress >= 1 ? "#16A34A" : "#2563EB"} />
                       <Cell fill="#E5E7EB" />
                     </Pie>
                   </PieChart>

@@ -8,27 +8,29 @@ datasource db {
 }
 
 model Transaction {
-id Int @id @default(autoincrement())
-title String
-category String
-amount Float
-type String
-status String
-date DateTime
-createdAt DateTime @default(now())
-savingsGoalId Int?
-savingsGoal SavingsGoal? @relation(fields: [savingsGoalId], references: [id])
+  id            Int          @id @default(autoincrement())
+  title         String
+  category      String
+  amount        Float
+  type          String
+  status        String
+  date          DateTime
+  createdAt     DateTime     @default(now())
+  savingsGoalId Int?
+  savingsGoal   SavingsGoal? @relation(fields: [savingsGoalId], references: [id])
 }
 
 model SavingsGoal {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
   category  String
   target    Float
-  current   Float
+  current   Float     @default(0)
   deadline  DateTime?
   note      String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+
+  transactions Transaction[]
 }
 
 model Commitment {
@@ -37,8 +39,8 @@ model Commitment {
   category  String
   amount    Float
   dueDate   DateTime
-  frequency String   // Monthly, Weekly, etc
-  status    String   // Upcoming, Paid, Overdue
+  frequency String // Monthly, Weekly, etc
+  status    String // Upcoming, Paid, Overdue
   note      String?
   createdAt DateTime @default(now())
 }
