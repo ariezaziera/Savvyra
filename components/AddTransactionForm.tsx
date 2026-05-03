@@ -104,6 +104,17 @@ export default function AddTransactionForm({
   ) => {
     const { name, value } = e.target;
 
+    if (name === "savingsGoalId" && value) {
+      setForm((prev) => ({
+        ...prev,
+        savingsGoalId: value,
+        type: "Expense",
+        category: "Savings",
+      }));
+
+      return;
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: value,

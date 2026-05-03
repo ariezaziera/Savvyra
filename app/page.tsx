@@ -41,24 +41,47 @@ export default function Home() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [completionToast, setCompletionToast] = useState("");
+  const [goals, setGoals] = useState<any[]>([]);
+
+  const fetchDashboard = async () => {
+    try {
+      setIsLoading(true);
+
+      const response = await fetch("/api/dashboard");
+      const data = await response.json();
+
+      setDashboardData(data);
+
+      const dashboardGoals = data.goals || [];
+      setGoals(dashboardGoals);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        setIsLoading(true);
-
-        const response = await fetch("/api/dashboard");
-        const data = await response.json();
-
-        setDashboardData(data);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchDashboard();
-    fetchGoals();
   }, []);
+
+  useEffect(() => {
+    if (goals.length === 0) return;
+
+    goals.forEach((goal: any) => {
+      const progress = goal.target > 0 ? goal.current / goal.target : 0;
+      const storageKey = `savvyra-goal-completed-${goal.id}`;
+
+      if (progress >= 1 && !localStorage.getItem(storageKey)) {
+        setCompletionToast(`${goal.name} completed 🎉`);
+        localStorage.setItem(storageKey, "true");
+
+        setTimeout(() => {
+          setCompletionToast("");
+        }, 3000);
+      }
+    });
+  }, [goals]);
+
 
   const stats = [
     {
@@ -83,8 +106,6 @@ export default function Home() {
     },
     
   ];
-
-  const [goals, setGoals] = useState<any[]>([]);
 
   const fetchGoals = async () => {
     const res = await fetch("/api/savings-goals");
@@ -115,11 +136,17 @@ export default function Home() {
 
     setGoalName("");
     setGoalTarget("");
-    fetchGoals();
+    await fetchDashboard();
   };
 
   return (
     <PageContainer>
+      {completionToast && (
+        <div className="fixed right-5 top-5 z-50 rounded-2xl bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-lg animate-bounce">
+          {completionToast}
+        </div>
+      )}
+      
       <h1 className="mb-6 text-2xl font-semibold text-gray-900">
         Savvyra Dashboard
       </h1>
