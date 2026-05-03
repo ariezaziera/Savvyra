@@ -17,6 +17,14 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    window.location.href = "/login";
+  };
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto max-w-7xl px-6 pt-4 pb-4">
@@ -56,11 +64,18 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            <button
+              onClick={handleLogout}
+              className="ml-2 rounded-full px-4 py-2 text-sm text-red-500 hover:bg-red-50"
+            >
+              Logout
+            </button>
           </nav>
 
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white md:hidden"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             <span className="sr-only">Open menu</span>
@@ -93,6 +108,12 @@ export default function Navbar() {
                   </Link>
                 );
               })}
+              <button
+                onClick={handleLogout}
+                className="mt-2 rounded-xl px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50"
+              >
+                Logout
+              </button>
             </div>
           </div>
         )}

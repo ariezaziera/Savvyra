@@ -44,9 +44,8 @@ export async function POST(request: Request) {
     response.cookies.set("savvyra_token", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // ⚠️ localhost
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
