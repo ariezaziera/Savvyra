@@ -119,20 +119,22 @@ export default function Home() {
   const handleAddGoal = async () => {
     if (!goalName || !goalTarget) return;
 
-    await fetch("/api/savings-goals", {
+    const res = await fetch("/api/savings-goals", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: goalName,
-        category: "Cash Savings",
-        target: goalTarget,
-        current: 0,
-        deadline: null,
-        note: null,
-      }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name: goalName, targetAmount: goalTarget, currentAmount: 0, deadline: null }),
     });
+    if (!res.ok) {
+      const error = await res.json();
+      console.error("Failed to add goal:", error);
+    } else {
+      const newGoal = await res.json();
+      console.log("Added goal:", newGoal);
+      setGoalName("");
+      setGoalTarget("");
+      await fetchDashboard();
+    }
 
     setGoalName("");
     setGoalTarget("");

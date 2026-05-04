@@ -39,9 +39,15 @@ export async function POST(request: Request) {
       { message: "Account created successfully" },
       { status: 201 }
     );
-  } catch (error) {
+  } 
+  catch (error: unknown) {
+    console.error("Registration error:", error);
+    
+    // Safely access error message
+    const errorMessage = error instanceof Error ? error.message : "Failed to register";
+    
     return NextResponse.json(
-      { error: "Failed to register" },
+      { error: "Failed to register", details: errorMessage },
       { status: 500 }
     );
   }
