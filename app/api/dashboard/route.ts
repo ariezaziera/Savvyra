@@ -9,59 +9,89 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const transactions = await prisma.transaction.findMany({ where: { userId } });
+    const [transactions, goals] = await Promise.all([
+      prisma.transaction.findMany({ where: { userId } }),
+      prisma.savingsGoal.findMany({
+        where: { userId },
+        include: {
+          transactions: {
+            where: { status: "Completed" },
+            select: { amount: true },
+          },
+        },
+      }),
+    ]);
 
-    const income = transactions
-      .filter((item) => item.type === "income")
-      .reduce((sum, item) => sum + item.amount, 0);
+    // Kira currentAmount setiap goal dari transactions
+    const goalsWithProgress = goals.map((goal) => {
+      const currentAmount = goal.transactions.reduce(
+        (sum, t) => sum + t.amount,
+        0
+      );
+      return {
+        id: goal.id,
+        name: goal.name,
+        targetAmount: goal.targetAmount,
+        currentAmount,
+        deadline: goal.deadline,
+      };
+    });
 
-    const expenses = transactions
-      .filter((item) => item.type === "expense")
-      .reduce((sum, item) => sum + item.amount, 0);
-
-    const savingsTransactions = transactions.filter(
-      (item) =>
-        item.type === "expense" &&
-        item.description.toLowerCase().includes("savings")
+    // Total savings = jumlah semua savings goals
+    const totalSavings = goalsWithProgress.reduce(
+      (sum, goal) => sum + goal.currentAmount,
+      0
     );
 
-    const totalSavings = savingsTransactions.reduce((sum, item) => sum + item.amount, 0);
+    // Cash & gold savings = filter by goal name
+    const cashSavings = goalsWithProgress
+      .filter((g) => g.name.toLowerCase().includes("cash"))
+      .reduce((sum, g) => sum + g.currentAmount, 0);
 
-    const cashSavings = savingsTransactions
-      .filter((item) => item.description.toLowerCase().includes("cash"))
-      .reduce((sum, item) => sum + item.amount, 0);
+    const goldSavings = goalsWithProgress
+      .filter((g) => g.name.toLowerCase().includes("gold"))
+      .reduce((sum, g) => sum + g.currentAmount, 0);
 
-    const goldSavings = savingsTransactions
-      .filter((item) => item.description.toLowerCase().includes("gold"))
-      .reduce((sum, item) => sum + item.amount, 0);
+    // Income & expenses dari transactions
+    const income = transactions
+      .filter((t) => t.type.toLowerCase() === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const expenses = transactions
+      .filter((t) => t.type.toLowerCase() === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
 
     const balance = income - expenses;
 
+    // Expense by category
     const expenseByCategoryMap: Record<string, number> = {};
     transactions
-      .filter((item) => item.type === "expense")
-      .forEach((item) => {
-        const key = item.description.trim();
-        expenseByCategoryMap[key] = (expenseByCategoryMap[key] || 0) + item.amount;
+      .filter((t) => t.type.toLowerCase() === "expense")
+      .forEach((t) => {
+        const key = (t.category ?? "").trim() || "Uncategorized";
+        expenseByCategoryMap[key] =
+          (expenseByCategoryMap[key] || 0) + t.amount;
       });
 
     const expenseByCategory = Object.entries(expenseByCategoryMap).map(
       ([name, value]) => ({ name, value })
     );
 
+    // Income vs expense summary
     const incomeExpenseSummary = [{ name: "Total", income, expenses }];
 
+    // Monthly trend
     const monthlyMap: Record<string, { income: number; expenses: number }> = {};
-    transactions.forEach((item) => {
-      const month = new Date(item.date).toLocaleString("en-MY", {
+    transactions.forEach((t) => {
+      const month = new Date(t.date).toLocaleString("en-MY", {
         month: "short",
         year: "numeric",
       });
       if (!monthlyMap[month]) monthlyMap[month] = { income: 0, expenses: 0 };
-      if (item.type === "income") {
-        monthlyMap[month].income += item.amount;
+      if (t.type.toLowerCase() === "income") {
+        monthlyMap[month].income += t.amount;
       } else {
-        monthlyMap[month].expenses += item.amount;
+        monthlyMap[month].expenses += t.amount;
       }
     });
 
@@ -69,16 +99,6 @@ export async function GET(request: Request) {
       month,
       income: value.income,
       expenses: value.expenses,
-    }));
-
-    const goals = await prisma.savingsGoal.findMany({ where: { userId } });
-
-    const goalsWithProgress = goals.map((goal) => ({
-      id: goal.id,
-      name: goal.name,
-      targetAmount: goal.targetAmount,
-      currentAmount: goal.currentAmount,
-      deadline: goal.deadline,
     }));
 
     return NextResponse.json({

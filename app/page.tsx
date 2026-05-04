@@ -48,13 +48,16 @@ export default function Home() {
     try {
       setIsLoading(true);
 
-      const response = await fetch("/api/dashboard");
-      const data = await response.json();
+      const [dashboardRes, goalsRes] = await Promise.all([
+        fetch("/api/dashboard"),
+        fetch("/api/savings-goals"), 
+      ]);
+
+      const data = await dashboardRes.json();
+      const goalsData = await goalsRes.json();
 
       setDashboardData(data);
-
-      const dashboardGoals = data.goals || [];
-      setGoals(dashboardGoals);
+      setGoals(Array.isArray(goalsData) ? goalsData : []);
     } finally {
       setIsLoading(false);
     }
@@ -106,12 +109,7 @@ export default function Home() {
     },
     
   ];
-
-  const fetchGoals = async () => {
-    const res = await fetch("/api/savings-goals");
-    const data = await res.json();
-    setGoals(data);
-  };
+  
 
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");

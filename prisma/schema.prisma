@@ -42,7 +42,7 @@ model Transaction {
   id          String   @id @default(cuid())
   title       String
   category    String
-  description    String
+  description    String?
   amount      Float
   type        String
   status      String   @default("Completed")

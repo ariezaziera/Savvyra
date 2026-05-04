@@ -130,8 +130,8 @@ export default function AddTransactionForm({
       body: JSON.stringify({
         ...form,
         id: editingTransaction?.id,
-        amount: Number(form.amount),
-        savingsGoalId: form.savingsGoalId || null, // ✅ keep as string, no Number()
+        amount: form.amount ? parseFloat(form.amount) : 0,
+        savingsGoalId: form.savingsGoalId ? form.savingsGoalId : null,
       }),
     });
 

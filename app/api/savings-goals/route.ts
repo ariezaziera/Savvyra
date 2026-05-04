@@ -10,10 +10,32 @@ export async function GET(request: Request) {
 
   const goals = await prisma.savingsGoal.findMany({
     where: { userId },
-    // orderBy: { createdAt: "desc" }, // uncomment after adding createdAt field
+    include: {
+      transactions: {
+        where: { status: "Completed" },
+        select: { amount: true },
+      },
+    },
   });
 
-  return NextResponse.json(goals);
+  console.log("RAW GOALS:", JSON.stringify(goals, null, 2));
+
+  const goalsWithProgress = goals.map((goal) => {
+    const currentAmount = goal.transactions.reduce(
+      (sum, t) => sum + t.amount,
+      0
+    );
+
+    return {
+      id: goal.id,
+      name: goal.name,
+      targetAmount: goal.targetAmount,
+      currentAmount,
+      deadline: goal.deadline,
+    };
+  });
+
+  return NextResponse.json(goalsWithProgress);
 }
 
 export async function POST(request: Request) {

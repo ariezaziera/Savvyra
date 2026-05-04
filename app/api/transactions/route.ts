@@ -11,24 +11,45 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
+    // ✅ VALIDATION
+    if (!body.title || !body.amount || !body.date) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
     const transaction = await prisma.transaction.create({
       data: {
         title: body.title,
-        category: body.category,
-        description: body.description,
-        amount: Number(body.amount),
+        category: body.category || "General",
+        description: body.description || null,
+
+        // ✅ SAFE NUMBER
+        amount: parseFloat(body.amount),
+
         type: body.type,
         status: body.status,
+
+        // ✅ SAFE DATE
         date: new Date(body.date),
+
         userId,
-        savingsGoalId: body.savingsGoalId || null,
+
+        // ✅ FIX TYPE HERE
+        savingsGoalId: body.savingsGoalId
+          ? String(body.savingsGoalId) // OR Number(...) if your schema uses Int
+          : null,
       },
     });
 
     return NextResponse.json(transaction, { status: 201 });
   } catch (error) {
     console.error("POST /api/transactions error:", error);
-    return NextResponse.json({ error: "Failed to create transaction" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create transaction" },
+      { status: 500 }
+    );
   }
 }
 
