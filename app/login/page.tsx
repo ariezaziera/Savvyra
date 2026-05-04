@@ -55,7 +55,7 @@ export default function LoginPage() {
     checkAuth();
     }, []);
 
-    if (!isAuthChecked) return <div>Loading...</div>;
+    // if (!isAuthChecked) return <div>Loading...</div>;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
