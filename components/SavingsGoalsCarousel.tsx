@@ -38,7 +38,7 @@ export default function SavingsGoalsCarousel({ goals }: Props) {
           return (
             <div
               key={goal.name}
-              className={`min-w-55 rounded-2xl border bg-white p-4 shadow-sm transition-all duration-500 ${
+              className={`min-w-55 rounded-2xl border bg-white p-4 mt-2 shadow-sm transition-all duration-500 ${
                 isCompleted
                   ? "border-green-300 shadow-green-100 scale-[1.02]"
                   : "border-gray-200"

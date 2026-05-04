@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -41,6 +41,21 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+    useEffect(() => {
+    const checkAuth = async () => {
+        // Give cookies/localStorage a moment
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const token = localStorage.getItem('token'); // or check cookie
+        if (!token) router.push('/login');
+        setIsAuthChecked(true);
+    };
+    checkAuth();
+    }, []);
+
+    if (!isAuthChecked) return <div>Loading...</div>;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
