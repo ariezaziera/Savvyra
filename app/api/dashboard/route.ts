@@ -1,121 +1,85 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUserIdFromRequest } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const transactions = await prisma.transaction.findMany();
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const transactions = await prisma.transaction.findMany({ where: { userId } });
 
     const income = transactions
-      .filter((item) => item.type === "Income")
+      .filter((item) => item.type === "income")
       .reduce((sum, item) => sum + item.amount, 0);
 
     const expenses = transactions
-      .filter((item) => item.type === "Expense")
+      .filter((item) => item.type === "expense")
       .reduce((sum, item) => sum + item.amount, 0);
 
     const savingsTransactions = transactions.filter(
       (item) =>
-        item.type === "Expense" &&
-        item.category.toLowerCase().includes("savings")
+        item.type === "expense" &&
+        item.description.toLowerCase().includes("savings")
     );
 
-    const totalSavings = savingsTransactions.reduce(
-      (sum, item) => sum + item.amount,
-      0
-    );
+    const totalSavings = savingsTransactions.reduce((sum, item) => sum + item.amount, 0);
 
     const cashSavings = savingsTransactions
-      .filter((item) =>
-        item.category.toLowerCase().includes("cash")
-      )
+      .filter((item) => item.description.toLowerCase().includes("cash"))
       .reduce((sum, item) => sum + item.amount, 0);
 
     const goldSavings = savingsTransactions
-      .filter((item) =>
-        item.category.toLowerCase().includes("gold")
-      )
+      .filter((item) => item.description.toLowerCase().includes("gold"))
       .reduce((sum, item) => sum + item.amount, 0);
 
     const balance = income - expenses;
 
     const expenseByCategoryMap: Record<string, number> = {};
+    transactions
+      .filter((item) => item.type === "expense")
+      .forEach((item) => {
+        const key = item.description.trim();
+        expenseByCategoryMap[key] = (expenseByCategoryMap[key] || 0) + item.amount;
+      });
 
-        transactions
-        .filter((item) => item.type === "Expense")
-        .forEach((item) => {
-            const key = item.category.trim();
-
-            if (!expenseByCategoryMap[key]) {
-            expenseByCategoryMap[key] = 0;
-            }
-
-            expenseByCategoryMap[key] += item.amount;
-        });
-    
-     const expenseByCategory = Object.entries(expenseByCategoryMap).map(
-        ([name, value]) => ({
-            name,
-            value,
-        })
+    const expenseByCategory = Object.entries(expenseByCategoryMap).map(
+      ([name, value]) => ({ name, value })
     );
 
-    const incomeExpenseSummary = [
-    {
-        name: "Total",
-        income,
-        expenses,
-    },
-    ];
+    const incomeExpenseSummary = [{ name: "Total", income, expenses }];
 
-    const monthlyMap: Record<
-    string,
-    { income: number; expenses: number }
-    > = {};
-
+    const monthlyMap: Record<string, { income: number; expenses: number }> = {};
     transactions.forEach((item) => {
-    const date = new Date(item.date);
-
-    const month = date.toLocaleString("en-MY", {
+      const month = new Date(item.date).toLocaleString("en-MY", {
         month: "short",
         year: "numeric",
-    });
-
-    if (!monthlyMap[month]) {
-        monthlyMap[month] = { income: 0, expenses: 0 };
-    }
-
-    if (item.type === "Income") {
+      });
+      if (!monthlyMap[month]) monthlyMap[month] = { income: 0, expenses: 0 };
+      if (item.type === "income") {
         monthlyMap[month].income += item.amount;
-    } else {
+      } else {
         monthlyMap[month].expenses += item.amount;
-    }
+      }
     });
 
-    const monthlyTrend = Object.entries(monthlyMap).map(
-    ([month, value]) => ({
-        month,
-        income: value.income,
-        expenses: value.expenses,
-    })
-    );
+    const monthlyTrend = Object.entries(monthlyMap).map(([month, value]) => ({
+      month,
+      income: value.income,
+      expenses: value.expenses,
+    }));
 
-    const goals = await prisma.savingsGoal.findMany();
+    const goals = await prisma.savingsGoal.findMany({ where: { userId } });
 
-    const goalsWithProgress = goals.map((goal) => {
-      const current = transactions
-        .filter((item) => item.savingsGoalId === goal.id)
-        .reduce((sum, item) => sum + item.amount, 0);
-
-      return {
-        id: goal.id,
-        name: goal.name,
-        category: goal.category,
-        target: goal.target,
-        current,
-        deadline: goal.deadline,
-        note: goal.note,
-      };
-    });
+    const goalsWithProgress = goals.map((goal) => ({
+      id: goal.id,
+      name: goal.name,
+      targetAmount: goal.targetAmount,
+      currentAmount: goal.currentAmount,
+      deadline: goal.deadline,
+    }));
 
     return NextResponse.json({
       balance,
@@ -135,5 +99,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-  
 }

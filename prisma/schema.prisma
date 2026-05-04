@@ -39,15 +39,17 @@ model SavingsGoal {
 }
 
 model Transaction {
-  id          String       @id @default(cuid())
-  description String
+  id          String   @id @default(cuid())
+  title       String
+  category    String
+  description    String
   amount      Float
-  type        String       // "income" or "expense"
-  date        DateTime     @default(now())
+  type        String
+  status      String   @default("Completed")
+  date        DateTime @default(now())
   userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Optional relation to SavingsGoal (if this transaction contributes to a goal)
   savingsGoalId String?
   savingsGoal   SavingsGoal? @relation(fields: [savingsGoalId], references: [id])
 

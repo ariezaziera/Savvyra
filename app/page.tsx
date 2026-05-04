@@ -68,7 +68,7 @@ export default function Home() {
     if (goals.length === 0) return;
 
     goals.forEach((goal: any) => {
-      const progress = goal.target > 0 ? goal.current / goal.target : 0;
+    const progress = goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0;
       const storageKey = `savvyra-goal-completed-${goal.id}`;
 
       if (progress >= 1 && !localStorage.getItem(storageKey)) {

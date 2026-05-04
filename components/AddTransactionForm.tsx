@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 
 type Transaction = {
-  id: number;
+  id: string;
   title: string;
   category: string;
   date: string;
   amount: number;
   type: "Income" | "Expense";
   status: "Completed" | "Pending";
-  savingsGoalId?: number | null;
+  savingsGoalId?: string | null;
 };
 
 type AddTransactionFormProps = {
@@ -22,7 +22,7 @@ type AddTransactionFormProps = {
 };
 
 type SavingsGoal = {
-  id: number;
+  id: string;
   name: string;
 };
 
@@ -43,8 +43,8 @@ export default function AddTransactionForm({
   onShowToast,
   onScrollToTransactions,
 }: AddTransactionFormProps) {
-
   const [form, setForm] = useState(emptyForm);
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
 
   useEffect(() => {
     if (editingTransaction) {
@@ -55,24 +55,24 @@ export default function AddTransactionForm({
         amount: String(editingTransaction.amount),
         type: editingTransaction.type,
         status: editingTransaction.status,
-        savingsGoalId: editingTransaction.savingsGoalId
-        ? String(editingTransaction.savingsGoalId)
-        : "",
+        savingsGoalId: editingTransaction.savingsGoalId ?? "",
       });
     }
   }, [editingTransaction]);
 
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
-
   useEffect(() => {
-  const fetchGoals = async () => {
-    const response = await fetch("/api/savings-goals");
-    const data = await response.json();
-    setGoals(data);
-  };
+    const fetchGoals = async () => {
+      try {
+        const response = await fetch("/api/savings-goals");
+        const data = await response.json();
+        setGoals(Array.isArray(data) ? data : data.goals ?? data.data ?? []);
+      } catch {
+        setGoals([]);
+      }
+    };
 
-  fetchGoals();
-}, []);
+    fetchGoals();
+  }, []);
 
   const resetForm = () => {
     if (editingTransaction) {
@@ -83,11 +83,8 @@ export default function AddTransactionForm({
         amount: String(editingTransaction.amount),
         type: editingTransaction.type,
         status: editingTransaction.status,
-        savingsGoalId: editingTransaction.savingsGoalId
-        ? String(editingTransaction.savingsGoalId)
-        : "",
+        savingsGoalId: editingTransaction.savingsGoalId ?? "",
       });
-
       return;
     }
 
@@ -111,7 +108,6 @@ export default function AddTransactionForm({
         type: "Expense",
         category: "Savings",
       }));
-
       return;
     }
 
@@ -134,9 +130,8 @@ export default function AddTransactionForm({
       body: JSON.stringify({
         ...form,
         id: editingTransaction?.id,
-        savingsGoalId: form.savingsGoalId
-          ? Number(form.savingsGoalId)
-          : null,
+        amount: Number(form.amount),
+        savingsGoalId: form.savingsGoalId || null, // ✅ keep as string, no Number()
       }),
     });
 
@@ -152,7 +147,6 @@ export default function AddTransactionForm({
     );
 
     setForm(emptyForm);
-
     onTransactionSaved();
     onScrollToTransactions();
     onCancelEdit?.();
@@ -261,7 +255,6 @@ export default function AddTransactionForm({
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 Assign to Savings Goal
               </label>
-
               <select
                 name="savingsGoalId"
                 value={form.savingsGoalId}
@@ -269,7 +262,6 @@ export default function AddTransactionForm({
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="">No savings goal</option>
-
                 {goals.map((goal) => (
                   <option key={goal.id} value={goal.id}>
                     {goal.name}
@@ -288,15 +280,15 @@ export default function AddTransactionForm({
             {editingTransaction ? "Update Transaction" : "Save Transaction"}
           </button>
 
-            {editingTransaction && (
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            )}
+          {editingTransaction && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          )}
 
           <button
             type="button"
