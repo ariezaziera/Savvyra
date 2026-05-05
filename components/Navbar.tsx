@@ -171,7 +171,7 @@ export default function Navbar() {
         <nav className="fixed bottom-3 left-3 right-3 z-50 flex md:hidden items-center
           bg-[#FFF9EB]/95 backdrop-blur-md rounded-3xl
           shadow-[0px_2px_16px_rgba(0,0,0,0.08),2px_4px_12px_rgba(0,0,0,0.06)]
-          px-2 py-2">
+          px-2 py-4">
 
           {/* Left 2 nav items */}
           {navItems.slice(0, 2).map(({ label, href, icon: Icon }) => {
@@ -189,7 +189,7 @@ export default function Navbar() {
           {/* CTA — Settings */}
           <div className="flex flex-col items-center justify-center px-3">
             <Link href="/settings"
-              className={`w-14 h-14 rounded-full flex items-center justify-center -mt-6
+              className={`w-18 h-18 rounded-full flex items-center justify-center -mt-10
                 shadow-[0_4px_14px_rgba(93,13,24,0.5)] hover:scale-105 active:scale-95 transition-all duration-200
                 ${pathname === "/settings" ? "bg-[#3d0810]" : "bg-[#5D0D18]"}`}
             >
