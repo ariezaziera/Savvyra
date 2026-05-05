@@ -1,17 +1,15 @@
 @import "tailwindcss";
 
 body {
-  background: #f8fafc;
-  color: #111827;
+  background: linear-gradient(135deg, #FFF9EB 0%, #f5ecd4 35%, #e8d5b0 65%, #c9a87c 100%);
+  background-attachment: fixed;
+  color: #1a0a0d;
+  min-height: 100vh;
 }
 
 @keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .animate-shimmer {

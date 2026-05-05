@@ -4,24 +4,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import {
+  LayoutDashboard,
+  ArrowLeftRight,
+  PiggyBank,
+  HandCoins,
+  Settings,
+  ChevronRight,
+  LogOut,
+} from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", href: "/" },
-  { label: "Transactions", href: "/transactions" },
-  { label: "Savings Goals", href: "/savings" },
-  { label: "Commitments", href: "/commitments" },
-  { label: "Settings", href: "/settings" },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
+  { label: "Savings Goals", href: "/savings", icon: PiggyBank },
+  { label: "Commitments", href: "/commitments", icon: HandCoins },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
 
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
   useEffect(() => {
-    if (isAuthPage) return; // skip check kalau kat auth pages
+    if (isAuthPage) return;
     const checkAuth = async () => {
       try {
         const res = await fetch("/api/auth/me");
@@ -39,144 +48,138 @@ export default function Navbar() {
     window.location.href = "/login";
   };
 
-  const LogoSection = (
-    <div className="flex items-center gap-3">
-      <div className="h-10 w-10 overflow-hidden bg-white">
-        <Image
-          src="/logo.png"
-          alt="Savvyra Logo"
-          width={40}
-          height={40}
-          className="h-full w-full object-cover"
-        />
-      </div>
-      <div>
-        <h1 className="text-base font-semibold text-gray-900">Savvyra</h1>
-        <p className="text-xs text-gray-500">Personal Finance</p>
-      </div>
-    </div>
-  );
-
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto max-w-7xl px-6 pt-4 pb-4">
-        <div className="flex items-center justify-between">
+    <>
+      {/* DESKTOP SIDEBAR */}
+      {!isAuthPage && (
+        <aside
+          className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ease-in-out
+            bg-[#FFF9EB]/90 backdrop-blur-md border-r border-[#9FB2AC]/30
+            ${expanded ? "w-56" : "w-16"}`}
+        >
+          {/* Logo */}
+          <div className={`flex items-center gap-3 px-3 py-5 border-b border-[#9FB2AC]/30 ${expanded ? "justify-start" : "justify-center"}`}>
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+              <Image
+                src="/logo.png"
+                alt="Savvyra"
+                width={32}
+                height={32}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            {expanded && (
+              <div className="overflow-hidden">
+                <p className="text-sm font-semibold text-[#5D0D18] leading-tight">Savvyra</p>
+                <p className="text-xs text-[#9FB2AC]">Personal Finance</p>
+              </div>
+            )}
+          </div>
 
-          {/* Logo — clickable only if bukan auth page */}
-          {isAuthPage ? (
-            <div>{LogoSection}</div>
-          ) : (
-            <Link href="/">{LogoSection}</Link>
-          )}
-
-          {/* Nav — hide kalau auth page */}
-          {!isAuthPage && (
-            <>
-              <nav className="hidden items-center gap-2 md:flex">
-                {navItems.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className={`rounded-full px-4 py-2 text-sm transition ${
-                        isActive
-                          ? "bg-blue-50 font-medium text-blue-600"
-                          : "text-gray-600 hover:bg-gray-100"
-                      }`}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-
-                {isLoggedIn && (
-                  <button
-                    onClick={handleLogout}
-                    title="Logout"
-                    className="ml-2 flex h-9 w-9 items-center justify-center rounded-full text-red-500 hover:bg-red-50 transition"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-5 w-5"
-                    >
-                      <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" />
-                      <line x1="12" y1="2" x2="12" y2="12" />
-                    </svg>
-                  </button>
-                )}
-              </nav>
-
-              {/* Hamburger — mobile */}
-              <button
-                type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white md:hidden"
-                onClick={() => setMenuOpen(!menuOpen)}
-              >
-                <span className="sr-only">Open menu</span>
-                <div className="space-y-1">
-                  <div className="h-0.5 w-5 rounded bg-gray-700"></div>
-                  <div className="h-0.5 w-5 rounded bg-gray-700"></div>
-                  <div className="h-0.5 w-5 rounded bg-gray-700"></div>
-                </div>
-              </button>
-            </>
-          )}
-        </div>
-
-        {/* Mobile menu */}
-        {!isAuthPage && menuOpen && (
-          <div className="mt-4 border-t border-gray-200 pt-4 md:hidden">
-            <div className="flex flex-col gap-2">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
+          {/* Nav Items */}
+          <nav className="flex flex-col gap-1 px-2 py-4 flex-1">
+            {navItems.map(({ label, href, icon: Icon }) => {
+              const isActive = pathname === href;
+              return (
+                <div key={label} className="relative group">
                   <Link
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className={`rounded-xl px-4 py-3 text-sm transition ${
-                      isActive
-                        ? "bg-blue-50 font-medium text-blue-600"
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}
+                    href={href}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200
+                      ${isActive
+                        ? "bg-[#5D0D18] text-[#FFF9EB]"
+                        : "text-[#5D0D18]/70 hover:bg-[#9FB2AC]/20 hover:text-[#5D0D18]"
+                      }
+                      ${expanded ? "justify-start" : "justify-center"}`}
                   >
-                    {item.label}
+                    <Icon size={18} className="shrink-0" />
+                    {expanded && <span className="truncate">{label}</span>}
                   </Link>
-                );
-              })}
 
-              {isLoggedIn && (
+                  {/* Tooltip — only when collapsed */}
+                  {!expanded && (
+                    <div className="pointer-events-none absolute left-14 top-1/2 -translate-y-1/2 z-50
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="bg-[#5D0D18] text-[#FFF9EB] text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+                        {label}
+                        <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0
+                          border-t-4 border-b-4 border-r-4
+                          border-t-transparent border-b-transparent border-r-[#5D0D18]" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+
+          {/* Logout + Expand Toggle */}
+          <div className="px-2 py-4 border-t border-[#9FB2AC]/30 space-y-1">
+            {isLoggedIn && (
+              <div className="relative group">
                 <button
                   onClick={handleLogout}
-                  className="mt-2 flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm text-red-500 hover:bg-red-50"
+                  className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
+                    text-[#5D0D18]/60 hover:bg-[#5D0D18]/10 hover:text-[#5D0D18] transition
+                    ${expanded ? "justify-start" : "justify-center"}`}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" />
-                    <line x1="12" y1="2" x2="12" y2="12" />
-                  </svg>
-                  Logout
+                  <LogOut size={18} className="shrink-0" />
+                  {expanded && <span>Logout</span>}
                 </button>
-              )}
-            </div>
+
+                {!expanded && (
+                  <div className="pointer-events-none absolute left-14 top-1/2 -translate-y-1/2 z-50
+                    opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="bg-[#5D0D18] text-[#FFF9EB] text-xs font-medium px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
+                      Logout
+                      <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0
+                        border-t-4 border-b-4 border-r-4
+                        border-t-transparent border-b-transparent border-r-[#5D0D18]" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Expand/Collapse button */}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
+                text-[#9FB2AC] hover:bg-[#9FB2AC]/20 hover:text-[#5D0D18] transition
+                ${expanded ? "justify-start" : "justify-center"}`}
+            >
+              <ChevronRight
+                size={18}
+                className={`shrink-0 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+              />
+              {expanded && <span className="text-xs">Collapse</span>}
+            </button>
           </div>
-        )}
-      </div>
-    </header>
+        </aside>
+      )}
+
+      {/* MOBILE BOTTOM NAV */}
+      {!isAuthPage && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden
+          bg-[#FFF9EB]/95 backdrop-blur-md border-t border-[#9FB2AC]/30 px-2 py-2">
+          {navItems.map(({ label, href, icon: Icon }) => {
+            const isActive = pathname === href;
+            return (
+              <Link
+                key={label}
+                href={href}
+                className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-2 text-xs transition
+                  ${isActive
+                    ? "text-[#5D0D18] font-medium"
+                    : "text-[#9FB2AC] hover:text-[#5D0D18]"
+                  }`}
+              >
+                <Icon size={20} />
+                <span className="text-[10px] leading-tight">{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+    </>
   );
 }

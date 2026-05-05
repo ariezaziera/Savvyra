@@ -58,7 +58,7 @@ export default function LoginPage() {
     // if (!isAuthChecked) return <div>Loading...</div>;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-8 pb-48 md:pb-16">
+    <div className="flex min-h-screen items-center justify-center px-8 pb-48 md:pb-16">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm border border-gray-200">
         
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">

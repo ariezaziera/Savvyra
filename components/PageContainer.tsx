@@ -3,5 +3,9 @@ type PageContainerProps = {
 };
 
 export default function PageContainer({ children }: PageContainerProps) {
-  return <section className="mx-auto max-w-7xl p-6">{children}</section>;
+  return (
+    <section className="mx-auto max-w-7xl p-6">
+      {children}
+    </section>
+  );
 }
