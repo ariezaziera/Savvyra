@@ -3,14 +3,16 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("savvyra_token")?.value;
-
   const { pathname } = request.nextUrl;
 
   // allow public routes
   if (
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
-    pathname.startsWith("/api")
+    pathname.startsWith("/api") ||
+    pathname === "/manifest.webmanifest" || // 👈
+    pathname.startsWith("/icons") ||        // 👈
+    pathname.startsWith("/logo")            // 👈
   ) {
     return NextResponse.next();
   }
@@ -24,5 +26,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico).*)"],
+  matcher: ["/((?!_next|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico).*)"],
+  //                                  👆 tambah static file extensions
 };
