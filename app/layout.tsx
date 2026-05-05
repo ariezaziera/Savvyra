@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: "Savvyra",
   description: "Personal finance dashboard",
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
