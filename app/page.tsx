@@ -180,27 +180,35 @@ export default function Home() {
 
           <SavingsGoalsCarousel goals={goals} />
 
-          <div className="mt-6 flex gap-2">
-            <input
-              value={goalName}
-              onChange={(e) => setGoalName(e.target.value)}
-              placeholder="Goal name"
-              className="rounded-xl border px-3 py-2 text-sm"
-            />
-            <input
-              value={goalTarget}
-              onChange={(e) => setGoalTarget(e.target.value)}
-              placeholder="Target"
-              className="rounded-xl border px-3 py-2 text-sm"
-            />
-            <button
-              onClick={handleAddGoal}
-              className="rounded-xl bg-blue-600 px-4 py-2 text-white text-sm"
-            >
-              Add
-            </button>
-          </div>
-
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 pt-0 shadow-sm">
+            <div className="mt-6 space-y-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Add Savings Goal
+              </h2>
+              <p className="text-sm text-gray-500">
+                Set a new goal and start tracking your progress
+              </p>
+              <input
+                value={goalName}
+                onChange={(e) => setGoalName(e.target.value)}
+                placeholder="Goal name"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+              <input
+                value={goalTarget}
+                onChange={(e) => setGoalTarget(e.target.value)}
+                placeholder="Target amount"
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+              <button
+                onClick={handleAddGoal}
+                className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
+              >
+                Add Goal
+              </button>
+            </div>
+          </section>
+          
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
 
