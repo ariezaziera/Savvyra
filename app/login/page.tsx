@@ -62,7 +62,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm border border-gray-200">
         
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-          Welcome back
+          Welcome back Darling!
         </h1>
         <p className="text-sm text-gray-500 mb-6">
           Login to your Savvyra account
