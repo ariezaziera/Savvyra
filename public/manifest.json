@@ -1,6 +1,8 @@
 {
   "name": "Savvyra",
   "short_name": "Savvyra",
+  "start_url": "/",
+  "display": "standalone",
   "icons": [
     {
       "src": "/logo192.png",
@@ -14,6 +16,5 @@
     }
   ],
   "theme_color": "#ffffff",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  "background_color": "#ffffff"
 }
