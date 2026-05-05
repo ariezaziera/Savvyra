@@ -43,8 +43,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-8 pb-48 md:pb-16">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm border border-gray-200">
+    <div className="flex max-h-screen md:min-h-screen items-center justify-center px-8 pt-18 md:pt-0 md:pb-0">
+      <div className="w-full max-w-sm md:max-w-5xl rounded-2xl bg-white p-6 shadow-sm border border-gray-200">
         
         <h1 className="text-2xl font-semibold text-gray-900 mb-2">
           Create account
