@@ -28,7 +28,7 @@ export default function DashboardSkeleton() {
         <div className="mt-2 h-3 w-52 rounded bg-gray-100" />
         <div className="mt-4 flex gap-4 overflow-hidden">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="min-w-[200px] rounded-xl border border-gray-100 bg-gray-50 p-4">
+            <div key={i} className="min-w-50 rounded-xl border border-gray-100 bg-gray-50 p-4">
               <div className="h-3 w-24 rounded bg-gray-200" />
               <div className="mt-3 h-2 w-full rounded-full bg-gray-200" />
               <div className="mt-2 h-3 w-16 rounded bg-gray-300" />

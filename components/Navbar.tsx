@@ -15,9 +15,9 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Home", href: "/", icon: LayoutDashboard },
   { label: "Transactions", href: "/transactions", icon: ArrowLeftRight },
-  { label: "Savings Goals", href: "/savings", icon: PiggyBank },
+  { label: "Savings", href: "/savings", icon: PiggyBank },
   { label: "Commitments", href: "/commitments", icon: HandCoins },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
@@ -53,13 +53,15 @@ export default function Navbar() {
       {/* DESKTOP SIDEBAR */}
       {!isAuthPage && (
         <aside
-          className={`hidden md:flex flex-col fixed left-0 top-0 h-full z-50 transition-all duration-300 ease-in-out
-            bg-[#FFF9EB]/90 backdrop-blur-md border-r border-[#9FB2AC]/30
+          className={`hidden md:flex flex-col fixed left-3 top-4 h-[calc(100vh-2rem)] z-50 transition-all duration-300 ease-in-out
+            bg-[#5D0D18]/90 backdrop-blur-md
+            rounded-3xl
+            shadow-[4px_0px_24px_rgba(0,0,0,0.08),2px_4px_16px_rgba(0,0,0,0.06)]
             ${expanded ? "w-56" : "w-16"}`}
         >
           {/* Logo */}
           <div className={`flex items-center gap-3 px-3 py-5 border-b border-[#9FB2AC]/30 ${expanded ? "justify-start" : "justify-center"}`}>
-            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-lg">
+            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#FFF9EB] p-1">
               <Image
                 src="/logo.png"
                 alt="Savvyra"
@@ -70,8 +72,8 @@ export default function Navbar() {
             </div>
             {expanded && (
               <div className="overflow-hidden">
-                <p className="text-sm font-semibold text-[#5D0D18] leading-tight">Savvyra</p>
-                <p className="text-xs text-[#9FB2AC]">Personal Finance</p>
+                <p className="text-sm font-bold text-[#FFF9EB] leading-tight">Savvyra</p>
+                <p className="text-xs text-[#FFF9EB]">Personal Finance</p>
               </div>
             )}
           </div>
@@ -87,7 +89,7 @@ export default function Navbar() {
                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200
                       ${isActive
                         ? "bg-[#5D0D18] text-[#FFF9EB]"
-                        : "text-[#5D0D18]/70 hover:bg-[#9FB2AC]/20 hover:text-[#5D0D18]"
+                        : "text-[#FFF9EB]/70 hover:bg-[#FFF9EB]/90 hover:text-[#5D0D18]"
                       }
                       ${expanded ? "justify-start" : "justify-center"}`}
                   >
@@ -119,11 +121,18 @@ export default function Navbar() {
                 <button
                   onClick={handleLogout}
                   className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
-                    text-[#5D0D18]/60 hover:bg-[#5D0D18]/10 hover:text-[#5D0D18] transition
+                    text-[#FFF9EB]/60 hover:bg-[#FFF9EB] hover:text-[#5D0D18] hover:font-bold 
+                    hover:scale-105 hover:justify-center transition-all duration-200 group
                     ${expanded ? "justify-start" : "justify-center"}`}
                 >
-                  <LogOut size={18} className="shrink-0" />
+                  <LogOut size={18} className="shrink-0 group-hover:scale-110 transition-transform duration-200" />
                   {expanded && <span>Logout</span>}
+                  {!expanded && (
+                    <span className="absolute left-14 text-xs font-medium text-[#5D0D18] bg-[#FFF9EB] px-3 py-1.5 rounded-lg
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg pointer-events-none">
+                      Logout
+                    </span>
+                  )}
                 </button>
 
                 {!expanded && (
@@ -144,7 +153,7 @@ export default function Navbar() {
             <button
               onClick={() => setExpanded(!expanded)}
               className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
-                text-[#9FB2AC] hover:bg-[#9FB2AC]/20 hover:text-[#5D0D18] transition
+                text-[#9FB2AC] hover:bg-[#FFF9EB]/90 hover:text-[#5D0D18] transition
                 ${expanded ? "justify-start" : "justify-center"}`}
             >
               <ChevronRight
@@ -159,25 +168,48 @@ export default function Navbar() {
 
       {/* MOBILE BOTTOM NAV */}
       {!isAuthPage && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden
-          bg-[#FFF9EB]/95 backdrop-blur-md border-t border-[#9FB2AC]/30 px-2 py-2">
-          {navItems.map(({ label, href, icon: Icon }) => {
+        <nav className="fixed bottom-3 left-3 right-3 z-50 flex md:hidden items-center
+          bg-[#FFF9EB]/95 backdrop-blur-md rounded-3xl
+          shadow-[0px_2px_16px_rgba(0,0,0,0.08),2px_4px_12px_rgba(0,0,0,0.06)]
+          px-2 py-2">
+
+          {/* Left 2 nav items */}
+          {navItems.slice(0, 2).map(({ label, href, icon: Icon }) => {
             const isActive = pathname === href;
             return (
-              <Link
-                key={label}
-                href={href}
+              <Link key={label} href={href}
                 className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-2 text-xs transition
-                  ${isActive
-                    ? "text-[#5D0D18] font-medium"
-                    : "text-[#9FB2AC] hover:text-[#5D0D18]"
-                  }`}
+                  ${isActive ? "text-[#5D0D18] font-medium" : "text-[#808b88] hover:text-[#5D0D18]"}`}
               >
                 <Icon size={20} />
-                <span className="text-[10px] leading-tight">{label}</span>
               </Link>
             );
           })}
+
+          {/* CTA — Settings */}
+          <div className="flex flex-col items-center justify-center px-3">
+            <Link href="/settings"
+              className={`w-14 h-14 rounded-full flex items-center justify-center -mt-6
+                shadow-[0_4px_14px_rgba(93,13,24,0.5)] hover:scale-105 active:scale-95 transition-all duration-200
+                ${pathname === "/settings" ? "bg-[#3d0810]" : "bg-[#5D0D18]"}`}
+            >
+              <Settings size={22} className="text-[#FFF9EB]" />
+            </Link>
+          </div>
+
+          {/* Right 2 nav items */}
+          {navItems.slice(2, 4).map(({ label, href, icon: Icon }) => {
+            const isActive = pathname === href;
+            return (
+              <Link key={label} href={href}
+                className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-2 text-xs transition
+                  ${isActive ? "text-[#5D0D18] font-medium" : "text-[#808b88] hover:text-[#5D0D18]"}`}
+              >
+                <Icon size={20} />
+              </Link>
+            );
+          })}
+
         </nav>
       )}
     </>
