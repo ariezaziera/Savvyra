@@ -1,6 +1,36 @@
+"use client";
+
 import PageContainer from "@/components/PageContainer";
+import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { LogOut } from "lucide-react";
 
 export default function SettingsPage() {
+  const [expanded, setExpanded] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const pathname = usePathname();
+  
+    const isAuthPage = pathname === "/login" || pathname === "/register";
+  
+    useEffect(() => {
+      if (isAuthPage) return;
+      const checkAuth = async () => {
+        try {
+          const res = await fetch("/api/auth/me");
+          setIsLoggedIn(res.ok);
+        } catch {
+          setIsLoggedIn(false);
+        }
+      };
+      checkAuth();
+    }, [isAuthPage]);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setIsLoggedIn(false);
+    window.location.href = "/login";
+  };
+
   return (
     <PageContainer>
       <div className="mb-6">
@@ -70,6 +100,15 @@ export default function SettingsPage() {
             </div>
           </div>
         </section>
+       
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm justify-center font-bold
+            text-[#FFF9EB] bg-[#5D0D18] transition"
+        >
+          <LogOut size={18} />
+          <span>Logout</span>
+        </button>
       </div>
     </PageContainer>
   );
