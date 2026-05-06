@@ -67,7 +67,7 @@ export default function Navbar() {
                 alt="Savvyra"
                 width={32}
                 height={32}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover mix-blend-multiply"
               />
             </div>
             {expanded && (
