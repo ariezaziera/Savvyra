@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Navbar from "@/components/Navbar";
+import MainWrapper from "@/components/MainWrapper";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,9 +25,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} min-h-screen text-gray-800`}>
         <Navbar />
-        <main className="md:ml-16 pb-20 md:pb-0">
-          {children}
-        </main>
+        <MainWrapper>{children}</MainWrapper>
       </body>
     </html>
   );
