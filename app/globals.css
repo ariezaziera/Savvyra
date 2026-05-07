@@ -1,10 +1,76 @@
 @import "tailwindcss";
 
 body {
-  background: linear-gradient(135deg, #FFF9EB 0%, #f5ecd4 35%, #e8d5b0 65%, #c9a87c 100%);
+  background: #453284;
   background-attachment: fixed;
-  color: #1a0a0d;
+  color: #e8e0ff;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+}
+
+.blob-1 {
+  width: 500px;
+  height: 500px;
+  background: #6A49FA;
+  top: -150px;
+  left: -150px;
+  filter: blur(120px);
+  opacity: 0.85;
+  animation: blob-drift-1 12s ease-in-out infinite alternate;
+}
+
+.blob-2 {
+  width: 450px;
+  height: 450px;
+  background: #C6E6FF;
+  bottom: -100px;
+  right: -100px;
+  filter: blur(110px);
+  opacity: 0.55;
+  animation: blob-drift-2 15s ease-in-out infinite alternate;
+}
+
+.blob-3 {
+  width: 380px;
+  height: 380px;
+  background: #FEDADA;
+  top: 30%;
+  right: 10%;
+  filter: blur(100px);
+  opacity: 0.45;
+  animation: blob-drift-3 10s ease-in-out infinite alternate;
+}
+
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: -1;
+  will-change: transform;
+}
+
+@keyframes blob-drift-1 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(40px, 60px) scale(1.1); }
+}
+
+@keyframes blob-drift-2 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(-50px, -40px) scale(1.08); }
+}
+
+@keyframes blob-drift-3 {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, -50px) scale(0.95); }
 }
 
 @keyframes shimmer {
