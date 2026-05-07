@@ -56,7 +56,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#453284]">
+    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[#453284]">
 
       {/* Aurora blobs */}
       <div className="blob blob-1" />
@@ -134,6 +134,34 @@ export default function LoginPage() {
             transform: translate(30px, -50px) scale(0.95);
           }
         }
+
+        .typing-word {
+          display: inline-block;
+          overflow: hidden;
+          white-space: nowrap;
+          border-right: 3px solid #C6E6FF;
+          width: 0;
+
+          animation:
+            typingWord 4s steps(12, end) infinite alternate,
+            blink 0.8s step-end infinite;
+        }
+
+        @keyframes typingWord {
+          from {
+            width: 0;
+          }
+
+          to {
+            width: 10ch;
+          }
+        }
+
+        @keyframes blink {
+          50% {
+            border-color: transparent;
+          }
+        }
       `}</style>
 
       <div className="relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-2">
@@ -157,10 +185,14 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Branding */}
           <div className="max-w-xl">
             <h1 className="text-6xl font-semibold leading-[1.05] tracking-tight text-white">
-              Take control of your finances.
+              Take control of your
+              <br />
+
+              <span className="typing-word text-[#C6E6FF] font-extrabold">
+                finances.
+              </span>
             </h1>
 
             <p className="mt-6 text-lg leading-relaxed text-white/65">
@@ -170,13 +202,13 @@ export default function LoginPage() {
           </div>
 
           {/* Footer */}
-          <div className="text-sm text-white/35">
-            Smart finance management for modern lifestyles.
+          <div className="text-sm tracking-wide text-white/30">
+            Crafted by Arieza Aziera for modern financial living.
           </div>
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="relative flex items-end justify-center md:justify-end px-6 md:px-14 py-10">
+        <div className="relative flex items-center justify-center md:justify-end px-6 md:px-14 py-7">
 
           {/* Floating Login Card */}
           <div
