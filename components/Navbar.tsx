@@ -27,8 +27,11 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
 
-  const isAuthPage = pathname === "/login" || pathname === "/register";
-
+  const isAuthPage =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/not-found";  // ← add this
+    
   useEffect(() => {
     if (isAuthPage) return;
     const checkAuth = async () => {

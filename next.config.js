@@ -1,11 +1,22 @@
 const withPWA = require("next-pwa")({
   dest: "public",
-  disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+
   fallbacks: {
-    document: '/offline.html',
+    document: "/offline",
   },
+
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "offlineCache",
+        networkTimeoutSeconds: 5,
+      },
+    },
+  ],
 });
 
 module.exports = withPWA({
