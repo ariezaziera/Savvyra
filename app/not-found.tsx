@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export default function NotFound() {
   return (
-    <div className="relative min-h-screen overflow-hidden" style={{ background: "linear-gradient(135deg, #3d0810 0%, #5D0D18 40%, #7a1520 70%, #4a0f14 100%)" }}>
+    <div className="relative min-h-screen overflow-hidden bg-[#453284]">
 
       {/* Aurora Blobs */}
       <div className="blob blob-1" />
@@ -22,49 +22,64 @@ export default function NotFound() {
         .blob-1 {
           width: 500px;
           height: 500px;
-          background: #9FB2AC;
+          background: #6A49FA;
           top: -150px;
           left: -150px;
-          filter: blur(130px);
-          opacity: 0.4;
+          filter: blur(120px);
+          opacity: 0.85;
           animation: blob-drift-1 12s ease-in-out infinite alternate;
         }
 
         .blob-2 {
           width: 450px;
           height: 450px;
-          background: #FFF9EB;
+          background: #C6E6FF;
           bottom: -100px;
           right: -100px;
-          filter: blur(120px);
-          opacity: 0.15;
+          filter: blur(110px);
+          opacity: 0.55;
           animation: blob-drift-2 15s ease-in-out infinite alternate;
         }
 
         .blob-3 {
           width: 380px;
           height: 380px;
-          background: #9FB2AC;
+          background: #FEDADA;
           top: 30%;
           right: 10%;
-          filter: blur(110px);
-          opacity: 0.25;
+          filter: blur(100px);
+          opacity: 0.45;
           animation: blob-drift-3 10s ease-in-out infinite alternate;
         }
 
         @keyframes blob-drift-1 {
-          from { transform: translate(0, 0) scale(1); }
-          to { transform: translate(40px, 60px) scale(1.1); }
+          from {
+            transform: translate(0, 0) scale(1);
+          }
+
+          to {
+            transform: translate(40px, 60px) scale(1.1);
+          }
         }
 
         @keyframes blob-drift-2 {
-          from { transform: translate(0, 0) scale(1); }
-          to { transform: translate(-50px, -40px) scale(1.08); }
+          from {
+            transform: translate(0, 0) scale(1);
+          }
+
+          to {
+            transform: translate(-50px, -40px) scale(1.08);
+          }
         }
 
         @keyframes blob-drift-3 {
-          from { transform: translate(0, 0) scale(1); }
-          to { transform: translate(30px, -50px) scale(0.95); }
+          from {
+            transform: translate(0, 0) scale(1);
+          }
+
+          to {
+            transform: translate(30px, -50px) scale(0.95);
+          }
         }
 
         .float-animation {
@@ -72,9 +87,17 @@ export default function NotFound() {
         }
 
         @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-12px); }
-          100% { transform: translateY(0px); }
+          0% {
+            transform: translateY(0px);
+          }
+
+          50% {
+            transform: translateY(-12px);
+          }
+
+          100% {
+            transform: translateY(0px);
+          }
         }
       `}</style>
 
@@ -83,56 +106,54 @@ export default function NotFound() {
         {/* Logo */}
         <div className="mb-10 flex items-center gap-4">
           <Image
-            src="/logo.png"
+            src="/logo512.png"
             alt="Savvyra"
-            width={56}
-            height={56}
+            width={62}
+            height={62}
             className="rounded-2xl"
           />
-          <div className="text-left">
-            <p className="text-xl font-semibold text-[#FFF9EB]">Savvyra</p>
-            <p className="text-xs text-[#9FB2AC]">Personal Finance</p>
-          </div>
+
+          <span className="text-3xl font-semibold tracking-tight text-white">
+            Savvyra
+          </span>
         </div>
 
         {/* 404 */}
-        <div className="float-animation text-[120px] font-bold leading-none tracking-tight md:text-[180px]"
-          style={{ color: "rgba(255,249,235,0.15)" }}>
+        <div className="float-animation text-[120px] font-bold leading-none tracking-tight text-white/90 md:text-[180px]">
           404
         </div>
 
-        {/* Divider line */}
-        <div className="my-6 h-px w-24 rounded-full bg-[#9FB2AC]/40" />
-
         {/* Content */}
-        <div className="max-w-xl">
-          <h1 className="text-3xl font-semibold tracking-tight text-[#FFF9EB] md:text-4xl">
+        <div className="mt-4 max-w-xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
             Page not found.
           </h1>
-          <p className="mt-4 text-base leading-relaxed text-[#9FB2AC] md:text-lg">
-            The page you're looking for may have been moved,
+
+          <p className="mt-5 text-base leading-relaxed text-white/60 md:text-lg">
+            The page you are looking for may have been moved,
             deleted, or never existed in the first place.
           </p>
         </div>
 
         {/* Actions */}
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <Link
             href="/"
-            className="rounded-2xl bg-[#FFF9EB] px-7 py-3 text-sm font-semibold text-[#5D0D18] transition duration-300 hover:scale-[1.03] hover:bg-white"
+            className="rounded-2xl bg-white px-7 py-3 text-sm font-semibold text-[#453284] transition duration-300 hover:scale-[1.03]"
           >
             Return Home
           </Link>
+
           <Link
             href="/login"
-            className="rounded-2xl border border-[#9FB2AC]/30 bg-[#9FB2AC]/10 px-7 py-3 text-sm font-medium text-[#FFF9EB] backdrop-blur-xl transition hover:bg-[#9FB2AC]/20"
+            className="rounded-2xl border border-white/10 bg-white/10 px-7 py-3 text-sm font-medium text-white backdrop-blur-xl transition hover:bg-white/15"
           >
             Go to Login
           </Link>
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-sm text-[#9FB2AC]/50">
+        <div className="mt-16 text-sm text-white/30">
           Crafted by Arieza for modern financial living.
         </div>
       </div>
