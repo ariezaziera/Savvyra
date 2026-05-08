@@ -129,7 +129,7 @@ export default function NotFound() {
               404
             </div>
 
-            <h1 className="mt-[-20px] text-6xl font-semibold leading-[1.05] tracking-tight text-white">
+            <h1 className="-mt-5 text-5xl font-semibold leading-[1.05] tracking-tight text-white">
               Lost in the
               <br />
 
@@ -143,7 +143,7 @@ export default function NotFound() {
               may have been removed, or is temporarily unavailable.
             </p>
 
-            <div className="mt-10 flex items-center gap-4">
+            <div className="mt-5 flex items-center gap-4">
 
               <Link
                 href="/"
@@ -183,7 +183,7 @@ export default function NotFound() {
           >
 
             {/* Glow */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-linear-to-br from-white/10 to-transparent pointer-events-none" />
 
             {/* Card Content */}
             <div className="relative z-10">
