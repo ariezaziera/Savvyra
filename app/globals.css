@@ -81,3 +81,8 @@ body {
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
 }
+
+.hide-navbar aside,
+.hide-navbar nav {
+  display: none !important;
+}

@@ -1,8 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import { useEffect } from "react";
 
 export default function NotFound() {
+    useEffect(() => {
+        document.body.classList.add("hide-navbar");
+
+        return () => {
+            document.body.classList.remove("hide-navbar");
+        };
+    }, []);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#453284]">
 

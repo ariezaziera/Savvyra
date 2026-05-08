@@ -29,8 +29,7 @@ export default function Navbar() {
 
   const isAuthPage =
     pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/not-found";  // ← add this
+    pathname === "/register";
     
   useEffect(() => {
     if (isAuthPage) return;
