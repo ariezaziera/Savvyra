@@ -143,7 +143,7 @@ export default function LoginPage() {
           width: 0;
 
           animation:
-            typingWord 4s steps(12, end) infinite alternate,
+            typingWord 2.5s steps(30, end) infinite alternate,
             blink 0.8s step-end infinite;
         }
 
@@ -153,7 +153,7 @@ export default function LoginPage() {
           }
 
           to {
-            width: 10ch;
+            width: 8ch;
           }
         }
 

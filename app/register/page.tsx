@@ -141,7 +141,7 @@ export default function RegisterPage() {
           width: 0;
 
           animation:
-            typingWord 4s steps(20, end) infinite alternate,
+            typingWord 3s steps(30, end) infinite alternate,
             blink 0.8s step-end infinite;
         }
 
@@ -151,7 +151,7 @@ export default function RegisterPage() {
           }
 
           to {
-            width: 18ch;
+            width: 13ch;
           }
         }
 
