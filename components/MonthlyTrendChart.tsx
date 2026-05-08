@@ -26,7 +26,7 @@ export default function MonthlyTrendChart({ data }: Props) {
     <section
       className="relative overflow-hidden rounded-3xl
       border border-white/15
-      bg-white/[0.08]
+      bg-white/8
       p-5
       backdrop-blur-xl
       shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
