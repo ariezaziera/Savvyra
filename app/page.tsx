@@ -19,7 +19,11 @@ type DashboardData = {
   cashSavings: number;
   goldSavings: number;
   expenseByCategory: { name: string; value: number }[];
-  incomeExpenseSummary: { name: string; income: number; expenses: number }[];
+  incomeExpenseSummary: {
+    name: string;
+    income: number;
+    expenses: number;
+  }[];
   monthlyTrend: {
     month: string;
     income: number;
@@ -44,13 +48,16 @@ export default function Home() {
   const [completionToast, setCompletionToast] = useState("");
   const [goals, setGoals] = useState<any[]>([]);
 
+  const [goalName, setGoalName] = useState("");
+  const [goalTarget, setGoalTarget] = useState("");
+
   const fetchDashboard = async () => {
     try {
       setIsLoading(true);
 
       const [dashboardRes, goalsRes] = await Promise.all([
         fetch("/api/dashboard"),
-        fetch("/api/savings-goals"), 
+        fetch("/api/savings-goals"),
       ]);
 
       const data = await dashboardRes.json();
@@ -71,11 +78,16 @@ export default function Home() {
     if (goals.length === 0) return;
 
     goals.forEach((goal: any) => {
-    const progress = goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0;
+      const progress =
+        goal.targetAmount > 0
+          ? goal.currentAmount / goal.targetAmount
+          : 0;
+
       const storageKey = `savvyra-goal-completed-${goal.id}`;
 
       if (progress >= 1 && !localStorage.getItem(storageKey)) {
         setCompletionToast(`${goal.name} completed 🎉`);
+
         localStorage.setItem(storageKey, "true");
 
         setTimeout(() => {
@@ -85,142 +97,365 @@ export default function Home() {
     });
   }, [goals]);
 
-
   const stats = [
     {
       label: "Balance",
       value: dashboardData.balance,
-      color: "text-blue-600",
+      color: "text-[#C6E6FF]",
     },
     {
       label: "Income",
       value: dashboardData.income,
-      color: "text-green-600",
+      color: "text-[#7EF7C9]",
     },
     {
       label: "Expenses",
       value: dashboardData.expenses,
-      color: "text-red-500",
+      color: "text-[#FF9B9B]",
     },
     {
       label: "Total Savings",
       value: dashboardData.savings,
-      color: "text-purple-600",
+      color: "text-[#CFA8FF]",
     },
-    
   ];
-  
-
-  const [goalName, setGoalName] = useState("");
-  const [goalTarget, setGoalTarget] = useState("");
 
   const handleAddGoal = async () => {
     if (!goalName || !goalTarget) return;
 
     const res = await fetch("/api/savings-goals", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       credentials: "include",
-      body: JSON.stringify({ name: goalName, targetAmount: goalTarget, currentAmount: 0, deadline: null }),
+      body: JSON.stringify({
+        name: goalName,
+        targetAmount: goalTarget,
+        currentAmount: 0,
+        deadline: null,
+      }),
     });
+
     if (!res.ok) {
       const error = await res.json();
       console.error("Failed to add goal:", error);
     } else {
-      const newGoal = await res.json();
-      console.log("Added goal:", newGoal);
+      await res.json();
+
       setGoalName("");
       setGoalTarget("");
+
       await fetchDashboard();
     }
-
-    setGoalName("");
-    setGoalTarget("");
-    await fetchDashboard();
   };
 
   return (
     <PageContainer>
-      {completionToast && (
-        <div className="fixed right-5 top-5 z-50 rounded-2xl bg-green-600 px-5 py-3 text-sm font-medium text-white shadow-lg animate-bounce">
-          {completionToast}
+      <>
+        {/* Aurora Blobs */}
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+
+        {/* Noise Texture */}
+        <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.03] mix-blend-soft-light bg-[url('/noise.png')]" />
+
+        <style jsx>{`
+          .blob {
+            position: fixed;
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: 0;
+            will-change: transform;
+          }
+
+          .blob-1 {
+            width: 500px;
+            height: 500px;
+            background: #6a49fa;
+            top: -150px;
+            left: -150px;
+            filter: blur(120px);
+            opacity: 0.85;
+            animation: blob-drift-1 12s ease-in-out infinite alternate;
+          }
+
+          .blob-2 {
+            width: 450px;
+            height: 450px;
+            background: #c6e6ff;
+            bottom: -100px;
+            right: -100px;
+            filter: blur(110px);
+            opacity: 0.55;
+            animation: blob-drift-2 15s ease-in-out infinite alternate;
+          }
+
+          .blob-3 {
+            width: 380px;
+            height: 380px;
+            background: #fedada;
+            top: 30%;
+            right: 10%;
+            filter: blur(100px);
+            opacity: 0.45;
+            animation: blob-drift-3 10s ease-in-out infinite alternate;
+          }
+
+          @keyframes blob-drift-1 {
+            from {
+              transform: translate(0, 0) scale(1);
+            }
+
+            to {
+              transform: translate(40px, 60px) scale(1.1);
+            }
+          }
+
+          @keyframes blob-drift-2 {
+            from {
+              transform: translate(0, 0) scale(1);
+            }
+
+            to {
+              transform: translate(-50px, -40px) scale(1.08);
+            }
+          }
+
+          @keyframes blob-drift-3 {
+            from {
+              transform: translate(0, 0) scale(1);
+            }
+
+            to {
+              transform: translate(30px, -50px) scale(0.95);
+            }
+          }
+        `}</style>
+
+        {/* Background */}
+        <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,#5B3FC4_0%,#453284_45%,#1D1238_100%)]" />
+
+        {/* Completion Toast */}
+        {completionToast && (
+          <div
+            className="fixed right-5 top-5 z-50 rounded-2xl
+            border border-white/15
+            bg-white/12
+            px-5 py-3 text-sm font-medium text-white
+            backdrop-blur-xl
+            shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
+          >
+            {completionToast}
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="relative z-10 mb-8">
+          <p className="text-sm uppercase tracking-[0.2em] text-white/50">
+            Personal Finance Overview
+          </p>
+
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            Savvyra Dashboard
+          </h1>
+
+          <p className="mt-2 text-sm text-white/70">
+            Monitor your balance, savings progress, and financial trends.
+          </p>
         </div>
-      )}
-      
-      <h1 className="mb-6 text-2xl font-semibold text-gray-900">
-        Savvyra Dashboard
-      </h1>
 
-      {isLoading ? (
-        <DashboardSkeleton />
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="space-y-6"
-        >
-          <DashboardStats stats={stats} formatCurrency={formatCurrency} />
+        {isLoading ? (
+          <DashboardSkeleton />
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: 0.45,
+              ease: "easeOut",
+            }}
+            className="relative z-10 space-y-6"
+          >
+            {/* Stats */}
+            <DashboardStats
+              stats={stats}
+              formatCurrency={formatCurrency}
+            />
 
-          <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-sm text-gray-500">Cash Savings</p>
-              <h2 className="mt-1 text-2xl font-semibold text-gray-900">
-                {formatCurrency(dashboardData.cashSavings)}
-              </h2>
-            </div>
+            {/* Savings Cards */}
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <p className="text-sm text-gray-500">Gold Savings</p>
-              <h2 className="mt-1 text-2xl font-semibold text-gray-900">
-                {formatCurrency(dashboardData.goldSavings)}
-              </h2>
-            </div>
-          </section>
-
-          <SavingsGoalsCarousel goals={goals} />
-
-          <section className="rounded-2xl border border-gray-200 bg-white p-5 pt-0 shadow-sm">
-            <div className="mt-6 space-y-3">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Add Savings Goal
-              </h2>
-              <p className="text-sm text-gray-500">
-                Set a new goal and start tracking your progress
-              </p>
-              <input
-                value={goalName}
-                onChange={(e) => setGoalName(e.target.value)}
-                placeholder="Goal name"
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              />
-              <input
-                value={goalTarget}
-                onChange={(e) => setGoalTarget(e.target.value)}
-                placeholder="Target amount"
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              />
-              <button
-                onClick={handleAddGoal}
-                className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-blue-700"
+              <div
+                className="relative overflow-hidden rounded-3xl
+                border border-white/15
+                bg-white/8
+                p-6
+                backdrop-blur-xl
+                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
               >
-                Add Goal
-              </button>
+                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+                <p className="text-sm text-white/65">
+                  Cash Savings
+                </p>
+
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                  {formatCurrency(dashboardData.cashSavings)}
+                </h2>
+              </div>
+
+              <div
+                className="relative overflow-hidden rounded-3xl
+                border border-white/15
+                bg-white/8
+                p-6
+                backdrop-blur-xl
+                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+                <p className="text-sm text-white/65">
+                  Gold Savings
+                </p>
+
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                  {formatCurrency(dashboardData.goldSavings)}
+                </h2>
+              </div>
+            </section>
+
+            {/* Goals Carousel */}
+            <div
+              className="relative overflow-hidden rounded-3xl
+              border border-white/15
+              bg-white/8
+              p-1
+              backdrop-blur-xl
+              shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+              <SavingsGoalsCarousel goals={goals} />
             </div>
-          </section>
-          
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
 
-            <IncomeExpenseBarChart data={dashboardData.incomeExpenseSummary} />
-          </div>
+            {/* Add Goal */}
+            <section
+              className="relative overflow-hidden rounded-3xl
+              border border-white/15
+              bg-white/8
+              p-6
+              backdrop-blur-xl
+              shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
 
-          <div className="mt-6">
-            <MonthlyTrendChart data={dashboardData.monthlyTrend} />
-          </div>
-        </motion.div>
-        
-      )}
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-white">
+                    Add Savings Goal
+                  </h2>
+
+                  <p className="mt-1 text-sm text-white/65">
+                    Set a new target and track your financial progress.
+                  </p>
+                </div>
+
+                <input
+                  value={goalName}
+                  onChange={(e) => setGoalName(e.target.value)}
+                  placeholder="Goal name"
+                  className="w-full rounded-2xl border border-white/15
+                  bg-white/6
+                  px-4 py-3 text-sm text-white
+                  outline-none placeholder:text-white/35
+                  backdrop-blur-xl
+                  focus:border-[#6A49FA]
+                  focus:ring-2 focus:ring-[#6A49FA]/20"
+                />
+
+                <input
+                  value={goalTarget}
+                  onChange={(e) => setGoalTarget(e.target.value)}
+                  placeholder="Target amount"
+                  className="w-full rounded-2xl border border-white/15
+                  bg-white/6
+                  px-4 py-3 text-sm text-white
+                  outline-none placeholder:text-white/35
+                  backdrop-blur-xl
+                  focus:border-[#6A49FA]
+                  focus:ring-2 focus:ring-[#6A49FA]/20"
+                />
+
+                <button
+                  onClick={handleAddGoal}
+                  className="w-full rounded-2xl
+                  bg-[#6A49FA]
+                  px-5 py-3 text-sm font-medium text-white
+                  transition-all duration-200
+                  hover:bg-[#7B5BFF]
+                  hover:scale-[1.01]
+                  active:scale-[0.99]
+                  shadow-[0_8px_24px_rgba(106,73,250,0.35)]"
+                >
+                  Add Goal
+                </button>
+              </div>
+            </section>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+              <div
+                className="relative overflow-hidden rounded-3xl
+                border border-white/15
+                bg-white/8
+                p-4
+                backdrop-blur-xl
+                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+                <ExpenseCategoryChart
+                  data={dashboardData.expenseByCategory}
+                />
+              </div>
+
+              <div
+                className="relative overflow-hidden rounded-3xl
+                border border-white/15
+                bg-white/8
+                p-4
+                backdrop-blur-xl
+                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+                <IncomeExpenseBarChart
+                  data={dashboardData.incomeExpenseSummary}
+                />
+              </div>
+            </div>
+
+            {/* Monthly Trend */}
+            <div
+              className="relative overflow-hidden rounded-3xl
+              border border-white/15
+              bg-white/8
+              p-4
+              backdrop-blur-xl
+              shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+              <MonthlyTrendChart
+                data={dashboardData.monthlyTrend}
+              />
+            </div>
+          </motion.div>
+        )}
+      </>
     </PageContainer>
   );
 }

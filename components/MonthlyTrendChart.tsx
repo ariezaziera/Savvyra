@@ -23,42 +23,79 @@ type Props = {
 
 export default function MonthlyTrendChart({ data }: Props) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section
+      className="relative overflow-hidden rounded-3xl
+      border border-white/15
+      bg-white/[0.08]
+      p-5
+      backdrop-blur-xl
+      shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+    >
+      {/* top highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+
+      {/* glow orb */}
+      <div
+        className="pointer-events-none absolute -left-10 -top-10
+        h-32 w-32 rounded-full blur-3xl opacity-20"
+        style={{
+          background: "#CFA8FF",
+        }}
+      />
+
+      {/* Header */}
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-white">
           Monthly Trend
         </h2>
-        <p className="text-sm text-gray-500">
+
+        <p className="text-sm text-white/60">
           Track your income and expenses over time
         </p>
       </div>
 
+      {/* Chart */}
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
-            <XAxis dataKey="month" stroke="#9CA3AF" />
-            <YAxis stroke="#9CA3AF" />
+
+            {/* X Axis */}
+            <XAxis
+              dataKey="month"
+              stroke="rgba(255,255,255,0.4)"
+              tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 12 }}
+            />
+
+            {/* Y Axis */}
+            <YAxis
+              stroke="rgba(255,255,255,0.4)"
+              tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 12 }}
+            />
+
             <Tooltip content={<ChartTooltip />} />
 
+            {/* Income line */}
             <Line
               type="monotone"
               dataKey="income"
-              stroke="#2563EB"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
-              animationDuration={500}
+              stroke="#7EF7C9"
+              strokeWidth={2.5}
+              dot={{ r: 3, fill: "#7EF7C9" }}
+              activeDot={{ r: 6 }}
+              animationDuration={700}
             />
 
+            {/* Expenses line */}
             <Line
               type="monotone"
               dataKey="expenses"
-              stroke="#F43F5E"
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={{ r: 5 }}
-              animationDuration={500}
+              stroke="#FF9B9B"
+              strokeWidth={2.5}
+              dot={{ r: 3, fill: "#FF9B9B" }}
+              activeDot={{ r: 6 }}
+              animationDuration={700}
             />
+
           </LineChart>
         </ResponsiveContainer>
       </div>
