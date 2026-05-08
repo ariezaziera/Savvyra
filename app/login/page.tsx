@@ -56,7 +56,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#453284]">
+    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[#453284]">
 
       {/* Aurora blobs */}
       <div className="blob blob-1" />
@@ -164,8 +164,8 @@ export default function LoginPage() {
         }
       `}</style>
 
-      <div className="relative z-10 grid h-full grid-cols-1 md:grid-cols-2">
-        
+      <div className="relative z-10 grid min-h-screen grid-cols-1 md:grid-cols-2">
+
         {/* LEFT SIDE */}
         <div className="hidden md:flex flex-col justify-between px-16 py-14">
 
@@ -186,7 +186,7 @@ export default function LoginPage() {
           </div>
 
           <div className="max-w-xl">
-            <h1 className="text-4xl md:text-6xl font-semibold leading-[1.05] tracking-tight text-white">
+            <h1 className="text-6xl font-semibold leading-[1.05] tracking-tight text-white">
               Take control of your
               <br />
 
@@ -195,7 +195,7 @@ export default function LoginPage() {
               </span>
             </h1>
 
-            <p className="mt-6 space-y-4 text-lg leading-relaxed text-white/65">
+            <p className="mt-6 text-lg leading-relaxed text-white/65">
               Track spending, manage commitments, and grow your savings
               with a smarter financial workspace built for modern users.
             </p>
@@ -208,11 +208,11 @@ export default function LoginPage() {
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="relative flex items-center justify-center md:justify-end px-5 md:px-14 py-5 md:py-10">
+        <div className="relative flex items-center justify-center md:justify-end px-6 md:px-14 py-7">
 
           {/* Floating Login Card */}
           <div
-            className="w-full max-w-md rounded-4xl p-6 md:p-8 shadow-2xl"
+            className="w-full max-w-md rounded-4xl p-8 shadow-2xl"
             style={{
               background: "rgba(255,255,255,0.12)",
               backdropFilter: "blur(28px)",
