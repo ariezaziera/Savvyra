@@ -241,8 +241,8 @@ export default function Home() {
         {completionToast && (
           <div
             className="fixed right-5 top-5 z-50 rounded-2xl
-            border border-white/15
-            bg-white/12
+            border border-white/25
+            bg-white/20
             px-5 py-3 text-sm font-medium text-white
             backdrop-blur-xl
             shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
@@ -253,7 +253,7 @@ export default function Home() {
 
         {/* Header */}
         <div className="relative z-10 mb-8">
-          <p className="text-sm uppercase tracking-[0.2em] text-white/50">
+          <p className="text-sm uppercase tracking-[0.2em] text-white/60">
             Personal Finance Overview
           </p>
 
@@ -261,7 +261,7 @@ export default function Home() {
             Savvyra Dashboard
           </h1>
 
-          <p className="mt-2 text-sm text-white/70">
+          <p className="mt-2 text-sm text-white/80">
             Monitor your balance, savings progress, and financial trends.
           </p>
         </div>
@@ -289,15 +289,15 @@ export default function Home() {
 
               <div
                 className="relative overflow-hidden rounded-3xl
-                border border-white/15
-                bg-white/8
+                border border-white/25
+                bg-white/16
                 p-6
                 backdrop-blur-xl
                 shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
 
-                <p className="text-sm text-white/65">
+                <p className="text-sm text-white/80">
                   Cash Savings
                 </p>
 
@@ -308,15 +308,15 @@ export default function Home() {
 
               <div
                 className="relative overflow-hidden rounded-3xl
-                border border-white/15
-                bg-white/8
+                border border-white/25
+                bg-white/16
                 p-6
                 backdrop-blur-xl
                 shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
 
-                <p className="text-sm text-white/65">
+                <p className="text-sm text-white/80">
                   Gold Savings
                 </p>
 
@@ -326,30 +326,18 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Goals Carousel */}
-            <div
-              className="relative overflow-hidden rounded-3xl
-              border border-white/15
-              bg-white/8
-              p-1
-              backdrop-blur-xl
-              shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
-            >
-              <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
-
-              <SavingsGoalsCarousel goals={goals} />
-            </div>
+            <SavingsGoalsCarousel goals={goals} />
 
             {/* Add Goal */}
             <section
               className="relative overflow-hidden rounded-3xl
-              border border-white/15
-              bg-white/8
+              border border-white/25
+              bg-white/16
               p-6
               backdrop-blur-xl
               shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+              <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
 
               <div className="space-y-4">
                 <div>
@@ -357,7 +345,7 @@ export default function Home() {
                     Add Savings Goal
                   </h2>
 
-                  <p className="mt-1 text-sm text-white/65">
+                  <p className="mt-1 text-sm text-white/75">
                     Set a new target and track your financial progress.
                   </p>
                 </div>
@@ -366,10 +354,10 @@ export default function Home() {
                   value={goalName}
                   onChange={(e) => setGoalName(e.target.value)}
                   placeholder="Goal name"
-                  className="w-full rounded-2xl border border-white/15
-                  bg-white/6
+                  className="w-full rounded-2xl border border-white/25
+                  bg-white/10
                   px-4 py-3 text-sm text-white
-                  outline-none placeholder:text-white/35
+                  outline-none placeholder:text-white/45
                   backdrop-blur-xl
                   focus:border-[#6A49FA]
                   focus:ring-2 focus:ring-[#6A49FA]/20"
@@ -379,10 +367,10 @@ export default function Home() {
                   value={goalTarget}
                   onChange={(e) => setGoalTarget(e.target.value)}
                   placeholder="Target amount"
-                  className="w-full rounded-2xl border border-white/15
-                  bg-white/6
+                  className="w-full rounded-2xl border border-white/25
+                  bg-white/10
                   px-4 py-3 text-sm text-white
-                  outline-none placeholder:text-white/35
+                  outline-none placeholder:text-white/45
                   backdrop-blur-xl
                   focus:border-[#6A49FA]
                   focus:ring-2 focus:ring-[#6A49FA]/20"
@@ -409,13 +397,13 @@ export default function Home() {
 
               <div
                 className="relative overflow-hidden rounded-3xl
-                border border-white/15
-                bg-white/8
+                border border-white/25
+                bg-white/16
                 p-4
                 backdrop-blur-xl
                 shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
 
                 <ExpenseCategoryChart
                   data={dashboardData.expenseByCategory}
@@ -424,13 +412,13 @@ export default function Home() {
 
               <div
                 className="relative overflow-hidden rounded-3xl
-                border border-white/15
-                bg-white/8
+                border border-white/25
+                bg-white/16
                 p-4
                 backdrop-blur-xl
                 shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
 
                 <IncomeExpenseBarChart
                   data={dashboardData.incomeExpenseSummary}
@@ -441,13 +429,13 @@ export default function Home() {
             {/* Monthly Trend */}
             <div
               className="relative overflow-hidden rounded-3xl
-              border border-white/15
-              bg-white/8
+              border border-white/25
+              bg-white/16
               p-4
               backdrop-blur-xl
               shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
+              <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
 
               <MonthlyTrendChart
                 data={dashboardData.monthlyTrend}
