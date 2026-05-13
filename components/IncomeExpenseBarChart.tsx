@@ -77,7 +77,7 @@ export default function IncomeExpenseBarChart({ data }: Props) {
             {/* Income */}
             <Bar
               dataKey="income"
-              fill="#7EF7C9"
+              fill="#E8C97A"
               radius={[10, 10, 0, 0]}
               animationDuration={700}
             />

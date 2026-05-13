@@ -14,11 +14,11 @@ type ExpenseCategoryChartProps = {
 };
 
 const COLORS = [
-  "#6A49FA",
-  "#7EF7C9",
-  "#C6E6FF",
-  "#FF9B9B",
-  "#CFA8FF",
+  "#E8C97A",
+  "#E8C97A",
+  "#E8A0A0",
+  "#93C8F0",
+  "#E2D9FF",
 ];
 
 export default function ExpenseCategoryChart({

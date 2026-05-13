@@ -122,7 +122,7 @@ export default function SavingsGoalsCarousel({ goals }: Props) {
               </div>
 
               {/* Progress bar */}
-              <div className="relative z-10 mt-4 h-0.75 w-full overflow-hidden rounded-full bg-white/12">
+              <div className="relative z-10 mt-4 h-0.75 w-full overflow-hidden rounded-full bg-white/12`">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ease-out ${
                     isCompleted ? "bg-[#7EF7C9]" : "bg-[#6A49FA]"

@@ -50,12 +50,12 @@ export default function DashboardStats({
             key={label}
             className={`relative overflow-hidden rounded-3xl
               border border-white/25
-              bg-white/[0.16]
+              bg-white/16
               p-5
               backdrop-blur-xl
               shadow-[0_10px_40px_rgba(0,0,0,0.28)]
               transition-all duration-300
-              hover:bg-white/[0.20]
+              hover:bg-white/20
               hover:shadow-[0_14px_50px_rgba(0,0,0,0.35)]
               ${isBalance ? "row-span-2" : ""}`}
           >
@@ -110,7 +110,7 @@ export default function DashboardStats({
                 {/* Progress Bar */}
                 <div
                   className="relative flex h-3 w-full overflow-hidden rounded-full
-                  bg-white/[0.12]"
+                  bg-white/12"
                 >
 
                   {/* Savings */}

@@ -78,9 +78,9 @@ export default function MonthlyTrendChart({ data }: Props) {
             <Line
               type="monotone"
               dataKey="income"
-              stroke="#7EF7C9"
+              stroke="#E8C97A"
               strokeWidth={2.5}
-              dot={{ r: 3, fill: "#7EF7C9" }}
+              dot={{ r: 3, fill: "#E8C97A" }}
               activeDot={{ r: 6 }}
               animationDuration={700}
             />
