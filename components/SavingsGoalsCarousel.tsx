@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type Goal = {
@@ -34,49 +34,139 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "all",       label: "All"       },
 ];
 
+// Individual card component so it can manage its own animation key
+function GoalCard({
+  goal,
+  theme,
+  isActive,
+  animKey,
+}: {
+  goal: Goal;
+  theme: typeof PALETTE[0];
+  isActive: boolean;
+  animKey: number;
+}) {
+  const progress = goal.targetAmount > 0
+    ? Math.min(goal.currentAmount / goal.targetAmount, 1)
+    : 0;
+  const isCompleted = progress >= 1;
+  const pct = Math.round(progress * 100);
+
+  // When animKey changes, recharts remounts the Pie and replays its animation
+  const pieData = [{ value: progress }, { value: 1 - progress }];
+
+  return (
+    <div
+      className="relative shrink-0 overflow-hidden rounded-2xl p-5"
+      style={{
+        background: theme.bg,
+        border: "1px solid rgba(255,255,255,0.25)",
+        scrollSnapAlign: "center",
+        userSelect: "none",
+        width: "calc(100vw - 96px)",
+        maxWidth: "280px",
+        minWidth: "200px",
+        transition: "box-shadow 0.3s ease",
+      }}
+    >
+      {/* Top shine */}
+      <div
+        className="absolute inset-x-0 top-0 h-px"
+        style={{ background: "rgba(255,255,255,0.5)" }}
+      />
+
+      {/* Completed badge */}
+      {isCompleted && (
+        <span
+          className="mb-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+          style={{
+            background: "rgba(255,255,255,0.3)",
+            color: theme.text,
+            border: "1px solid rgba(255,255,255,0.4)",
+          }}
+        >
+          Completed
+        </span>
+      )}
+
+      {/* Goal name */}
+      <p
+        className="relative z-10 text-sm font-bold truncate pr-2"
+        style={{ color: theme.text }}
+      >
+        {goal.name}
+      </p>
+
+      {/* Donut — key prop forces full remount + animation replay on focus */}
+      <div className="relative z-10 mx-auto mt-4 h-28 w-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              key={animKey}
+              data={pieData}
+              dataKey="value"
+              innerRadius={38}
+              outerRadius={52}
+              startAngle={90}
+              endAngle={-270}
+              strokeWidth={0}
+              isAnimationActive={true}
+              animationBegin={0}
+              animationDuration={700}
+              animationEasing="ease-out"
+            >
+              <Cell fill={theme.chart} />
+              <Cell fill={theme.track} />
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+
+        {/* Centre % */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <span className="text-xl font-bold" style={{ color: theme.chart }}>
+            {pct}%
+          </span>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div
+        className="relative z-10 mt-4 h-1.5 w-full overflow-hidden rounded-full"
+        style={{ background: theme.track }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{ width: `${progress * 100}%`, background: theme.chart }}
+        />
+      </div>
+
+      {/* Amounts */}
+      <p className="relative z-10 mt-3 text-xs" style={{ color: theme.muted }}>
+        <span className="font-bold" style={{ color: theme.text }}>
+          RM {goal.currentAmount.toLocaleString()}
+        </span>
+        {" / "}
+        RM {goal.targetAmount.toLocaleString()}
+      </p>
+
+      {goal.deadline && (
+        <p className="relative z-10 mt-1 text-xs" style={{ color: theme.muted }}>
+          Due{" "}
+          {new Date(goal.deadline).toLocaleDateString("en-MY", {
+            day: "numeric", month: "short", year: "numeric",
+          })}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function SavingsGoalsCarousel({ goals }: { goals: Goal[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<Filter>("ongoing");
   const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth) return;
-      e.preventDefault();
-      el.scrollBy({ left: e.deltaY * 1.5, behavior: "smooth" });
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
-
-  // Reset scroll + active index when filter changes
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
-    setActiveIndex(0);
-  }, [filter]);
-
-  // Track which card is centred via IntersectionObserver
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = Array.from(el.children).indexOf(entry.target as HTMLElement);
-            if (index !== -1) setActiveIndex(index);
-          }
-        });
-      },
-      { root: el, threshold: 0.6 }
-    );
-
-    Array.from(el.children).forEach((child) => observer.observe(child));
-    return () => observer.disconnect();
-  }, [filter]);
+  // animKeys[i] increments each time card i becomes active → triggers Pie remount
+  const [animKeys, setAnimKeys] = useState<number[]>([]);
 
   const filteredGoals = goals.filter((goal) => {
     const progress = goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0;
@@ -90,6 +180,77 @@ export default function SavingsGoalsCarousel({ goals }: { goals: Goal[] }) {
     goal,
     originalIndex: goals.findIndex((g) => g.id === goal.id),
   }));
+
+  // Initialise animKeys when filtered list length changes
+  useEffect(() => {
+    setAnimKeys(Array(filteredGoals.length).fill(0));
+  }, [filteredGoals.length, filter]);
+
+  // Bump animKey for the newly focused card
+  const bumpAnimKey = useCallback((index: number) => {
+    setAnimKeys((prev) => {
+      const next = [...prev];
+      next[index] = (next[index] ?? 0) + 1;
+      return next;
+    });
+  }, []);
+
+  // Wheel → horizontal scroll
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollBy({ left: e.deltaY * 1.5, behavior: "smooth" });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Reset on filter change
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = 0;
+    setActiveIndex(0);
+  }, [filter]);
+
+  // Debounced scroll → find centred card → update activeIndex + trigger animation
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const onScroll = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        const children = Array.from(el.children) as HTMLElement[];
+        const elCenter = el.scrollLeft + el.clientWidth / 2;
+        let closest = 0;
+        let minDist = Infinity;
+        children.forEach((child, i) => {
+          const cardCenter = child.offsetLeft + child.offsetWidth / 2;
+          const dist = Math.abs(elCenter - cardCenter);
+          if (dist < minDist) {
+            minDist = dist;
+            closest = i;
+          }
+        });
+
+        setActiveIndex((prev) => {
+          if (prev !== closest) bumpAnimKey(closest);
+          return closest;
+        });
+      }, 80);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      clearTimeout(timeout);
+    };
+  }, [filter, bumpAnimKey]);
 
   return (
     <section className="glass-no-clip p-6" style={{ overflow: "visible" }}>
@@ -154,7 +315,6 @@ export default function SavingsGoalsCarousel({ goals }: { goals: Goal[] }) {
               scrollSnapType: "x mandatory",
               cursor: "grab",
               gap: "12px",
-              // Mobile: padding centres the first/last card with peek
               paddingLeft: "16px",
               paddingRight: "16px",
             }}
@@ -176,117 +336,15 @@ export default function SavingsGoalsCarousel({ goals }: { goals: Goal[] }) {
               window.addEventListener("mouseup", onUp);
             }}
           >
-            {goalsWithIndex.map(({ goal, originalIndex }, i) => {
-              const theme = PALETTE[originalIndex % PALETTE.length];
-              const progress = goal.targetAmount > 0
-                ? Math.min(goal.currentAmount / goal.targetAmount, 1)
-                : 0;
-              const isCompleted = progress >= 1;
-              const pct = Math.round(progress * 100);
-              const pieData = [{ value: progress }, { value: 1 - progress }];
-              const isActive = i === activeIndex;
-
-              return (
-                <div
-                  key={goal.id}
-                  className="relative shrink-0 overflow-hidden rounded-2xl p-5 transition-all duration-300"
-                  style={{
-                    background: theme.bg,
-                    border: "1px solid rgba(255,255,255,0.25)",
-                    scrollSnapAlign: "center",
-                    userSelect: "none",
-                    // Mobile: nearly full width with peek; Desktop: fixed width
-                    width: "calc(100vw - 96px)",
-                    maxWidth: "280px",
-                    minWidth: "200px",
-                    transform: isActive ? "scale(1) translateY(-2px)" : "scale(0.96) translateY(0px)",
-                    opacity: isActive ? 1 : 0.75,
-                  }}
-                >
-                  {/* Top shine */}
-                  <div
-                    className="absolute inset-x-0 top-0 h-px"
-                    style={{ background: "rgba(255,255,255,0.5)" }}
-                  />
-
-                  {/* Completed badge */}
-                  {isCompleted && (
-                    <span
-                      className="mb-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                      style={{
-                        background: "rgba(255,255,255,0.3)",
-                        color: theme.text,
-                        border: "1px solid rgba(255,255,255,0.4)",
-                      }}
-                    >
-                      Completed
-                    </span>
-                  )}
-
-                  {/* Goal name */}
-                  <p
-                    className="relative z-10 text-sm font-bold truncate pr-2"
-                    style={{ color: theme.text }}
-                  >
-                    {goal.name}
-                  </p>
-
-                  {/* Donut */}
-                  <div className="relative z-10 mx-auto mt-4 h-28 w-28">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieData}
-                          dataKey="value"
-                          innerRadius={38}
-                          outerRadius={52}
-                          startAngle={90}
-                          endAngle={-270}
-                          strokeWidth={0}
-                        >
-                          <Cell fill={theme.chart} />
-                          <Cell fill={theme.track} />
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <span className="text-xl font-bold" style={{ color: theme.chart }}>
-                        {pct}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div
-                    className="relative z-10 mt-4 h-1.5 w-full overflow-hidden rounded-full"
-                    style={{ background: theme.track }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${progress * 100}%`, background: theme.chart }}
-                    />
-                  </div>
-
-                  {/* Amounts */}
-                  <p className="relative z-10 mt-3 text-xs" style={{ color: theme.muted }}>
-                    <span className="font-bold" style={{ color: theme.text }}>
-                      RM {goal.currentAmount.toLocaleString()}
-                    </span>
-                    {" / "}
-                    RM {goal.targetAmount.toLocaleString()}
-                  </p>
-
-                  {goal.deadline && (
-                    <p className="relative z-10 mt-1 text-xs" style={{ color: theme.muted }}>
-                      Due{" "}
-                      {new Date(goal.deadline).toLocaleDateString("en-MY", {
-                        day: "numeric", month: "short", year: "numeric",
-                      })}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+            {goalsWithIndex.map(({ goal, originalIndex }, i) => (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
+                theme={PALETTE[originalIndex % PALETTE.length]}
+                isActive={i === activeIndex}
+                animKey={animKeys[i] ?? 0}
+              />
+            ))}
           </div>
 
           {/* Dot indicators */}
@@ -300,12 +358,13 @@ export default function SavingsGoalsCarousel({ goals }: { goals: Goal[] }) {
                   const card = el.children[i] as HTMLElement;
                   card.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
                 }}
-                className="h-1.5 rounded-full transition-all duration-300"
+                className="h-1.5 rounded-full"
                 style={{
                   width: i === activeIndex ? "20px" : "6px",
                   background: i === activeIndex
                     ? "rgba(196,181,253,0.9)"
                     : "rgba(255,255,255,0.20)",
+                  transition: "width 0.3s ease, background 0.3s ease",
                 }}
               />
             ))}
