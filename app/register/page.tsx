@@ -269,14 +269,25 @@ export default function RegisterPage() {
               style={{ animationDelay: "0.08s" }}
             >
               <div
-                className="flex items-center justify-center rounded-xl"
+                className="relative flex items-center justify-center rounded-xl overflow-hidden"
                 style={{
-                  width: 40, height: 40,
+                  width: 35,
+                  height: 35,
                   background: "rgba(255,255,255,0.1)",
                   border: "1px solid rgba(255,255,255,0.15)",
                 }}
               >
-                <Image src="/logo512.png" alt="Savvyra" width={26} height={26} />
+                {/* background fill layer (optional glow/shape) */}
+                <div className="absolute inset-0 bg-white" />
+
+                {/* logo on top */}
+                <Image
+                  src="/logo512.png"
+                  alt="Savvyra"
+                  width={26}
+                  height={26}
+                  className="relative z-10 object-contain"
+                />
               </div>
               <span className="text-lg font-semibold text-white">Savvyra</span>
             </div>

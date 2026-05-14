@@ -166,7 +166,10 @@ export default function LoginPage() {
 
       // Trigger blob expand, then navigate after animation
       setExpanding(true);
-      setTimeout(() => router.push("/"), 900);
+
+      setTimeout(() => {
+        router.push("/");
+      }, 1100);
 
     } catch {
       setError("Something went wrong");
@@ -183,20 +186,40 @@ export default function LoginPage() {
       <div className="blob blob-3" />
 
       {/* ── Blob expand circle (fires on successful submit) ── */}
+      {/* ── Cinematic transition blob ── */}
       <div
         style={{
           position: "fixed",
-          bottom: "18%",
+          top: "50%",
           left: "50%",
-          transform: `translate(-50%, 50%) scale(${expanding ? 50 : 0})`,
-          width: 64,
-          height: 64,
-          borderRadius: "50%",
-          background: "linear-gradient(135deg,#E8A0A0 0%,#E8C97A 100%)",
-          zIndex: 50,
-          transition: "transform 0.9s cubic-bezier(0.4,0,0.2,1)",
+          transform: `translate(-50%, -50%) scale(${expanding ? 55 : 0})`,
+          width: 90,
+          height: 90,
+          borderRadius: "9999px",
+
+          background: `
+            radial-gradient(
+              circle,
+              #FEDADA 0%,
+              #E8A0A0 28%,
+              #E8C97A 52%,
+              #6A49FA 78%,
+              #453284 100%
+            )
+          `,
+
+          zIndex: 9999,
           pointerEvents: "none",
+
+          transition:
+            "transform 1.15s cubic-bezier(0.22,1,0.36,1), opacity 0.45s ease",
+
           opacity: expanding ? 1 : 0,
+
+          filter: `
+            blur(4px)
+            saturate(120%)
+          `,
         }}
       />
 
@@ -307,14 +330,25 @@ export default function LoginPage() {
               style={{ animationDelay: "0.08s" }}
             >
               <div
-                className="flex items-center justify-center rounded-xl"
+                className="relative flex items-center justify-center rounded-xl overflow-hidden"
                 style={{
-                  width: 40, height: 40,
+                  width: 35,
+                  height: 35,
                   background: "rgba(255,255,255,0.1)",
                   border: "1px solid rgba(255,255,255,0.15)",
                 }}
               >
-                <Image src="/logo512.png" alt="Savvyra" width={26} height={26} />
+                {/* background fill layer (optional glow/shape) */}
+                <div className="absolute inset-0 bg-white" />
+
+                {/* logo on top */}
+                <Image
+                  src="/logo512.png"
+                  alt="Savvyra"
+                  width={26}
+                  height={26}
+                  className="relative z-10 object-contain"
+                />
               </div>
               <span className="text-lg font-semibold text-white">Savvyra</span>
             </div>
