@@ -190,7 +190,7 @@ export default function LoginPage() {
               Take control of your
               <br />
 
-              <span className="typing-word text-[#C4B5FD] font-extrabold">
+              <span className="typing-word text-[#E8C97A] font-extrabold">
                 finances.
               </span>
             </h1>

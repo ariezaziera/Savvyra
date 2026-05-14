@@ -189,7 +189,7 @@ export default function RegisterPage() {
               Build better
               <br />
 
-              <span className="typing-word text-[#C6E6FF]">
+              <span className="typing-word text-[#E8A0A0] font-extrabold">
                 financial habits.
               </span>
             </h1>
