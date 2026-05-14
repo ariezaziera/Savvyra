@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import MainWrapper from "@/components/MainWrapper";
 import ScrollbarController from "@/components/ScrollbarController";
 import SessionTimeout from "@/components/SessionTimeout";
+import SplashScreen from "@/components/SplashScreen";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" style={{ height: "100%" }}>
       <body className={inter.className} style={{ height: "100%", margin: 0 }}>
+        <SplashScreen />
         <ScrollbarController />
         <SessionTimeout />
         <Navbar />
