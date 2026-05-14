@@ -120,10 +120,9 @@ export default function SavingsGoalsCarousel({ goals }: { goals: Goal[] }) {
               return (
                 <div
                   key={goal.id}
-                  className="relative min-w-55 shrink-0 overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:scale-[1.025] hover:-translate-y-0.5"
+                  className="relative min-w-55 shrink-0 overflow-hidden rounded-2xl p-5 mt-3 transition-all duration-300 hover:scale-[1.025] hover:-translate-y-0.5"
                   style={{
                     background: theme.bg,
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.35)",
                     border: "1px solid rgba(255,255,255,0.25)",
                     scrollSnapAlign: "start", // mobile snap per card
                     userSelect: "none",       // prevent text select while dragging

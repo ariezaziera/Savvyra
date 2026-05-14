@@ -260,7 +260,9 @@ export default function Home() {
               </div>
             </section>
 
-            <SavingsGoalsCarousel goals={goals} />
+            <div className="-mx-1 px-1 py-1">
+              <SavingsGoalsCarousel goals={goals} />
+            </div>
 
             {/* Add Goal */}
             <section
