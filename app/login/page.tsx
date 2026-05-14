@@ -185,41 +185,23 @@ export default function LoginPage() {
       <div className="blob blob-2" />
       <div className="blob blob-3" />
 
-      {/* ── Blob expand circle (fires on successful submit) ── */}
       {/* ── Cinematic transition blob ── */}
       <div
         style={{
           position: "fixed",
           top: "50%",
           left: "50%",
-          transform: `translate(-50%, -50%) scale(${expanding ? 55 : 0})`,
-          width: 90,
-          height: 90,
+          width: 80,
+          height: 80,
           borderRadius: "9999px",
-
-          background: `
-            radial-gradient(
-              circle,
-              #FEDADA 0%,
-              #E8A0A0 28%,
-              #E8C97A 52%,
-              #6A49FA 78%,
-              #453284 100%
-            )
-          `,
-
+          transform: `translate(-50%, -50%) scale(${expanding ? 60 : 0})`,
+          background: "radial-gradient(circle, #453284 0%, #6A49FA 40%, #E8A0A0 70%, #2B1E59 100%)",
           zIndex: 9999,
           pointerEvents: "none",
-
-          transition:
-            "transform 1.15s cubic-bezier(0.22,1,0.36,1), opacity 0.45s ease",
-
           opacity: expanding ? 1 : 0,
-
-          filter: `
-            blur(4px)
-            saturate(120%)
-          `,
+          transition: expanding
+            ? "transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease"
+            : "transform 0s, opacity 0.4s ease 0.8s",
         }}
       />
 

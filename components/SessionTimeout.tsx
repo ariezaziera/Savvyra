@@ -26,8 +26,25 @@ export default function SessionTimeout() {
      but we also keep the ref up to date below.
   ───────────────────────────────────────────── */
   const handleLogout = useCallback(async () => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    await fetch("/api/logout", { method: "POST" });
+    // stop timers
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+
+    // reset modal state
+    setShowModal(false);
+    setCountdown(COUNTDOWN_TIME);
+
+    // logout request
+    await fetch("/api/logout", {
+      method: "POST",
+    });
+
+    // navigate
     router.push("/login");
   }, [router]);
 
@@ -36,6 +53,20 @@ export default function SessionTimeout() {
   useEffect(() => {
     handleLogoutRef.current = handleLogout;
   }, [handleLogout]);
+
+  useEffect(() => {
+    if (PUBLIC_ROUTES.includes(pathname)) {
+      setShowModal(false);
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    }
+  }, [pathname]);
 
   /* ─────────────────────────────────────────────
      START COUNTDOWN
