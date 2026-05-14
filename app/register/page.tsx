@@ -188,7 +188,7 @@ export default function RegisterPage() {
         }
         @keyframes typingWord {
           from { width:0; }
-          to   { width:18ch; }
+          to   { width:14ch; }
         }
         @keyframes blink {
           50% { border-color:transparent; }
@@ -206,7 +206,7 @@ export default function RegisterPage() {
           border-right: 3px solid #C6E6FF;
           width: 0;
           animation:
-            typingWord 3s steps(30, end) infinite alternate,
+            typingWord 5s steps(30, end) infinite alternate,
             blink 0.8s step-end infinite;
         }
       `}</style>

@@ -220,6 +220,33 @@ export default function LoginPage() {
         .login-fade {
           animation: loginFadeIn 0.4s ease both;
         }
+        .typing-word {
+          display: inline-block;
+          overflow: hidden;
+          white-space: nowrap;
+          border-right: 3px solid #C4B5FD;
+          width: 0;
+
+          animation:
+            typingWord 2.5s steps(30, end) infinite alternate,
+            blink 0.8s step-end infinite;
+        }
+
+        @keyframes typingWord {
+          from {
+            width: 0;
+          }
+
+          to {
+            width: 8ch;
+          }
+        }
+
+        @keyframes blink {
+          50% {
+            border-color: transparent;
+          }
+        }
       `}</style>
 
       {/* ── Two-column grid (desktop) / single column (mobile) ── */}

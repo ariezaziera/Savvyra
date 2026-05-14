@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import Navbar from "@/components/Navbar";
 import MainWrapper from "@/components/MainWrapper";
 import ScrollbarController from "@/components/ScrollbarController";
+import SessionTimeout from "@/components/SessionTimeout";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="en" style={{ height: "100%" }}>
       <body className={inter.className} style={{ height: "100%", margin: 0 }}>
         <ScrollbarController />
+        <SessionTimeout />
         <Navbar />
         <MainWrapper>{children}</MainWrapper>
       </body>

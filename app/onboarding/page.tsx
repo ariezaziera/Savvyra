@@ -51,9 +51,11 @@ export default function OnboardingPage() {
   }
 
   function finish() {
-    localStorage.setItem("savvyra_onboarded", "true");
+    document.cookie =
+        "savvyra_onboarded=true; path=/; max-age=31536000";
+
     router.push("/login");
-  }
+    }
 
   const slide = SLIDES[index];
 
