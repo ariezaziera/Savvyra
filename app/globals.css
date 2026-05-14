@@ -36,11 +36,18 @@
   --error:   #FF8C8C;
 }
 
+/* ─── Reset: lock html/body to viewport, no bleed ───────────────── */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  /* NO min-height here — pages that need full-height use 100dvh themselves */
+}
+
 body {
   background: var(--bg);
   background-attachment: fixed;
   color: var(--text-primary);
-  min-height: 100vh;
   position: relative;
   overflow-x: hidden;
 }
@@ -124,7 +131,6 @@ body {
   border-radius: 1.5rem;
   box-shadow: 0 8px 32px rgba(0,0,0,0.35);
   position: relative;
-  /* no overflow: hidden */
 }
 
 /* ─── Gradient cards ─────────────────────────────────────────────── */
@@ -187,8 +193,6 @@ body {
 .hide-navbar nav { display: none !important; }
 
 /* ─── Custom Scrollbar ───────────────────────────────────────────── */
-
-/* Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -198,31 +202,12 @@ body {
   scrollbar-color: rgba(106,73,250,0.55) transparent;
 }
 
-/* Chrome / Safari / Edge */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 9999px;
-  transition: background 0.4s ease;
-}
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: transparent; border-radius: 9999px; transition: background 0.4s ease; }
 
 body.is-scrolling ::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    #6A49FA 0%,
-    #C4B5FD 50%,
-    #E2D9FF 100%
-  );
+  background: linear-gradient(180deg, #6A49FA 0%, #C4B5FD 50%, #E2D9FF 100%);
 }
 
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
+::-webkit-scrollbar-corner { background: transparent; }
