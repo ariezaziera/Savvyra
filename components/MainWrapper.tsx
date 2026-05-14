@@ -9,7 +9,7 @@ export default function MainWrapper({ children }: { children: React.ReactNode })
   const noLayout = isAuthPage || is404;
 
   return (
-    <main className={!isAuthPage ? "md:ml-16 pb-20 md:pb-0" : ""}>
+    <main className={!isAuthPage ? "md:ml-22 md:mr-8 pb-20 md:pb-0" : ""}>
       {children}
     </main>
   );

@@ -58,14 +58,15 @@ export default function Navbar() {
       {!isAuthPage && (
         <aside
           className={`hidden md:flex flex-col fixed left-3 top-4 h-[calc(100vh-2rem)] z-50 transition-all duration-300 ease-in-out
-            bg-[#2B1E59]/85 backdrop-blur-xl
+            bg-[#2B1E59]/90 backdrop-blur-2xl
             rounded-3xl
-            border border-white/10
-            shadow-[0_8px_40px_rgba(0,0,0,0.35)]
+            border border-white/12
+            shadow-[0_8px_40px_rgba(0,0,0,0.40)]
             ${expanded ? "w-56" : "w-16"}`}
         >
           {/* Logo */}
-          <div
+          <Link
+            href="/"
             className={`flex items-center gap-3 px-3 py-5 border-b border-white/10 rounded-full ${
               expanded ? "justify-start" : "justify-center"
             }`}
@@ -91,7 +92,7 @@ export default function Navbar() {
                 </p>
               </div>
             )}
-          </div>
+          </Link>
 
           {/* Nav Items */}
           <nav className="flex flex-col gap-1 px-2 py-4 flex-1">
@@ -105,7 +106,7 @@ export default function Navbar() {
                     className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200
                       ${
                         isActive
-                          ? "bg-white/10 text-white"
+                          ? "bg-[#6A49FA]/30 text-[#C4B5FD] shadow-[inset_0_0_0_1px_rgba(196,181,253,0.3)]"
                           : "text-white/60 hover:bg-white/10 hover:text-white"
                       }
                       ${expanded ? "justify-start" : "justify-center"}`}
@@ -209,9 +210,9 @@ export default function Navbar() {
       {!isAuthPage && (
         <nav
           className="fixed bottom-3 left-3 right-3 z-50 flex md:hidden items-center
-          bg-[#2B1E59]/85 backdrop-blur-xl rounded-3xl
-          border border-white/10
-          shadow-[0_8px_40px_rgba(0,0,0,0.35)]
+          bg-[#2B1E59]/90 backdrop-blur-2xl rounded-3xl
+          border border-white/12
+          shadow-[0_8px_40px_rgba(0,0,0,0.40)]
           px-2 py-4"
         >
           {/* Left Side */}
@@ -239,12 +240,12 @@ export default function Navbar() {
             <Link
               href="/settings"
               className={`w-18 h-18 rounded-full flex items-center justify-center -mt-10
-                shadow-[0_8px_24px_rgba(106,73,250,0.45)]
+                shadow-[0_8px_24px_rgba(196,181,253,0.35)]
                 hover:scale-105 active:scale-95 transition-all duration-200
                 ${
                   pathname === "/settings"
-                    ? "bg-[#5B3FC4]"
-                    : "bg-[#6A49FA]"
+                    ? "bg-[#453284]"
+                    : "bg-linear-to-br from-[#6A49FA] to-[#C4B5FD]"
                 }`}
             >
               <Settings size={22} className="text-white" />

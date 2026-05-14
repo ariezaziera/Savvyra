@@ -87,37 +87,17 @@ export default function Home() {
 
       if (progress >= 1 && !localStorage.getItem(storageKey)) {
         setCompletionToast(`${goal.name} completed 🎉`);
-
         localStorage.setItem(storageKey, "true");
-
-        setTimeout(() => {
-          setCompletionToast("");
-        }, 3000);
+        setTimeout(() => setCompletionToast(""), 3000);
       }
     });
   }, [goals]);
 
   const stats = [
-    {
-      label: "Balance",
-      value: dashboardData.balance,
-      color: "text-[#C6E6FF]",
-    },
-    {
-      label: "Income",
-      value: dashboardData.income,
-      color: "text-[#7EF7C9]",
-    },
-    {
-      label: "Expenses",
-      value: dashboardData.expenses,
-      color: "text-[#FF9B9B]",
-    },
-    {
-      label: "Total Savings",
-      value: dashboardData.savings,
-      color: "text-[#CFA8FF]",
-    },
+    { label: "Balance",       value: dashboardData.balance,  color: "text-[#C4B5FD]" },
+    { label: "Income",        value: dashboardData.income,   color: "text-[#8EE3B5]" },
+    { label: "Expenses",      value: dashboardData.expenses, color: "text-[#FF8C8C]" },
+    { label: "Total Savings", value: dashboardData.savings,  color: "text-[#E2D9FF]" },
   ];
 
   const handleAddGoal = async () => {
@@ -125,9 +105,7 @@ export default function Home() {
 
     const res = await fetch("/api/savings-goals", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({
         name: goalName,
@@ -142,10 +120,8 @@ export default function Home() {
       console.error("Failed to add goal:", error);
     } else {
       await res.json();
-
       setGoalName("");
       setGoalTarget("");
-
       await fetchDashboard();
     }
   };
@@ -153,15 +129,15 @@ export default function Home() {
   return (
     <PageContainer>
       <>
+        {/* Deep background */}
+        <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,#3B1FA8_0%,#1A0F3C_45%,#0D0820_100%)]" />
+
         {/* Aurora Blobs */}
         <div className="blob blob-1" />
         <div className="blob blob-2" />
         <div className="blob blob-3" />
 
-        {/* Noise Texture */}
-        <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.03] mix-blend-soft-light bg-[url('/noise.png')]" />
-
-        <style jsx>{`
+        <style>{`
           .blob {
             position: fixed;
             border-radius: 9999px;
@@ -171,97 +147,68 @@ export default function Home() {
           }
 
           .blob-1 {
-            width: 500px;
-            height: 500px;
+            width: 600px;
+            height: 600px;
             background: #6a49fa;
-            top: -150px;
-            left: -150px;
-            filter: blur(120px);
-            opacity: 0.85;
-            animation: blob-drift-1 12s ease-in-out infinite alternate;
+            top: -200px;
+            left: -200px;
+            filter: blur(140px);
+            opacity: 0.55;
+            animation: blob-drift-1 14s ease-in-out infinite alternate;
           }
 
           .blob-2 {
-            width: 450px;
-            height: 450px;
+            width: 500px;
+            height: 500px;
             background: #c6e6ff;
-            bottom: -100px;
-            right: -100px;
-            filter: blur(110px);
-            opacity: 0.55;
-            animation: blob-drift-2 15s ease-in-out infinite alternate;
+            bottom: -120px;
+            right: -120px;
+            filter: blur(130px);
+            opacity: 0.25;
+            animation: blob-drift-2 18s ease-in-out infinite alternate;
           }
 
           .blob-3 {
-            width: 380px;
-            height: 380px;
+            width: 480px;
+            height: 480px;
             background: #fedada;
-            top: 30%;
-            right: 10%;
-            filter: blur(100px);
-            opacity: 0.45;
-            animation: blob-drift-3 10s ease-in-out infinite alternate;
+            bottom: 5%;
+            right: 5%;
+            filter: blur(120px);
+            opacity: 0.38;
+            animation: blob-drift-3 12s ease-in-out infinite alternate;
           }
 
           @keyframes blob-drift-1 {
-            from {
-              transform: translate(0, 0) scale(1);
-            }
-
-            to {
-              transform: translate(40px, 60px) scale(1.1);
-            }
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(50px, 70px) scale(1.15); }
           }
-
           @keyframes blob-drift-2 {
-            from {
-              transform: translate(0, 0) scale(1);
-            }
-
-            to {
-              transform: translate(-50px, -40px) scale(1.08);
-            }
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(-60px, -50px) scale(1.10); }
           }
-
           @keyframes blob-drift-3 {
-            from {
-              transform: translate(0, 0) scale(1);
-            }
-
-            to {
-              transform: translate(30px, -50px) scale(0.95);
-            }
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(40px, -60px) scale(0.92); }
           }
         `}</style>
 
-        {/* Background */}
-        <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,#5B3FC4_0%,#453284_45%,#1D1238_100%)]" />
-
         {/* Completion Toast */}
         {completionToast && (
-          <div
-            className="fixed right-5 top-5 z-50 rounded-2xl
-            border border-white/25
-            bg-white/20
-            px-5 py-3 text-sm font-medium text-white
-            backdrop-blur-xl
-            shadow-[0_10px_40px_rgba(0,0,0,0.35)]"
-          >
+          <div className="fixed right-5 top-5 z-50 rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-medium text-white backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.4)]">
             {completionToast}
           </div>
         )}
 
         {/* Header */}
         <div className="relative z-10 mb-8">
-          <p className="text-sm uppercase tracking-[0.2em] text-white/60">
+          <p className="text-xs uppercase tracking-[0.25em] text-white/35 font-medium">
             Personal Finance Overview
           </p>
-
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-            Savvyra Dashboard
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">
+            Dashboard
           </h1>
-
-          <p className="mt-2 text-sm text-white/80">
+          <p className="mt-1.5 text-sm text-white/50">
             Monitor your balance, savings progress, and financial trends.
           </p>
         </div>
@@ -272,11 +219,8 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: 0.45,
-              ease: "easeOut",
-            }}
-            className="relative z-10 space-y-6"
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="relative z-10 space-y-5"
           >
             {/* Stats */}
             <DashboardStats
@@ -284,43 +228,33 @@ export default function Home() {
               formatCurrency={formatCurrency}
             />
 
-            {/* Savings Cards */}
+            {/* Savings Cards — gradient fills */}
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-              <div
-                className="relative overflow-hidden rounded-3xl
-                border border-white/25
-                bg-white/16
-                p-6
-                backdrop-blur-xl
-                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              {/* Cash — lavender gradient */}
+              <div className="relative overflow-hidden rounded-3xl p-6 shadow-[0_12px_40px_rgba(106,73,250,0.20)]"
+                style={{ background: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)" }}
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
-
-                <p className="text-sm text-white/80">
+                <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
+                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
+                <p className="relative z-10 text-sm font-medium text-[#2D1B6B]/65">
                   Cash Savings
                 </p>
-
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                <h2 className="relative z-10 mt-2 text-3xl font-bold tracking-tight text-[#2D1B6B]">
                   {formatCurrency(dashboardData.cashSavings)}
                 </h2>
               </div>
 
-              <div
-                className="relative overflow-hidden rounded-3xl
-                border border-white/25
-                bg-white/16
-                p-6
-                backdrop-blur-xl
-                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              {/* Gold — pink gradient */}
+              <div className="relative overflow-hidden rounded-3xl p-6 shadow-[0_12px_40px_rgba(232,160,160,0.20)]"
+                style={{ background: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)" }}
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
-
-                <p className="text-sm text-white/80">
+                <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
+                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
+                <p className="relative z-10 text-sm font-medium text-[#4A1818]/65">
                   Gold Savings
                 </p>
-
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                <h2 className="relative z-10 mt-2 text-3xl font-bold tracking-tight text-[#4A1818]">
                   {formatCurrency(dashboardData.goldSavings)}
                 </h2>
               </div>
@@ -331,21 +265,20 @@ export default function Home() {
             {/* Add Goal */}
             <section
               className="relative overflow-hidden rounded-3xl
-              border border-white/25
-              bg-white/16
+              border border-white/10
+              bg-white/5
               p-6
-              backdrop-blur-xl
-              shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              backdrop-blur-2xl
+              shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
+              <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
 
               <div className="space-y-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">
+                  <h2 className="text-lg font-semibold text-white">
                     Add Savings Goal
                   </h2>
-
-                  <p className="mt-1 text-sm text-white/75">
+                  <p className="mt-0.5 text-sm text-white/45">
                     Set a new target and track your financial progress.
                   </p>
                 </div>
@@ -354,38 +287,40 @@ export default function Home() {
                   value={goalName}
                   onChange={(e) => setGoalName(e.target.value)}
                   placeholder="Goal name"
-                  className="w-full rounded-2xl border border-white/25
-                  bg-white/10
+                  className="w-full rounded-2xl border border-white/10
+                  bg-white/6
                   px-4 py-3 text-sm text-white
-                  outline-none placeholder:text-white/45
-                  backdrop-blur-xl
-                  focus:border-[#6A49FA]
+                  outline-none placeholder:text-white/30
+                  backdrop-blur-xl transition
+                  focus:border-[#6A49FA]/60
+                  focus:bg-white/10
                   focus:ring-2 focus:ring-[#6A49FA]/20"
                 />
 
                 <input
                   value={goalTarget}
                   onChange={(e) => setGoalTarget(e.target.value)}
-                  placeholder="Target amount"
-                  className="w-full rounded-2xl border border-white/25
-                  bg-white/10
+                  placeholder="Target amount (RM)"
+                  className="w-full rounded-2xl border border-white/10
+                  bg-white/6
                   px-4 py-3 text-sm text-white
-                  outline-none placeholder:text-white/45
-                  backdrop-blur-xl
-                  focus:border-[#6A49FA]
+                  outline-none placeholder:text-white/30
+                  backdrop-blur-xl transition
+                  focus:border-[#6A49FA]/60
+                  focus:bg-white/10
                   focus:ring-2 focus:ring-[#6A49FA]/20"
                 />
 
                 <button
                   onClick={handleAddGoal}
-                  className="w-full rounded-2xl
-                  bg-[#6A49FA]
-                  px-5 py-3 text-sm font-medium text-white
+                  className="w-full rounded-full
+                  bg-linear-to-r from-[#6A49FA] to-[#9B7FFF]
+                  px-5 py-3 text-sm font-semibold text-white
                   transition-all duration-200
-                  hover:bg-[#7B5BFF]
-                  hover:scale-[1.01]
-                  active:scale-[0.99]
-                  shadow-[0_8px_24px_rgba(106,73,250,0.35)]"
+                  hover:scale-[1.02]
+                  hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)]
+                  active:scale-[0.98]
+                  shadow-[0_8px_24px_rgba(106,73,250,0.40)]"
                 >
                   Add Goal
                 </button>
@@ -393,53 +328,44 @@ export default function Home() {
             </section>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
 
               <div
                 className="relative overflow-hidden rounded-3xl
-                border border-white/25
-                bg-white/16
-                p-4
-                backdrop-blur-xl
-                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+                border border-white/10
+                bg-white/5
+                p-5
+                backdrop-blur-2xl
+                shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
-
-                <ExpenseCategoryChart
-                  data={dashboardData.expenseByCategory}
-                />
+                <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
+                <ExpenseCategoryChart data={dashboardData.expenseByCategory} />
               </div>
 
               <div
                 className="relative overflow-hidden rounded-3xl
-                border border-white/25
-                bg-white/16
-                p-4
-                backdrop-blur-xl
-                shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+                border border-white/10
+                bg-white/5
+                p-5
+                backdrop-blur-2xl
+                shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
-
-                <IncomeExpenseBarChart
-                  data={dashboardData.incomeExpenseSummary}
-                />
+                <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
+                <IncomeExpenseBarChart data={dashboardData.incomeExpenseSummary} />
               </div>
             </div>
 
             {/* Monthly Trend */}
             <div
               className="relative overflow-hidden rounded-3xl
-              border border-white/25
-              bg-white/16
-              p-4
-              backdrop-blur-xl
-              shadow-[0_10px_40px_rgba(0,0,0,0.28)]"
+              border border-white/10
+              bg-white/5
+              p-5
+              backdrop-blur-2xl
+              shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-white/30" />
-
-              <MonthlyTrendChart
-                data={dashboardData.monthlyTrend}
-              />
+              <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
+              <MonthlyTrendChart data={dashboardData.monthlyTrend} />
             </div>
           </motion.div>
         )}

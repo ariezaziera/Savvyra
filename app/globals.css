@@ -1,14 +1,51 @@
 @import "tailwindcss";
 
+/* ─── Savvyra Design Tokens ──────────────────────────────────────── */
+:root {
+  --bg:             #1A0F3C;
+  --navbar:         #150C30;
+
+  --blob-1:         #6A49FA;
+  --blob-2:         #C6E6FF;
+  --blob-3:         #FEDADA;
+
+  --text-primary:   #FFFFFF;
+  --text-secondary: rgba(255,255,255,0.70);
+  --text-muted:     rgba(255,255,255,0.45);
+
+  --card-glass:     rgba(255,255,255,0.07);
+  --card-border:    rgba(255,255,255,0.12);
+  --card-highlight: rgba(255,255,255,0.22);
+
+  --lavender-from:  #E2D9FF;
+  --lavender-to:    #C4B5FD;
+  --purple-from:    #6A49FA;
+  --purple-to:      #3B2A8A;
+  --pink-from:      #FEDADA;
+  --pink-to:        #E8A0A0;
+
+  --chart-1: #C4B5FD;
+  --chart-2: #93C8F0;
+  --chart-3: #E8A0A0;
+  --chart-4: #E8C97A;
+  --chart-5: #E2D9FF;
+  --chart-6: #6A49FA;
+
+  --success: #8EE3B5;
+  --warning: #FFD27D;
+  --error:   #FF8C8C;
+}
+
 body {
-  background: #453284;
+  background: var(--bg);
   background-attachment: fixed;
-  color: #e8e0ff;
+  color: var(--text-primary);
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
 }
 
+/* ─── Blobs ──────────────────────────────────────────────────────── */
 .blob {
   position: fixed;
   border-radius: 50%;
@@ -16,73 +53,165 @@ body {
   z-index: 0;
   will-change: transform;
 }
-
 .blob-1 {
-  width: 500px;
-  height: 500px;
-  background: #6A49FA;
-  top: -150px;
-  left: -150px;
-  filter: blur(120px);
-  opacity: 0.85;
-  animation: blob-drift-1 12s ease-in-out infinite alternate;
+  width: 600px; height: 600px;
+  background: var(--blob-1);
+  top: -200px; left: -200px;
+  filter: blur(140px); opacity: 0.55;
+  animation: blob-drift-1 14s ease-in-out infinite alternate;
 }
-
 .blob-2 {
-  width: 450px;
-  height: 450px;
-  background: #C6E6FF;
-  bottom: -100px;
-  right: -100px;
-  filter: blur(110px);
-  opacity: 0.55;
-  animation: blob-drift-2 15s ease-in-out infinite alternate;
+  width: 500px; height: 500px;
+  background: var(--blob-2);
+  bottom: -120px; right: -120px;
+  filter: blur(130px); opacity: 0.30;
+  animation: blob-drift-2 18s ease-in-out infinite alternate;
 }
-
 .blob-3 {
-  width: 380px;
-  height: 380px;
-  background: #FEDADA;
-  top: 30%;
-  right: 10%;
-  filter: blur(100px);
-  opacity: 0.45;
-  animation: blob-drift-3 10s ease-in-out infinite alternate;
-}
-
-.blob {
-  position: fixed;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform;
+  width: 480px; height: 480px;
+  background: var(--blob-3);
+  bottom: 5%; right: 5%;
+  filter: blur(120px); opacity: 0.40;
+  animation: blob-drift-3 12s ease-in-out infinite alternate;
 }
 
 @keyframes blob-drift-1 {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(40px, 60px) scale(1.1); }
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(50px,70px) scale(1.15); }
 }
-
 @keyframes blob-drift-2 {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(-50px, -40px) scale(1.08); }
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(-60px,-50px) scale(1.10); }
 }
-
 @keyframes blob-drift-3 {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(30px, -50px) scale(0.95); }
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(40px,-60px) scale(0.92); }
 }
 
+/* ─── Shimmer ────────────────────────────────────────────────────── */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
+  0%   { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+.animate-shimmer { animation: shimmer 1.5s infinite; }
 
-.animate-shimmer {
-  animation: shimmer 1.5s infinite;
+/* ─── Glass card ─────────────────────────────────────────────────── */
+.glass {
+  background: var(--card-glass);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: var(--card-highlight);
+  opacity: 0.6;
 }
 
+/* ─── Gradient cards ─────────────────────────────────────────────── */
+.card-lavender {
+  background: linear-gradient(135deg, var(--lavender-from) 0%, var(--lavender-to) 100%);
+  color: #2D1B6B;
+}
+.card-purple {
+  background: linear-gradient(135deg, var(--purple-from) 0%, var(--purple-to) 100%);
+  color: #fff;
+}
+.card-pink {
+  background: linear-gradient(135deg, var(--pink-from) 0%, var(--pink-to) 100%);
+  color: #4A1818;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6A49FA 0%, #9B7FFF 100%);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  box-shadow: 0 8px 24px rgba(106,73,250,0.40);
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover  { transform: scale(1.03); box-shadow: 0 12px 32px rgba(106,73,250,0.55); }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.85);
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.18);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.btn-secondary:hover  { background: rgba(255,255,255,0.13); transform: scale(1.02); }
+.btn-secondary:active { transform: scale(0.98); }
+
+/* ─── Accent text ────────────────────────────────────────────────── */
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-error   { color: var(--error); }
+
 .hide-navbar aside,
-.hide-navbar nav {
-  display: none !important;
+.hide-navbar nav { display: none !important; }
+
+/* ─── Custom Scrollbar ───────────────────────────────────────────── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.4s ease;
+}
+*.is-scrolling {
+  scrollbar-color: rgba(106,73,250,0.55) transparent;
+}
+
+/* Chrome / Safari / Edge */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 9999px;
+  transition: background 0.4s ease;
+}
+
+body.is-scrolling ::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    #6A49FA 0%,
+    #C4B5FD 50%,
+    #E2D9FF 100%
+  );
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

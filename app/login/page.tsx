@@ -86,7 +86,7 @@ export default function LoginPage() {
         .blob-2 {
           width: 450px;
           height: 450px;
-          background: #C6E6FF;
+          background: #C4B5FD;
           bottom: -100px;
           right: -100px;
           filter: blur(110px);
@@ -139,7 +139,7 @@ export default function LoginPage() {
           display: inline-block;
           overflow: hidden;
           white-space: nowrap;
-          border-right: 3px solid #C6E6FF;
+          border-right: 3px solid #C4B5FD;
           width: 0;
 
           animation:
@@ -190,7 +190,7 @@ export default function LoginPage() {
               Take control of your
               <br />
 
-              <span className="typing-word text-[#C6E6FF] font-extrabold">
+              <span className="typing-word text-[#C4B5FD] font-extrabold">
                 finances.
               </span>
             </h1>
@@ -344,7 +344,7 @@ export default function LoginPage() {
               No account?{" "}
               <a
                 href="/register"
-                className="font-medium text-[#C6E6FF] hover:underline"
+                className="font-medium text-[#C4B5FD] hover:underline"
               >
                 Register
               </a>
