@@ -67,17 +67,20 @@ export default function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className={`flex items-center gap-3 px-3 py-5 border-b border-white/10 rounded-full ${
+            className={`flex items-center gap-3 px-3 py-3 pt-5 border-b border-white/10 rounded-full ${
               expanded ? "justify-start" : "justify-center"
             }`}
           >
-            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white p-1">
+            <div className="h-8 w-8 shrink-0 flex items-center p-1 justify-center">
               <Image
-                src="/logo.png"
+                src="/logo2.png"
                 alt="Savvyra"
                 width={32}
                 height={32}
-                className="h-full w-full object-cover rounded-full"
+                className="h-full w-full object-contain 
+                          filter drop-shadow-[0_2px_8px_rgba(232,160,160,0.6)] 
+                          hover:drop-shadow-[0_0_12px_rgba(232,201,122,0.8)] 
+                          transition-all duration-300"
               />
             </div>
 

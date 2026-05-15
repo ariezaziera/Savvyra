@@ -263,9 +263,14 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex items-center gap-4">
             <div className="overflow-hidden rounded-2xl">
-              <Image src="/logo512.png" alt="Savvyra" width={58} height={58} />
+              <Image src="/logo2.png" alt="Savvyra" width={58} height={58} 
+                          className="h-full w-full object-contain 
+                          filter drop-shadow-[0_2px_8px_rgba(232,160,160,0.6)] 
+                          hover:drop-shadow-[0_0_12px_rgba(232,201,122,0.8)] 
+                          transition-all duration-300"
+              />
             </div>
-            <span className="text-2xl font-semibold tracking-tight text-white">
+            <span className="text-2xl font-bold tracking-tight text-white">
               Savvyra
             </span>
           </div>
@@ -321,15 +326,18 @@ export default function LoginPage() {
                 }}
               >
                 {/* background fill layer (optional glow/shape) */}
-                <div className="absolute inset-0 bg-white" />
+                <div className="absolute inset-0" />
 
                 {/* logo on top */}
                 <Image
-                  src="/logo512.png"
+                  src="/logo2.png"
                   alt="Savvyra"
                   width={26}
                   height={26}
-                  className="relative z-10 object-contain"
+                  className="relative z-10 object-contain
+                          filter drop-shadow-[0_2px_8px_rgba(232,160,160,0.6)] 
+                          hover:drop-shadow-[0_0_12px_rgba(232,201,122,0.8)] 
+                          transition-all duration-300"
                 />
               </div>
               <span className="text-lg font-semibold text-white">Savvyra</span>
