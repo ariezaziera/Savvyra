@@ -18,7 +18,7 @@ export default function SplashScreen() {
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[99999] overflow-hidden" style={{ background: "#453284" }}>
+    <div className="fixed inset-0 z-99999 overflow-hidden" style={{ background: "#453284" }}>
 
       <style suppressHydrationWarning>{`
         /* ── Blobs ── */

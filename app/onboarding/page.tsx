@@ -315,7 +315,7 @@ export default function OnboardingPage() {
                 className="flex items-center justify-center rounded-xl shrink-0"
                 style={{ width: 34, height: 34, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
               >
-                <Image src="/logo512.png" alt="Savvyra" width={20} height={20} />
+                <Image src="/logo2.png" alt="Savvyra" width={20} height={20} />
               </div>
               <span style={{ fontSize: 16, fontWeight: 600, color: "#fff" }}>Savvyra</span>
             </div>
@@ -380,7 +380,7 @@ export default function OnboardingPage() {
         <nav className="dt-nav">
           <div className="dt-nav-logo">
             <div className="dt-nav-logo-icon">
-              <Image src="/logo512.png" alt="Savvyra" width={20} height={20} />
+              <Image src="/logo2.png" alt="Savvyra" width={20} height={20} />
             </div>
             <span style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "-0.3px" }}>Savvyra</span>
           </div>
