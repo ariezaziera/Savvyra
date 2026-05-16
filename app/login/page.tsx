@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useNoScroll } from "@/hooks/useNoScroll";
 
 /* ─────────────────────────────────────────────────────────────────
    FloatingLabel — inline so you don't need Step 2 yet.
@@ -127,6 +128,9 @@ function LoadingDots() {
    Main page
 ───────────────────────────────────────────────────────────────── */
 export default function LoginPage() {
+  
+  useNoScroll();  // Lock scroll on this page to prevent scroll restoration bugs after back-nav
+
   const router = useRouter();
 
   const [email, setEmail]       = useState("");

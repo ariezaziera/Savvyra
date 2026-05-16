@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
+import { useNoScroll } from "@/hooks/useNoScroll";
 
 /* ─────────────────────────────────────────────────────────────────
    FloatingLabel — matches login page exactly
@@ -122,6 +123,9 @@ function LoadingDots() {
    Main page
 ───────────────────────────────────────────────────────────────── */
 export default function RegisterPage() {
+
+  useNoScroll();  // Lock scroll on this page to prevent scroll restoration bugs after back-nav
+  
   const router = useRouter();
 
   const [name, setName]         = useState("");

@@ -41,6 +41,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  scroll-behavior: auto !important;
   /* NO min-height here — pages that need full-height use 100dvh themselves */
 }
 

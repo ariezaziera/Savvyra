@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useNoScroll } from "@/hooks/useNoScroll";
 
 /* ─── Slide data ─────────────────────────────────────────────────── */
 const SLIDES = [
@@ -37,6 +38,9 @@ const SLIDES = [
 
 /* ─── Main page ──────────────────────────────────────────────────── */
 export default function OnboardingPage() {
+
+  useNoScroll();  // Lock scroll on this page to prevent scroll restoration bugs after back-nav
+  
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);

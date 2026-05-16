@@ -1,5 +1,3 @@
-const isDev = process.env.NODE_ENV === "development";
-
 const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
@@ -8,7 +6,6 @@ const withPWA = require("next-pwa")({
   fallbacks: {
     document: "/offline",
   },
-
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
@@ -23,4 +20,7 @@ const withPWA = require("next-pwa")({
 
 module.exports = withPWA({
   reactStrictMode: true,
+  experimental: {
+    scrollRestoration: false,
+  },
 });
