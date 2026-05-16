@@ -13,9 +13,18 @@ export const metadata: Metadata = {
   title: "Savvyra",
   description: "Personal finance dashboard",
   manifest: "/manifest.webmanifest",
+
+  themeColor: "#453284",
+
   icons: {
     icon: "/favicon.ico",
     apple: "/logo192.png",
+  },
+
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Savvyra",
   },
 };
 
@@ -25,8 +34,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={{ height: "100%" }}>
-      <body className={inter.className} style={{ height: "100%", margin: 0 }}>
+    <html
+      lang="en"
+      style={{
+        height: "100%",
+        background: "#453284",
+      }}
+    >
+      <body
+        className={inter.className}
+        style={{
+          height: "100%",
+          margin: 0,
+          background: "#453284",
+        }}
+      >
         <SplashScreen />
         <ScrollbarController />
         <SessionTimeout />
