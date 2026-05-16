@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: "Personal finance dashboard",
   manifest: "/manifest.webmanifest",
 
-  themeColor: "#453284",
+  themeColor: "#5D3FD3",
 
   icons: {
     icon: "/favicon.ico",
@@ -38,7 +38,7 @@ export default function RootLayout({
       lang="en"
       style={{
         height: "100%",
-        background: "#453284",
+        background: "#5D3FD3",
       }}
     >
       <body
@@ -46,7 +46,7 @@ export default function RootLayout({
         style={{
           height: "100%",
           margin: 0,
-          background: "#453284",
+          background: "#5D3FD3",
         }}
       >
         <SplashScreen />
