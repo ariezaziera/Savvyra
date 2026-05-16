@@ -26,6 +26,29 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Savvyra",
   },
+
+openGraph: {
+    title: "Savvyra — Track every ringgit",
+    description: "Beautiful personal finance, built for Malaysians.",
+    url: "https://savvyra.vercel.app",
+    siteName: "Savvyra",
+    images: [
+      {
+        url: "https://savvyra.vercel.app/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Savvyra — Personal Finance App",
+      },
+    ],
+    type: "website",
+    locale: "en_MY",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Savvyra — Track every ringgit",
+    description: "Beautiful personal finance, built for Malaysians.",
+    images: ["https://savvyra.vercel.app/og-image.png"],
+  },
 };
 
 export default function RootLayout({
