@@ -18,26 +18,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Guna getToken — dia handle both JWT cookie dan NextAuth session
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
-    // Explicitly check HTTPS cookie for production
-    cookieName: process.env.NODE_ENV === "production"
-      ? "__Secure-next-auth.session-token"
-      : "next-auth.session-token",
+  });
+
+  // LOG — tengok apa yang middleware nampak
+  console.log("[middleware]", {
+    pathname,
+    hasToken: !!token,
+    tokenId: token?.id ?? null,
+    cookies: request.cookies.getAll().map(c => c.name), // list semua cookie names
   });
 
   const isLoggedIn = !!token;
   const onboarded  = request.cookies.get("savvyra_onboarded")?.value;
 
-  // NOT LOGGED IN
   if (!isLoggedIn) {
+    console.log("[middleware] NOT LOGGED IN — redirecting to /login");
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // LOGGED IN but not onboarded
   if (!onboarded && pathname !== "/onboarding") {
+    console.log("[middleware] NOT ONBOARDED — redirecting to /onboarding");
     return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
