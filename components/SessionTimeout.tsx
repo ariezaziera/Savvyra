@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 const INACTIVITY_TIME    = 20 * 1000;  // 20 seconds
 const COUNTDOWN_TIME     = 10;          // 10 seconds
@@ -63,11 +64,12 @@ export default function SessionTimeout() {
     setCountdown(COUNTDOWN_TIME);
     clearLastSeen();
 
-    // Clear custom JWT cookie immediately so middleware lets the redirect through
+    // Clear both cookies
     document.cookie = "savvyra_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-
-    router.push("/login");
     fetch("/api/logout", { method: "POST" }).catch(() => {});
+
+    // ✅ This clears the NextAuth session cookie AND redirects to /login
+    await signOut({ callbackUrl: "/login" });
   }, [router]);
 
   useEffect(() => {
@@ -97,7 +99,9 @@ export default function SessionTimeout() {
 
   // ✅ Watches for countdown hitting 0 and triggers logout
   useEffect(() => {
+    console.log("countdown:", countdown, "showModal:", showModal);
     if (countdown === 0 && showModal) {
+      console.log("→ calling handleLogout");
       handleLogout();
     }
   }, [countdown, showModal, handleLogout]);
