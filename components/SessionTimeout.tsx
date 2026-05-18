@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const INACTIVITY_TIME    = 10 * 1000;  // 5 min inactivity → show warning modal
-const COUNTDOWN_TIME     = 60;              // 60 seconds to respond before auto-logout
+const INACTIVITY_TIME    = 5 * 60 * 1000;  // 5 min no activity → warning modal
+const COUNTDOWN_TIME     = 60;              // 60s to respond before auto-logout
 const BACKGROUND_TIMEOUT = 15 * 1000;  // 5 min in background → auto-logout
+
+const LAST_SEEN_KEY = "savvyra_last_seen";
 
 const PUBLIC_ROUTES = ["/login", "/register", "/onboarding"];
 
@@ -16,36 +18,61 @@ export default function SessionTimeout() {
   const inactivityRef   = useRef<NodeJS.Timeout | null>(null);
   const countdownRef    = useRef<NodeJS.Timeout | null>(null);
   const backgroundRef   = useRef<NodeJS.Timeout | null>(null);
-  const hiddenAtRef     = useRef<number | null>(null);  // timestamp when app went to background
+  const hiddenAtRef     = useRef<number | null>(null);
   const handleLogoutRef = useRef<() => void>(() => {});
 
   const [showModal, setShowModal] = useState(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_TIME);
 
-  const isPublicRoute = pathname && PUBLIC_ROUTES.includes(pathname);
+  const isPublicRoute = !!(pathname && PUBLIC_ROUTES.includes(pathname));
 
   /* ─────────────────────────────────────────────
-     LOGOUT — clears everything and redirects
+     HELPERS
+  ───────────────────────────────────────────── */
+  const stampLastSeen = () => {
+    try {
+      sessionStorage.setItem(LAST_SEEN_KEY, Date.now().toString());
+    } catch {}
+  };
+
+  const clearLastSeen = () => {
+    try {
+      sessionStorage.removeItem(LAST_SEEN_KEY);
+    } catch {}
+  };
+
+  const getElapsedSinceLastSeen = (): number => {
+    try {
+      const raw = sessionStorage.getItem(LAST_SEEN_KEY);
+      if (!raw) return Infinity; // no record = treat as expired
+      return Date.now() - parseInt(raw, 10);
+    } catch {
+      return Infinity;
+    }
+  };
+
+  /* ─────────────────────────────────────────────
+     LOGOUT
   ───────────────────────────────────────────── */
   const handleLogout = useCallback(async () => {
-    if (inactivityRef.current)  clearTimeout(inactivityRef.current);
-    if (countdownRef.current)   clearInterval(countdownRef.current);
-    if (backgroundRef.current)  clearTimeout(backgroundRef.current);
+    if (inactivityRef.current) clearTimeout(inactivityRef.current);
+    if (countdownRef.current)  clearInterval(countdownRef.current);
+    if (backgroundRef.current) clearTimeout(backgroundRef.current);
 
     setShowModal(false);
     setCountdown(COUNTDOWN_TIME);
+    clearLastSeen();
 
     await fetch("/api/logout", { method: "POST" });
     router.push("/login");
   }, [router]);
 
-  // Keep ref fresh so interval/timeout closures are never stale
   useEffect(() => {
     handleLogoutRef.current = handleLogout;
   }, [handleLogout]);
 
   /* ─────────────────────────────────────────────
-     COUNTDOWN — runs after warning modal appears
+     COUNTDOWN
   ───────────────────────────────────────────── */
   const startCountdown = useCallback(() => {
     setCountdown(COUNTDOWN_TIME);
@@ -61,7 +88,7 @@ export default function SessionTimeout() {
   }, []);
 
   /* ─────────────────────────────────────────────
-     INACTIVITY TIMER — resets on user activity
+     INACTIVITY TIMER
   ───────────────────────────────────────────── */
   const resetInactivityTimer = useCallback(() => {
     if (inactivityRef.current) clearTimeout(inactivityRef.current);
@@ -77,8 +104,29 @@ export default function SessionTimeout() {
   const continueSession = useCallback(() => {
     setShowModal(false);
     if (countdownRef.current) clearInterval(countdownRef.current);
+    stampLastSeen();
     resetInactivityTimer();
   }, [resetInactivityTimer]);
+
+  /* ─────────────────────────────────────────────
+     STARTUP CHECK
+     Runs once on mount — if app was cleared from
+     recents or left too long, logout immediately.
+     sessionStorage is wiped when PWA is killed,
+     so getElapsedSinceLastSeen() returns Infinity.
+  ───────────────────────────────────────────── */
+  useEffect(() => {
+    if (isPublicRoute) return;
+
+    const elapsed = getElapsedSinceLastSeen();
+
+    if (elapsed >= BACKGROUND_TIMEOUT) {
+      handleLogoutRef.current();
+      return;
+    }
+
+    stampLastSeen();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ─────────────────────────────────────────────
      CLEAR TIMERS ON PUBLIC ROUTES
@@ -86,65 +134,70 @@ export default function SessionTimeout() {
   useEffect(() => {
     if (!isPublicRoute) return;
     setShowModal(false);
-    if (inactivityRef.current)  clearTimeout(inactivityRef.current);
-    if (countdownRef.current)   clearInterval(countdownRef.current);
-    if (backgroundRef.current)  clearTimeout(backgroundRef.current);
+    if (inactivityRef.current) clearTimeout(inactivityRef.current);
+    if (countdownRef.current)  clearInterval(countdownRef.current);
+    if (backgroundRef.current) clearTimeout(backgroundRef.current);
   }, [isPublicRoute]);
 
   /* ─────────────────────────────────────────────
-     INACTIVITY LISTENERS — mouse, touch, keyboard
+     ACTIVITY LISTENERS
+     Updates last-seen stamp on every interaction.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
 
     const events = ["mousemove", "mousedown", "keypress", "touchstart", "scroll"];
     const onActivity = () => {
-      if (!showModal) resetInactivityTimer();
+      if (!showModal) {
+        resetInactivityTimer();
+        stampLastSeen();
+      }
     };
 
     events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }));
     resetInactivityTimer();
+    stampLastSeen();
 
     return () => {
       events.forEach((e) => window.removeEventListener(e, onActivity));
-      if (inactivityRef.current)  clearTimeout(inactivityRef.current);
-      if (countdownRef.current)   clearInterval(countdownRef.current);
+      if (inactivityRef.current) clearTimeout(inactivityRef.current);
+      if (countdownRef.current)  clearInterval(countdownRef.current);
     };
   }, [showModal, isPublicRoute, resetInactivityTimer]);
 
   /* ─────────────────────────────────────────────
-     VISIBILITY CHANGE — handles:
-     • App goes to background (tab switch, home button, swipe away)
-     • App comes back to foreground
-     • Checks elapsed time when returning — if > BACKGROUND_TIMEOUT, logout
+     VISIBILITY CHANGE
+     Handles home button, tab switch, app switcher.
+     Also does elapsed-time check on return in case
+     OS throttled/froze the background timer.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
 
     const onVisibilityChange = () => {
       if (document.hidden) {
-        // App went to background — record timestamp + start background timer
         hiddenAtRef.current = Date.now();
+        stampLastSeen();
 
         backgroundRef.current = setTimeout(() => {
           handleLogoutRef.current();
         }, BACKGROUND_TIMEOUT);
 
       } else {
-        // App came back to foreground
         if (backgroundRef.current) clearTimeout(backgroundRef.current);
 
-        // Also check elapsed time manually (in case setTimeout was throttled by OS)
-        if (hiddenAtRef.current) {
-          const elapsed = Date.now() - hiddenAtRef.current;
-          if (elapsed >= BACKGROUND_TIMEOUT) {
-            handleLogoutRef.current();
-            return;
-          }
+        // Manual elapsed check — OS may have frozen the setTimeout
+        const elapsed = hiddenAtRef.current
+          ? Date.now() - hiddenAtRef.current
+          : getElapsedSinceLastSeen();
+
+        if (elapsed >= BACKGROUND_TIMEOUT) {
+          handleLogoutRef.current();
+          return;
         }
 
         hiddenAtRef.current = null;
-        // Resume inactivity timer from foreground
+        stampLastSeen();
         if (!showModal) resetInactivityTimer();
       }
     };
@@ -157,15 +210,16 @@ export default function SessionTimeout() {
   }, [isPublicRoute, showModal, resetInactivityTimer]);
 
   /* ─────────────────────────────────────────────
-     BEFORE UNLOAD — best-effort cleanup on
-     tab close / browser kill / PWA swipe-away
+     BEFORE UNLOAD
+     Best-effort on tab/browser close.
+     Unreliable on mobile but still worth having.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
 
     const onUnload = () => {
-      // sendBeacon is fire-and-forget — works even as page is closing
       navigator.sendBeacon("/api/logout");
+      clearLastSeen();
     };
 
     window.addEventListener("beforeunload", onUnload);
