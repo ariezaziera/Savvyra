@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const INACTIVITY_TIME    = 15 * 1000; 
-const COUNTDOWN_TIME     = 30; // seconds
-const BACKGROUND_TIMEOUT = 15 * 1000;
+const INACTIVITY_TIME    = 20 * 1000;  // 20 seconds
+const COUNTDOWN_TIME     = 10;          // 10 seconds
+const BACKGROUND_TIMEOUT = 15 * 1000;  // 15 seconds
 
 const LAST_SEEN_KEY = "savvyra_last_seen";
 
