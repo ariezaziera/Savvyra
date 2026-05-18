@@ -130,7 +130,6 @@ export default function Home() {
     <PageContainer>
       <>
         {/* Deep background */}
-        <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,#3B1FA8_0%,#1A0F3C_45%,#0D0820_100%)]" />
 
         {/* Aurora Blobs */}
         <div className="blob blob-1" />

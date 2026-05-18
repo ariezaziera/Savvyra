@@ -2,7 +2,7 @@
 
 /* ─── Savvyra Design Tokens ──────────────────────────────────────── */
 :root {
-  --bg:             #1A0F3C;
+  --bg:             #563db5;
   --navbar:         #150C30;
 
   --blob-1:         #6A49FA;
@@ -46,8 +46,9 @@ html, body {
 }
 
 body {
-  background: var(--bg);
+  background: radial-gradient(ellipse at top left, #7B5FD4 0%, #563db5 50%, #3d2a8a 100%);
   background-attachment: fixed;
+  background-size: 100% 100%;
   color: var(--text-primary);
   position: relative;
   overflow-x: hidden;
