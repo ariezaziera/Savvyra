@@ -29,6 +29,12 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!user.password) {
+      return NextResponse.json(
+        { message: "This account uses a different sign-in method." },
+        { status: 400 }
+      );
+    }
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
