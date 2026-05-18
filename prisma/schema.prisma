@@ -26,6 +26,7 @@ model User {
   savingsGoals  SavingsGoal[]
   transactions  Transaction[]
   commitments   Commitment[]
+  categories    Category[]
 }
 
 // ── Required by NextAuth ──────────────────────────
@@ -109,5 +110,19 @@ model Commitment {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String
+  type      String   // "Income" | "Expense"
+  isDefault Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+ 
+  @@unique([userId, name, type])   // no duplicate name+type per user
   @@index([userId])
 }

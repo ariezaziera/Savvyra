@@ -3,41 +3,362 @@
 import { useEffect, useRef, useState } from "react";
 import PageContainer from "@/components/PageContainer";
 import AddTransactionForm from "@/components/AddTransactionForm";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, TrendingUp, TrendingDown, Receipt } from "lucide-react";
 import Toast from "@/components/Toast";
 import DeleteTransactionModal from "@/components/DeleteTransactionModal";
+import { motion } from "framer-motion";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import { Doughnut } from "react-chartjs-2";
+import TransactionFilter, {
+  DateFilter,
+} from "@/components/TransactionFilter";
+import { getIconForCategory } from "@/lib/categoryIcons";
 
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+/* ─────────────────────────────────────────────────────────────────
+   Types
+───────────────────────────────────────────────────────────────── */
 type Transaction = {
-  id: string;                          // ✅ string not number
+  id: string;
   title: string;
   category: string;
   date: string;
   amount: number;
   type: "Income" | "Expense";
   status: "Completed" | "Pending";
-  savingsGoalId?: string | null;       // ✅ string not number
+  savingsGoalId?: string | null;
 };
 
-const formatCurrency = (amount: number) => `RM ${amount.toLocaleString()}`;
+type Category = {
+  id: string;
+  name: string;
+  icon: string;
+  type: string;
+  isDefault: boolean;
+};
 
+/* ─────────────────────────────────────────────────────────────────
+   Constants
+───────────────────────────────────────────────────────────────── */
+const TYPE_STYLE = {
+  Income: {
+    bg: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)",
+    text: "#2B1059",
+    sub: "rgba(43,16,89,0.55)",
+    badge: "rgba(43,16,89,0.12)",
+    glow: "rgba(196,181,253,0.22)",
+    sign: "+",
+  },
+  Expense: {
+    bg: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)",
+    text: "#4A1818",
+    sub: "rgba(74,24,24,0.55)",
+    badge: "rgba(74,24,24,0.12)",
+    glow: "rgba(232,160,160,0.22)",
+    sign: "−",
+  },
+};
+
+const CHART_COLORS = [
+  "#C4B5FD",
+  "#E8A0A0",
+  "#93C8F0",
+  "#E8C97A",
+  "#E2D9FF",
+  "#6A49FA",
+  "#FEDADA",
+  "#C6E6FF",
+];
+
+/* ─────────────────────────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────────────────────────── */
+const formatCurrency = (amount: number) =>
+  `RM ${amount.toLocaleString("en-MY", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString("en-MY", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+function applyDateFilter(
+  txs: Transaction[],
+  f: DateFilter
+): Transaction[] {
+  if (f.mode === "picker") {
+    return txs.filter((t) => {
+      const d = new Date(t.date);
+      return d.getMonth() === f.month && d.getFullYear() === f.year;
+    });
+  }
+  const from = f.from ? new Date(f.from) : null;
+  const to = f.to ? new Date(f.to) : null;
+  if (to) to.setHours(23, 59, 59, 999);
+  return txs.filter((t) => {
+    const d = new Date(t.date);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  });
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   DonutPanel
+───────────────────────────────────────────────────────────────── */
+function DonutPanel({ transactions }: { transactions: Transaction[] }) {
+  const expenses = transactions.filter((t) => t.type === "Expense");
+  const catMap: Record<string, number> = {};
+  expenses.forEach((t) => {
+    catMap[t.category] = (catMap[t.category] ?? 0) + t.amount;
+  });
+  const cats = Object.keys(catMap);
+  const vals = cats.map((c) => catMap[c]);
+  const total = vals.reduce((a, b) => a + b, 0);
+  const colors = cats.map((_, i) => CHART_COLORS[i % CHART_COLORS.length]);
+
+  const donutData = {
+    labels: cats,
+    datasets: [
+      {
+        data: vals,
+        backgroundColor: colors,
+        borderColor: "rgba(69,50,132,0.5)",
+        borderWidth: 2,
+        hoverOffset: 6,
+      },
+    ],
+  };
+
+  const donutOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: "70%",
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (ctx: any) =>
+            ` ${ctx.label}: ${formatCurrency(ctx.raw as number)}`,
+        },
+      },
+    },
+  } as const;
+
+  return (
+    <div
+      style={{
+        background: "rgba(255,255,255,0.07)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        backdropFilter: "blur(24px)",
+        borderRadius: 24,
+        padding: "20px 20px 18px",
+      }}
+    >
+      <p
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          color: "rgba(255,255,255,0.35)",
+          textTransform: "uppercase",
+          letterSpacing: "0.8px",
+          marginBottom: 16,
+        }}
+      >
+        Spending by category
+      </p>
+
+      {cats.length > 0 ? (
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxWidth: 200,
+            margin: "0 auto 4px",
+          }}
+        >
+          <Doughnut data={donutData} options={donutOptions} />
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 10,
+                color: "rgba(255,255,255,0.4)",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              expenses
+            </span>
+            <span
+              style={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#fff",
+                letterSpacing: "-0.5px",
+                marginTop: 2,
+              }}
+            >
+              {formatCurrency(total)}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            height: 160,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>
+            No expenses this period
+          </p>
+        </div>
+      )}
+
+      {cats.length > 0 && (
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 16 }}
+        >
+          {cats.map((cat, i) => (
+            <div
+              key={cat}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  color: "rgba(255,255,255,0.55)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 3,
+                    background: colors[i],
+                    flexShrink: 0,
+                  }}
+                />
+                {cat}
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>
+                {formatCurrency(catMap[cat])}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div
+        style={{
+          height: 1,
+          background: "rgba(255,255,255,0.1)",
+          margin: "14px 0",
+        }}
+      />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+          Total transactions
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#C4B5FD" }}>
+          {transactions.length}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Grid template — shared between header + rows
+   2fr      = Title
+   0.4fr    = Icon (centered)
+   1fr      = Category name (left-aligned)
+   1fr      = Date
+   0.8fr    = Type
+   0.8fr    = Status
+   1.2fr    = Amount
+   0.8fr    = Actions
+───────────────────────────────────────────────────────────────── */
+const GRID_COLS = "2fr 0.4fr 1fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr";
+
+/* ─────────────────────────────────────────────────────────────────
+   Main page
+───────────────────────────────────────────────────────────────── */
 export default function TransactionsPage() {
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("All Types");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<Transaction | null>(null);
+
+  const now = new Date();
+  const [dateFilter, setDateFilter] = useState<DateFilter>({
+    mode: "picker",
+    month: now.getMonth(),
+    year: now.getFullYear(),
+    from: "",
+    to: "",
+  });
+
+  const transactionsSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     fetchTransactions();
+    fetchCategories();
   }, []);
 
   const fetchTransactions = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/transactions");
-      const data = await response.json();
-      setTransactions(Array.isArray(data) ? data : data.transactions ?? data.data ?? []);
-    } catch (error) {
+      const res = await fetch("/api/transactions");
+      const data = await res.json();
+      setTransactions(
+        Array.isArray(data) ? data : data.transactions ?? data.data ?? []
+      );
+    } catch {
       showToast("Failed to load transactions.", "error");
       setTransactions([]);
     } finally {
@@ -45,226 +366,672 @@ export default function TransactionsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!transactionToDelete) return;
-
-    const response = await fetch("/api/transactions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: transactionToDelete.id }),
-    });
-
-    if (!response.ok) {
-      showToast("Failed to delete transaction.", "error");
-      return;
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch("/api/categories");
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch {
+      setCategories([]);
     }
-
-    setTransactionToDelete(null);
-    showToast("Transaction deleted successfully.");
-    fetchTransactions();
-    scrollToTransactions();
   };
 
-  const totalIncome = transactions
-    .filter((item) => item.type === "Income")
-    .reduce((sum, item) => sum + item.amount, 0);
+  const getCategoryIcon = (categoryName: string, type: string): string => {
+    const match = categories.find(
+      (c) => c.name === categoryName && c.type === type
+    );
+    return match?.icon ?? getIconForCategory(categoryName, type);
+  };
 
-  const totalExpenses = transactions
-    .filter((item) => item.type === "Expense")
-    .reduce((sum, item) => sum + item.amount, 0);
-
-  const totalTransactions = transactions.length;
-
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("en-MY", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-
-  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
-
-  const showToast = (message: string, type: "success" | "error" = "success") => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success"
+  ) => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const transactionsSectionRef = useRef<HTMLElement | null>(null);
-
-  const scrollToTransactions = () => {
+  const scrollToTransactions = () =>
     transactionsSectionRef.current?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+
+  const handleTransactionSaved = () => {
+    fetchTransactions();
+    fetchCategories();
   };
 
-  const filteredTransactions = transactions.filter((item) => {
+  const handleDelete = async () => {
+    if (!transactionToDelete) return;
+    const res = await fetch("/api/transactions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: transactionToDelete.id }),
+    });
+    if (!res.ok) {
+      showToast("Failed to delete.", "error");
+      return;
+    }
+    setTransactionToDelete(null);
+    showToast("Transaction deleted.");
+    fetchTransactions();
+    scrollToTransactions();
+  };
+
+  /* Derived data */
+  const periodFiltered = applyDateFilter(transactions, dateFilter);
+
+  const totalIncome = periodFiltered
+    .filter((t) => t.type === "Income")
+    .reduce((s, t) => s + t.amount, 0);
+
+  const totalExpenses = periodFiltered
+    .filter((t) => t.type === "Expense")
+    .reduce((s, t) => s + t.amount, 0);
+
+  const filteredTransactions = periodFiltered.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === "All Types" || item.type === typeFilter;
+    const matchesType =
+      typeFilter === "All Types" || item.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
   return (
     <PageContainer>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Transactions</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Track your recent income and expenses in one place
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total Transactions</p>
-          <h2 className="mt-1 text-2xl font-semibold text-gray-900">{totalTransactions}</h2>
+      <>
+        {/* ── Header ── */}
+        <div className="relative z-10 mb-8">
+          <p className="text-xs uppercase tracking-[0.25em] text-white/35 font-medium">
+            Financial Activity
+          </p>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">
+            Transactions
+          </h1>
+          <p className="mt-1.5 text-sm text-white/50">
+            Track your recent income and expenses in one place.
+          </p>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total Income</p>
-          <h2 className="mt-1 text-2xl font-semibold text-green-600">{formatCurrency(totalIncome)}</h2>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total Expenses</p>
-          <h2 className="mt-1 text-2xl font-semibold text-rose-500">{formatCurrency(totalExpenses)}</h2>
-        </div>
-      </div>
 
-      <div className="mt-6">
-        <AddTransactionForm
-          onTransactionSaved={fetchTransactions}
-          editingTransaction={editingTransaction}
-          onCancelEdit={() => setEditingTransaction(null)}
-          onShowToast={showToast}
-          onScrollToTransactions={scrollToTransactions}
-        />
-      </div>
-
-      <section
-        ref={transactionsSectionRef}
-        className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
-      >
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-            <p className="text-sm text-gray-500">A quick overview of your latest activity</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search transaction"
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            />
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="relative z-10 space-y-5"
+        >
+          {/* ── Stat Cards ── */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Total */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0 }}
+              className="relative overflow-hidden rounded-3xl p-6"
+              style={{
+                background: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)",
+                boxShadow: "0 12px 40px rgba(196,181,253,0.25)",
+              }}
             >
-              <option>All Types</option>
-              <option>Income</option>
-              <option>Expense</option>
-            </select>
+              <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-2xl" />
+              <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/30">
+                <Receipt size={17} color="#2D1B6B" />
+              </div>
+              <p className="relative z-10 text-xs font-medium text-[#2D1B6B]/60 uppercase tracking-wide">
+                Total Transactions
+              </p>
+              <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#2D1B6B]">
+                {periodFiltered.length}
+              </h2>
+            </motion.div>
+
+            {/* Income */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.07 }}
+              className="relative overflow-hidden rounded-3xl p-6"
+              style={{
+                background: "linear-gradient(135deg, #D4F5E2 0%, #8EE3B5 100%)",
+                boxShadow: "0 12px 40px rgba(142,227,181,0.25)",
+              }}
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-2xl" />
+              <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/30">
+                <TrendingUp size={17} color="#0E3D22" />
+              </div>
+              <p className="relative z-10 text-xs font-medium text-[#0E3D22]/60 uppercase tracking-wide">
+                Total Income
+              </p>
+              <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#0E3D22]">
+                {formatCurrency(totalIncome)}
+              </h2>
+            </motion.div>
+
+            {/* Expenses */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="relative overflow-hidden rounded-3xl p-6"
+              style={{
+                background: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)",
+                boxShadow: "0 12px 40px rgba(232,160,160,0.25)",
+              }}
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-2xl" />
+              <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/30">
+                <TrendingDown size={17} color="#4A1818" />
+              </div>
+              <p className="relative z-10 text-xs font-medium text-[#4A1818]/60 uppercase tracking-wide">
+                Total Expenses
+              </p>
+              <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#4A1818]">
+                {formatCurrency(totalExpenses)}
+              </h2>
+            </motion.div>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-y-2">
-            <thead>
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Title</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Category</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Date</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Type</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Status</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Amount</th>
-                <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Action</th>
-              </tr>
-            </thead>
-            <tbody>
+          {/* ── Add Transaction Form ── */}
+          <div
+            className="relative overflow-hidden rounded-3xl p-6"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              backdropFilter: "blur(24px)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
+            <AddTransactionForm
+              onTransactionSaved={handleTransactionSaved}
+              editingTransaction={editingTransaction}
+              onCancelEdit={() => setEditingTransaction(null)}
+              onShowToast={showToast}
+              onScrollToTransactions={scrollToTransactions}
+            />
+          </div>
+
+          {/* ── Date filter ── */}
+          <div className="flex items-start justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Recent Transactions
+              </h2>
+              <p className="text-sm text-white/45">
+                A quick overview of your latest activity
+              </p>
+            </div>
+            <TransactionFilter value={dateFilter} onChange={setDateFilter} />
+          </div>
+
+          {/* ── Two-column layout ── */}
+          <section
+            ref={transactionsSectionRef}
+            className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start"
+          >
+            {/* LEFT — Donut chart */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+            >
+              <DonutPanel transactions={periodFiltered} />
+            </motion.div>
+
+            {/* RIGHT — Transaction list */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.15 }}
+            >
+              {/* Search + filter */}
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search title or category…"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
+                  style={{
+                    background: "rgba(255,255,255,0.07)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                />
+                <select
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="rounded-xl px-4 py-2.5 text-sm text-white outline-none"
+                  style={{
+                    background: "rgba(255,255,255,0.07)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                  }}
+                >
+                  <option value="All Types" style={{ background: "#2B1E59" }}>
+                    All Types
+                  </option>
+                  <option value="Income" style={{ background: "#2B1E59" }}>
+                    Income
+                  </option>
+                  <option value="Expense" style={{ background: "#2B1E59" }}>
+                    Expense
+                  </option>
+                </select>
+              </div>
+
+              {/* Legend */}
+              <div className="flex gap-4 mb-3">
+                <div className="flex items-center gap-1.5">
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 3,
+                      background: "linear-gradient(135deg,#E2D9FF,#C4B5FD)",
+                    }}
+                  />
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)" }}>
+                    Income
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 3,
+                      background: "linear-gradient(135deg,#FEDADA,#E8A0A0)",
+                    }}
+                  />
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)" }}>
+                    Expense
+                  </span>
+                </div>
+              </div>
+
               {isLoading && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
-                    Loading transactions...
-                  </td>
-                </tr>
+                <p className="py-12 text-center text-sm text-white/40">
+                  Loading transactions...
+                </p>
               )}
-
-              {!isLoading && filteredTransactions.map((item) => (
-                <tr key={item.id} className="rounded-xl border border-gray-100 bg-slate-50">
-                  <td className="rounded-l-xl px-4 py-4 text-sm font-medium text-gray-900">
-                    {item.title}
-                  </td>
-                  <td className="px-4 py-4 text-center text-sm text-gray-600">{item.category}</td>
-                  <td className="px-4 py-4 text-center text-sm text-gray-600">{formatDate(item.date)}</td>
-                  <td className="px-4 py-4 text-center">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      item.type === "Income" ? "bg-green-50 text-green-600" : "bg-rose-50 text-rose-500"
-                    }`}>
-                      {item.type}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      item.status === "Completed" ? "bg-blue-50 text-blue-600" : "bg-amber-50 text-amber-600"
-                    }`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className={`px-4 py-4 text-center text-sm font-semibold ${
-                    item.type === "Income" ? "text-green-600" : "text-rose-500"
-                  }`}>
-                    {item.type === "Income" ? "+" : "-"}{formatCurrency(item.amount)}
-                  </td>
-                  <td className="rounded-r-xl py-4 text-center">
-                    <div className="flex justify-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingTransaction(item)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-blue-50 hover:text-blue-600"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setTransactionToDelete(item)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition hover:bg-rose-50 hover:text-rose-500"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-
               {!isLoading && filteredTransactions.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
-                    No transactions found.
-                  </td>
-                </tr>
+                <p className="py-12 text-center text-sm text-white/40">
+                  No transactions found.
+                </p>
               )}
-            </tbody>
-          </table>
-        </div>
-      </section>
 
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
+              {/* ── Mobile cards ── */}
+              {!isLoading && (
+                <div className="flex flex-col gap-3 md:hidden">
+                  {filteredTransactions.map((item, i) => {
+                    const s = TYPE_STYLE[item.type];
+                    const icon = getCategoryIcon(item.category, item.type);
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="relative overflow-hidden rounded-2xl px-4 py-4"
+                        style={{
+                          background: s.bg,
+                          boxShadow: `0 6px 24px ${s.glow}`,
+                        }}
+                      >
+                        <div className="absolute inset-x-0 top-0 h-px bg-white/40" />
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* Category icon bubble */}
+                            <div
+                              style={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 10,
+                                background: "rgba(255,255,255,0.25)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 20,
+                                flexShrink: 0,
+                              }}
+                            >
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className="truncate text-sm font-bold"
+                                style={{ color: s.text }}
+                              >
+                                {item.title}
+                              </p>
+                              <p
+                                className="text-xs mt-0.5"
+                                style={{ color: s.sub }}
+                              >
+                                {item.category} · {formatDate(item.date)}
+                              </p>
+                              <div className="mt-2 flex gap-1.5">
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                  style={{ background: s.badge, color: s.text }}
+                                >
+                                  {item.type}
+                                </span>
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                                  style={{ background: s.badge, color: s.text }}
+                                >
+                                  {item.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p
+                              className="text-base font-extrabold"
+                              style={{ color: s.text }}
+                            >
+                              {s.sign}
+                              {formatCurrency(item.amount)}
+                            </p>
+                            <div className="mt-2 flex gap-1 justify-end">
+                              <button
+                                onClick={() => setEditingTransaction(item)}
+                                className="flex h-7 w-7 items-center justify-center rounded-full"
+                                style={{
+                                  background: "rgba(255,255,255,0.30)",
+                                  color: s.text,
+                                }}
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                onClick={() => setTransactionToDelete(item)}
+                                className="flex h-7 w-7 items-center justify-center rounded-full"
+                                style={{
+                                  background: "rgba(255,255,255,0.30)",
+                                  color: s.text,
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
 
-      <DeleteTransactionModal
-        transaction={transactionToDelete}
-        formatCurrency={formatCurrency}
-        onCancel={() => setTransactionToDelete(null)}
-        onConfirm={handleDelete}
-      />
+              {/* ── Desktop table ── */}
+              {!isLoading && filteredTransactions.length > 0 && (
+                <div className="hidden md:flex flex-col gap-2">
+                  {/* Header */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: GRID_COLS,
+                      padding: "0 16px",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {[
+                      { label: "Title", align: "left" },
+                      { label: "",         align: "center" }, // icon column — no heading
+                      { label: "Category", align: "left" },
+                      { label: "Date",     align: "center" },
+                      { label: "Type",     align: "center" },
+                      { label: "Status",   align: "center" },
+                      { label: "Amount",   align: "center" },
+                      { label: "Actions",  align: "center" },
+                    ].map(({ label, align }, i) => (
+                      <div
+                        key={label + i}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: "rgba(255,255,255,0.35)",
+                          letterSpacing: "0.8px",
+                          textTransform: "uppercase",
+                          textAlign: align as React.CSSProperties["textAlign"],
+                        }}
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Rows */}
+                  {filteredTransactions.map((item, i) => {
+                    const s = TYPE_STYLE[item.type];
+                    const icon = getCategoryIcon(item.category, item.type);
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: GRID_COLS,
+                          alignItems: "center",
+                          background: s.bg,
+                          borderRadius: 16,
+                          padding: "12px 16px",
+                          boxShadow: `0 4px 16px ${s.glow}`,
+                          position: "relative",
+                          overflow: "hidden",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: "0 0 auto",
+                            height: 1,
+                            background: "rgba(255,255,255,0.40)",
+                          }}
+                        />
+
+                        {/* Title */}
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: s.text,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            paddingRight: 8,
+                          }}
+                        >
+                          {item.title}
+                        </div>
+
+                        {/* Icon — own column, centered */}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: "rgba(255,255,255,0.25)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 15,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {icon}
+                          </div>
+                        </div>
+
+                        {/* Category name — own column, left-aligned */}
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: s.sub,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            paddingRight: 6,
+                          }}
+                        >
+                          {item.category}
+                        </div>
+
+                        {/* Date */}
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: s.sub,
+                            textAlign: "center",
+                          }}
+                        >
+                          {formatDate(item.date)}
+                        </div>
+
+                        {/* Type badge */}
+                        <div style={{ textAlign: "center" }}>
+                          <span
+                            style={{
+                              background: s.badge,
+                              color: s.text,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              borderRadius: 999,
+                              padding: "3px 10px",
+                            }}
+                          >
+                            {item.type}
+                          </span>
+                        </div>
+
+                        {/* Status badge */}
+                        <div style={{ textAlign: "center" }}>
+                          <span
+                            style={{
+                              background: s.badge,
+                              color: s.text,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              borderRadius: 999,
+                              padding: "3px 10px",
+                            }}
+                          >
+                            {item.status}
+                          </span>
+                        </div>
+
+                        {/* Amount */}
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 800,
+                            color: s.text,
+                            textAlign: "center",
+                          }}
+                        >
+                          {s.sign}
+                          {formatCurrency(item.amount)}
+                        </div>
+
+                        {/* Actions */}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <button
+                            onClick={() => setEditingTransaction(item)}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: "50%",
+                              border: "none",
+                              background: "rgba(255,255,255,0.30)",
+                              color: s.text,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "transform 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              (e.currentTarget as HTMLButtonElement).style.transform =
+                                "scale(1.12)";
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.currentTarget as HTMLButtonElement).style.transform =
+                                "scale(1)";
+                            }}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => setTransactionToDelete(item)}
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: "50%",
+                              border: "none",
+                              background: "rgba(255,255,255,0.30)",
+                              color: s.text,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                              transition: "transform 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              (e.currentTarget as HTMLButtonElement).style.transform =
+                                "scale(1.12)";
+                            }}
+                            onMouseLeave={(e) => {
+                              (e.currentTarget as HTMLButtonElement).style.transform =
+                                "scale(1)";
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          </section>
+        </motion.div>
+
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+
+        <DeleteTransactionModal
+          transaction={transactionToDelete}
+          formatCurrency={formatCurrency}
+          onCancel={() => setTransactionToDelete(null)}
+          onConfirm={handleDelete}
+        />
+      </>
     </PageContainer>
   );
 }
