@@ -1,36 +1,32 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  email         String    @unique
-  password      String?           // nullable — Google users have no password
-  image         String?           // Google profile pic
-  provider      String?           // "credentials" | "google"
-  googleId      String?   @unique // Google's unique ID
+  email         String        @unique
+  password      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  googleId      String?       @unique
+  image         String?
+  provider      String?
   emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
   accounts      Account[]
-  sessions      Session[]
-  savingsGoals  SavingsGoal[]
-  transactions  Transaction[]
-  commitments   Commitment[]
   categories    Category[]
+  commitments   Commitment[]
+  savingsGoals  SavingsGoal[]
+  sessions      Session[]
+  transactions  Transaction[]
 }
 
-// ── Required by NextAuth ──────────────────────────
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -44,8 +40,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -55,8 +50,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -68,48 +62,47 @@ model VerificationToken {
 }
 
 model SavingsGoal {
-  id          String        @id @default(cuid())
-  name        String
-  targetAmount Float
-  currentAmount Float        @default(0)
-  deadline    DateTime?
-  userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  transactions Transaction[] // 👈 opposite relation to Transaction
+  id                  String        @id @default(cuid())
+  name                String
+  targetAmount        Float
+  currentAmount       Float         @default(0)
+  monthlyContribution Float?        // ← add this
+  deadline            DateTime?
+  userId              String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions        Transaction[]
 
   @@index([userId])
 }
 
 model Transaction {
-  id          String   @id @default(cuid())
-  title       String
-  category    String
-  description    String?
-  amount      Float
-  type        String
-  status      String   @default("Completed")
-  date        DateTime @default(now())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  id            String          @id @default(cuid())
+  amount        Float
+  type          TransactionType
+  date          DateTime        @default(now())
+  userId        String
   savingsGoalId String?
-  savingsGoal   SavingsGoal? @relation(fields: [savingsGoalId], references: [id])
+  category      String
+  status        String          @default("Completed")
+  title         String
+  description   String?
+  savingsGoal   SavingsGoal?    @relation(fields: [savingsGoalId], references: [id])
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([savingsGoalId])
 }
 
 model Commitment {
-  id          String   @id @default(cuid())
-  name        String
-  amount      Float
-  dueDate     DateTime
-  isPaid      Boolean  @default(false)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id      String   @id @default(cuid())
+  name    String
+  amount  Float
+  dueDate DateTime
+  isPaid  Boolean  @default(false)
+  userId  String
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -118,12 +111,22 @@ model Category {
   id        String   @id @default(cuid())
   name      String
   icon      String
-  type      String   // "Income" | "Expense"
+  type      String
   isDefault Boolean  @default(false)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?  
   createdAt DateTime @default(now())
- 
-  @@unique([userId, name, type])   // no duplicate name+type per user
+
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name, type])
   @@index([userId])
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  DEBT
+  COMMITMENT
+  SAVINGS
+  INVESTMENT
 }

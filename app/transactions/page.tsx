@@ -14,9 +14,7 @@ import {
   Legend,
 } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-import TransactionFilter, {
-  DateFilter,
-} from "@/components/TransactionFilter";
+import TransactionFilter, { DateFilter } from "@/components/TransactionFilter";
 import { getIconForCategory } from "@/lib/categoryIcons";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -24,13 +22,21 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 /* ─────────────────────────────────────────────────────────────────
    Types
 ───────────────────────────────────────────────────────────────── */
+type TransactionType =
+  | "INCOME"
+  | "EXPENSE"
+  | "DEBT"
+  | "COMMITMENT"
+  | "SAVINGS"
+  | "INVESTMENT";
+
 type Transaction = {
   id: string;
   title: string;
   category: string;
   date: string;
   amount: number;
-  type: "Income" | "Expense";
+  type: TransactionType;
   status: "Completed" | "Pending";
   savingsGoalId?: string | null;
 };
@@ -46,8 +52,11 @@ type Category = {
 /* ─────────────────────────────────────────────────────────────────
    Constants
 ───────────────────────────────────────────────────────────────── */
-const TYPE_STYLE = {
-  Income: {
+const TYPE_STYLE: Record<
+  string,
+  { bg: string; text: string; sub: string; badge: string; glow: string; sign: string }
+> = {
+  INCOME: {
     bg: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)",
     text: "#2B1059",
     sub: "rgba(43,16,89,0.55)",
@@ -55,7 +64,7 @@ const TYPE_STYLE = {
     glow: "rgba(196,181,253,0.22)",
     sign: "+",
   },
-  Expense: {
+  EXPENSE: {
     bg: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)",
     text: "#4A1818",
     sub: "rgba(74,24,24,0.55)",
@@ -63,17 +72,43 @@ const TYPE_STYLE = {
     glow: "rgba(232,160,160,0.22)",
     sign: "−",
   },
+  DEBT: {
+    bg: "linear-gradient(135deg, #FFE8A6 0%, #E8C97A 100%)",
+    text: "#4A3200",
+    sub: "rgba(74,50,0,0.55)",
+    badge: "rgba(74,50,0,0.12)",
+    glow: "rgba(232,201,122,0.22)",
+    sign: "−",
+  },
+  COMMITMENT: {
+    bg: "linear-gradient(135deg, #FFE8A6 0%, #E8C97A 100%)",
+    text: "#4A3200",
+    sub: "rgba(74,50,0,0.55)",
+    badge: "rgba(74,50,0,0.12)",
+    glow: "rgba(232,201,122,0.22)",
+    sign: "−",
+  },
+  SAVINGS: {
+    bg: "linear-gradient(135deg, #D4F5E2 0%, #8EE3B5 100%)",
+    text: "#0E3D22",
+    sub: "rgba(14,61,34,0.55)",
+    badge: "rgba(14,61,34,0.12)",
+    glow: "rgba(142,227,181,0.22)",
+    sign: "+",
+  },
+  INVESTMENT: {
+    bg: "linear-gradient(135deg, #C6E6FF 0%, #93C8F0 100%)",
+    text: "#0E2A4A",
+    sub: "rgba(14,42,74,0.55)",
+    badge: "rgba(14,42,74,0.12)",
+    glow: "rgba(147,200,240,0.22)",
+    sign: "+",
+  },
 };
 
 const CHART_COLORS = [
-  "#C4B5FD",
-  "#E8A0A0",
-  "#93C8F0",
-  "#E8C97A",
-  "#E2D9FF",
-  "#6A49FA",
-  "#FEDADA",
-  "#C6E6FF",
+  "#C4B5FD", "#E8A0A0", "#93C8F0", "#E8C97A",
+  "#E2D9FF", "#6A49FA", "#FEDADA", "#C6E6FF",
 ];
 
 /* ─────────────────────────────────────────────────────────────────
@@ -92,10 +127,7 @@ const formatDate = (date: string) =>
     year: "numeric",
   });
 
-function applyDateFilter(
-  txs: Transaction[],
-  f: DateFilter
-): Transaction[] {
+function applyDateFilter(txs: Transaction[], f: DateFilter): Transaction[] {
   if (f.mode === "picker") {
     return txs.filter((t) => {
       const d = new Date(t.date);
@@ -117,7 +149,7 @@ function applyDateFilter(
    DonutPanel
 ───────────────────────────────────────────────────────────────── */
 function DonutPanel({ transactions }: { transactions: Transaction[] }) {
-  const expenses = transactions.filter((t) => t.type === "Expense");
+  const expenses = transactions.filter((t) => t.type === "EXPENSE");
   const catMap: Record<string, number> = {};
   expenses.forEach((t) => {
     catMap[t.category] = (catMap[t.category] ?? 0) + t.amount;
@@ -238,17 +270,11 @@ function DonutPanel({ transactions }: { transactions: Transaction[] }) {
       )}
 
       {cats.length > 0 && (
-        <div
-          style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 16 }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 16 }}>
           {cats.map((cat, i) => (
             <div
               key={cat}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
             >
               <div
                 style={{
@@ -278,23 +304,9 @@ function DonutPanel({ transactions }: { transactions: Transaction[] }) {
         </div>
       )}
 
-      <div
-        style={{
-          height: 1,
-          background: "rgba(255,255,255,0.1)",
-          margin: "14px 0",
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-          Total transactions
-        </span>
+      <div style={{ height: 1, background: "rgba(255,255,255,0.1)", margin: "14px 0" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Total transactions</span>
         <span style={{ fontSize: 13, fontWeight: 600, color: "#C4B5FD" }}>
           {transactions.length}
         </span>
@@ -304,35 +316,17 @@ function DonutPanel({ transactions }: { transactions: Transaction[] }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Grid template — shared between header + rows
-   2fr      = Title
-   0.4fr    = Icon (centered)
-   1fr      = Category name (left-aligned)
-   1fr      = Date
-   0.8fr    = Type
-   0.8fr    = Status
-   1.2fr    = Amount
-   0.8fr    = Actions
-───────────────────────────────────────────────────────────────── */
-const GRID_COLS = "2fr 0.4fr 1fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr";
-
-/* ─────────────────────────────────────────────────────────────────
    Main page
 ───────────────────────────────────────────────────────────────── */
 export default function TransactionsPage() {
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState("All Types");
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [searchQuery, setSearchQuery]   = useState("");
+  const [typeFilter, setTypeFilter]     = useState("All Types");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-  const [transactionToDelete, setTransactionToDelete] =
-    useState<Transaction | null>(null);
+  const [categories, setCategories]     = useState<Category[]>([]);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [toast, setToast]               = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
   const now = new Date();
   const [dateFilter, setDateFilter] = useState<DateFilter>({
@@ -353,11 +347,9 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/transactions");
+      const res  = await fetch("/api/transactions");
       const data = await res.json();
-      setTransactions(
-        Array.isArray(data) ? data : data.transactions ?? data.data ?? []
-      );
+      setTransactions(Array.isArray(data) ? data : data.transactions ?? data.data ?? []);
     } catch {
       showToast("Failed to load transactions.", "error");
       setTransactions([]);
@@ -368,7 +360,7 @@ export default function TransactionsPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/categories");
+      const res  = await fetch("/api/categories");
       const data = await res.json();
       setCategories(Array.isArray(data) ? data : []);
     } catch {
@@ -377,25 +369,17 @@ export default function TransactionsPage() {
   };
 
   const getCategoryIcon = (categoryName: string, type: string): string => {
-    const match = categories.find(
-      (c) => c.name === categoryName && c.type === type
-    );
+    const match = categories.find((c) => c.name === categoryName && c.type === type);
     return match?.icon ?? getIconForCategory(categoryName, type);
   };
 
-  const showToast = (
-    message: string,
-    type: "success" | "error" = "success"
-  ) => {
+  const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
   const scrollToTransactions = () =>
-    transactionsSectionRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
+    transactionsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const handleTransactionSaved = () => {
     fetchTransactions();
@@ -409,33 +393,29 @@ export default function TransactionsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: transactionToDelete.id }),
     });
-    if (!res.ok) {
-      showToast("Failed to delete.", "error");
-      return;
-    }
+    if (!res.ok) { showToast("Failed to delete.", "error"); return; }
     setTransactionToDelete(null);
     showToast("Transaction deleted.");
     fetchTransactions();
     scrollToTransactions();
   };
 
-  /* Derived data */
+  /* Derived */
   const periodFiltered = applyDateFilter(transactions, dateFilter);
 
   const totalIncome = periodFiltered
-    .filter((t) => t.type === "Income")
+    .filter((t) => t.type === "INCOME")
     .reduce((s, t) => s + t.amount, 0);
 
   const totalExpenses = periodFiltered
-    .filter((t) => t.type === "Expense")
+    .filter((t) => t.type === "EXPENSE")
     .reduce((s, t) => s + t.amount, 0);
 
   const filteredTransactions = periodFiltered.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType =
-      typeFilter === "All Types" || item.type === typeFilter;
+    const matchesType = typeFilter === "All Types" || item.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
@@ -447,9 +427,7 @@ export default function TransactionsPage() {
           <p className="text-xs uppercase tracking-[0.25em] text-white/35 font-medium">
             Financial Activity
           </p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">
-            Transactions
-          </h1>
+          <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">Transactions</h1>
           <p className="mt-1.5 text-sm text-white/50">
             Track your recent income and expenses in one place.
           </p>
@@ -463,25 +441,19 @@ export default function TransactionsPage() {
         >
           {/* ── Stat Cards ── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+
             {/* Total */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0 }}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
               className="relative overflow-hidden rounded-3xl p-6"
-              style={{
-                background: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)",
-                boxShadow: "0 12px 40px rgba(196,181,253,0.25)",
-              }}
+              style={{ background: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)", boxShadow: "0 12px 40px rgba(196,181,253,0.25)" }}
             >
               <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
               <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-2xl" />
               <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/30">
                 <Receipt size={17} color="#2D1B6B" />
               </div>
-              <p className="relative z-10 text-xs font-medium text-[#2D1B6B]/60 uppercase tracking-wide">
-                Total Transactions
-              </p>
+              <p className="relative z-10 text-xs font-medium text-[#2D1B6B]/60 uppercase tracking-wide">Total Transactions</p>
               <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#2D1B6B]">
                 {periodFiltered.length}
               </h2>
@@ -489,23 +461,16 @@ export default function TransactionsPage() {
 
             {/* Income */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.07 }}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}
               className="relative overflow-hidden rounded-3xl p-6"
-              style={{
-                background: "linear-gradient(135deg, #D4F5E2 0%, #8EE3B5 100%)",
-                boxShadow: "0 12px 40px rgba(142,227,181,0.25)",
-              }}
+              style={{ background: "linear-gradient(135deg, #D4F5E2 0%, #8EE3B5 100%)", boxShadow: "0 12px 40px rgba(142,227,181,0.25)" }}
             >
               <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
               <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-2xl" />
               <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/30">
                 <TrendingUp size={17} color="#0E3D22" />
               </div>
-              <p className="relative z-10 text-xs font-medium text-[#0E3D22]/60 uppercase tracking-wide">
-                Total Income
-              </p>
+              <p className="relative z-10 text-xs font-medium text-[#0E3D22]/60 uppercase tracking-wide">Total Income</p>
               <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#0E3D22]">
                 {formatCurrency(totalIncome)}
               </h2>
@@ -513,23 +478,16 @@ export default function TransactionsPage() {
 
             {/* Expenses */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.14 }}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
               className="relative overflow-hidden rounded-3xl p-6"
-              style={{
-                background: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)",
-                boxShadow: "0 12px 40px rgba(232,160,160,0.25)",
-              }}
+              style={{ background: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)", boxShadow: "0 12px 40px rgba(232,160,160,0.25)" }}
             >
               <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
               <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/20 blur-2xl" />
               <div className="relative z-10 mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/30">
                 <TrendingDown size={17} color="#4A1818" />
               </div>
-              <p className="relative z-10 text-xs font-medium text-[#4A1818]/60 uppercase tracking-wide">
-                Total Expenses
-              </p>
+              <p className="relative z-10 text-xs font-medium text-[#4A1818]/60 uppercase tracking-wide">Total Expenses</p>
               <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#4A1818]">
                 {formatCurrency(totalExpenses)}
               </h2>
@@ -556,15 +514,11 @@ export default function TransactionsPage() {
             />
           </div>
 
-          {/* ── Date filter ── */}
+          {/* ── Date filter + heading ── */}
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-white">
-                Recent Transactions
-              </h2>
-              <p className="text-sm text-white/45">
-                A quick overview of your latest activity
-              </p>
+              <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
+              <p className="text-sm text-white/45">A quick overview of your latest activity</p>
             </div>
             <TransactionFilter value={dateFilter} onChange={setDateFilter} />
           </div>
@@ -574,19 +528,17 @@ export default function TransactionsPage() {
             ref={transactionsSectionRef}
             className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr] items-start"
           >
-            {/* LEFT — Donut chart */}
+            {/* LEFT — Donut */}
             <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
             >
               <DonutPanel transactions={periodFiltered} />
             </motion.div>
 
-            {/* RIGHT — Transaction list */}
+            {/* RIGHT — List */}
             <motion.div
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.15 }}
             >
               {/* Search + filter */}
@@ -597,165 +549,100 @@ export default function TransactionsPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search title or category…"
                   className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
-                  style={{
-                    background: "rgba(255,255,255,0.07)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                  }}
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
                 />
                 <select
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
                   className="rounded-xl px-4 py-2.5 text-sm text-white outline-none"
-                  style={{
-                    background: "rgba(255,255,255,0.07)",
-                    border: "1px solid rgba(255,255,255,0.12)",
-                  }}
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
                 >
-                  <option value="All Types" style={{ background: "#2B1E59" }}>
-                    All Types
-                  </option>
-                  <option value="Income" style={{ background: "#2B1E59" }}>
-                    Income
-                  </option>
-                  <option value="Expense" style={{ background: "#2B1E59" }}>
-                    Expense
-                  </option>
+                  <option value="All Types"  style={{ background: "#2B1E59" }}>All Types</option>
+                  <option value="INCOME"     style={{ background: "#2B1E59" }}>Income</option>
+                  <option value="EXPENSE"    style={{ background: "#2B1E59" }}>Expense</option>
+                  <option value="DEBT"       style={{ background: "#2B1E59" }}>Debt</option>
+                  <option value="COMMITMENT" style={{ background: "#2B1E59" }}>Commitment</option>
+                  <option value="SAVINGS"    style={{ background: "#2B1E59" }}>Savings</option>
+                  <option value="INVESTMENT" style={{ background: "#2B1E59" }}>Investment</option>
                 </select>
               </div>
 
               {/* Legend */}
-              <div className="flex gap-4 mb-3">
-                <div className="flex items-center gap-1.5">
-                  <div
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 3,
-                      background: "linear-gradient(135deg,#E2D9FF,#C4B5FD)",
-                    }}
-                  />
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)" }}>
-                    Income
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: 3,
-                      background: "linear-gradient(135deg,#FEDADA,#E8A0A0)",
-                    }}
-                  />
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)" }}>
-                    Expense
-                  </span>
-                </div>
+              <div className="flex flex-wrap gap-4 mb-3">
+                {[
+                  { label: "Income",     bg: "linear-gradient(135deg,#E2D9FF,#C4B5FD)" },
+                  { label: "Expense",    bg: "linear-gradient(135deg,#FEDADA,#E8A0A0)" },
+                  { label: "Debt",       bg: "linear-gradient(135deg,#FFE8A6,#E8C97A)" },
+                  { label: "Commitment", bg: "linear-gradient(135deg,#FFE8A6,#E8C97A)" },
+                  { label: "Savings",    bg: "linear-gradient(135deg,#D4F5E2,#8EE3B5)" },
+                  { label: "Investment", bg: "linear-gradient(135deg,#C6E6FF,#93C8F0)" },
+                ].map((l) => (
+                  <div key={l.label} className="flex items-center gap-1.5">
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: l.bg }} />
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.40)" }}>{l.label}</span>
+                  </div>
+                ))}
               </div>
 
               {isLoading && (
-                <p className="py-12 text-center text-sm text-white/40">
-                  Loading transactions...
-                </p>
+                <p className="py-12 text-center text-sm text-white/40">Loading transactions...</p>
               )}
               {!isLoading && filteredTransactions.length === 0 && (
-                <p className="py-12 text-center text-sm text-white/40">
-                  No transactions found.
-                </p>
+                <p className="py-12 text-center text-sm text-white/40">No transactions found.</p>
               )}
 
               {/* ── Mobile cards ── */}
               {!isLoading && (
                 <div className="flex flex-col gap-3 md:hidden">
                   {filteredTransactions.map((item, i) => {
-                    const s = TYPE_STYLE[item.type];
+                    const s = TYPE_STYLE[item.type] ?? TYPE_STYLE["EXPENSE"];
                     const icon = getCategoryIcon(item.category, item.type);
                     return (
                       <motion.div
                         key={item.id}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
                         className="relative overflow-hidden rounded-2xl px-4 py-4"
-                        style={{
-                          background: s.bg,
-                          boxShadow: `0 6px 24px ${s.glow}`,
-                        }}
+                        style={{ background: s.bg, boxShadow: `0 6px 24px ${s.glow}` }}
                       >
                         <div className="absolute inset-x-0 top-0 h-px bg-white/40" />
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            {/* Category icon bubble */}
                             <div
                               style={{
-                                width: 38,
-                                height: 38,
-                                borderRadius: 10,
+                                width: 38, height: 38, borderRadius: 10,
                                 background: "rgba(255,255,255,0.25)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 20,
-                                flexShrink: 0,
+                                display: "flex", alignItems: "center",
+                                justifyContent: "center", fontSize: 20, flexShrink: 0,
                               }}
                             >
                               {icon}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p
-                                className="truncate text-sm font-bold"
-                                style={{ color: s.text }}
-                              >
-                                {item.title}
-                              </p>
-                              <p
-                                className="text-xs mt-0.5"
-                                style={{ color: s.sub }}
-                              >
-                                {item.category} · {formatDate(item.date)}
-                              </p>
+                              <p className="truncate text-sm font-bold" style={{ color: s.text }}>{item.title}</p>
+                              <p className="text-xs mt-0.5" style={{ color: s.sub }}>{item.category} · {formatDate(item.date)}</p>
                               <div className="mt-2 flex gap-1.5">
-                                <span
-                                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                  style={{ background: s.badge, color: s.text }}
-                                >
-                                  {item.type}
-                                </span>
-                                <span
-                                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                  style={{ background: s.badge, color: s.text }}
-                                >
-                                  {item.status}
-                                </span>
+                                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: s.badge, color: s.text }}>{item.type}</span>
+                                <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: s.badge, color: s.text }}>{item.status}</span>
                               </div>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p
-                              className="text-base font-extrabold"
-                              style={{ color: s.text }}
-                            >
-                              {s.sign}
-                              {formatCurrency(item.amount)}
+                            <p className="text-base font-extrabold" style={{ color: s.text }}>
+                              {s.sign}{formatCurrency(item.amount)}
                             </p>
                             <div className="mt-2 flex gap-1 justify-end">
                               <button
                                 onClick={() => setEditingTransaction(item)}
                                 className="flex h-7 w-7 items-center justify-center rounded-full"
-                                style={{
-                                  background: "rgba(255,255,255,0.30)",
-                                  color: s.text,
-                                }}
+                                style={{ background: "rgba(255,255,255,0.30)", color: s.text }}
                               >
                                 <Pencil size={13} />
                               </button>
                               <button
                                 onClick={() => setTransactionToDelete(item)}
                                 className="flex h-7 w-7 items-center justify-center rounded-full"
-                                style={{
-                                  background: "rgba(255,255,255,0.30)",
-                                  color: s.text,
-                                }}
+                                style={{ background: "rgba(255,255,255,0.30)", color: s.text }}
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -768,57 +655,45 @@ export default function TransactionsPage() {
                 </div>
               )}
 
-              {/* ── Desktop table ── */}
+              {/* ── Desktop rows ── */}
               {!isLoading && filteredTransactions.length > 0 && (
                 <div className="hidden md:flex flex-col gap-2">
                   {/* Header */}
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: GRID_COLS,
+                      gridTemplateColumns: "2fr 1.4fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr",
                       padding: "0 16px",
                       marginBottom: 4,
                     }}
                   >
-                    {[
-                      { label: "Title", align: "left" },
-                      { label: "",         align: "center" }, // icon column — no heading
-                      { label: "Category", align: "left" },
-                      { label: "Date",     align: "center" },
-                      { label: "Type",     align: "center" },
-                      { label: "Status",   align: "center" },
-                      { label: "Amount",   align: "center" },
-                      { label: "Actions",  align: "center" },
-                    ].map(({ label, align }, i) => (
+                    {["Title", "Category", "Date", "Type", "Status", "Amount", "Actions"].map((h, i) => (
                       <div
-                        key={label + i}
+                        key={h}
                         style={{
-                          fontSize: 10,
-                          fontWeight: 600,
+                          fontSize: 10, fontWeight: 600,
                           color: "rgba(255,255,255,0.35)",
-                          letterSpacing: "0.8px",
-                          textTransform: "uppercase",
-                          textAlign: align as React.CSSProperties["textAlign"],
+                          letterSpacing: "0.8px", textTransform: "uppercase",
+                          textAlign: i === 0 ? "left" : "center",
                         }}
                       >
-                        {label}
+                        {h}
                       </div>
                     ))}
                   </div>
 
                   {/* Rows */}
                   {filteredTransactions.map((item, i) => {
-                    const s = TYPE_STYLE[item.type];
+                    const s = TYPE_STYLE[item.type] ?? TYPE_STYLE["EXPENSE"];
                     const icon = getCategoryIcon(item.category, item.type);
                     return (
                       <motion.div
                         key={item.id}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
+                        initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: GRID_COLS,
+                          gridTemplateColumns: "2fr 1.4fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr",
                           alignItems: "center",
                           background: s.bg,
                           borderRadius: 16,
@@ -828,182 +703,60 @@ export default function TransactionsPage() {
                           overflow: "hidden",
                         }}
                       >
-                        <div
-                          style={{
-                            position: "absolute",
-                            inset: "0 0 auto",
-                            height: 1,
-                            background: "rgba(255,255,255,0.40)",
-                          }}
-                        />
+                        <div style={{ position: "absolute", inset: "0 0 auto", height: 1, background: "rgba(255,255,255,0.40)" }} />
 
                         {/* Title */}
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: 13,
-                            color: s.text,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            paddingRight: 8,
-                          }}
-                        >
+                        <div style={{ fontWeight: 700, fontSize: 13, color: s.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>
                           {item.title}
                         </div>
 
-                        {/* Icon — own column, centered */}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 8,
-                              background: "rgba(255,255,255,0.25)",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 15,
-                              flexShrink: 0,
-                            }}
-                          >
+                        {/* Category */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>
                             {icon}
                           </div>
-                        </div>
-
-                        {/* Category name — own column, left-aligned */}
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: s.sub,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            paddingRight: 6,
-                          }}
-                        >
-                          {item.category}
+                          <span style={{ fontSize: 12, color: s.sub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {item.category}
+                          </span>
                         </div>
 
                         {/* Date */}
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: s.sub,
-                            textAlign: "center",
-                          }}
-                        >
-                          {formatDate(item.date)}
-                        </div>
+                        <div style={{ fontSize: 12, color: s.sub, textAlign: "center" }}>{formatDate(item.date)}</div>
 
-                        {/* Type badge */}
+                        {/* Type */}
                         <div style={{ textAlign: "center" }}>
-                          <span
-                            style={{
-                              background: s.badge,
-                              color: s.text,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              borderRadius: 999,
-                              padding: "3px 10px",
-                            }}
-                          >
+                          <span style={{ background: s.badge, color: s.text, fontSize: 11, fontWeight: 600, borderRadius: 999, padding: "3px 10px" }}>
                             {item.type}
                           </span>
                         </div>
 
-                        {/* Status badge */}
+                        {/* Status */}
                         <div style={{ textAlign: "center" }}>
-                          <span
-                            style={{
-                              background: s.badge,
-                              color: s.text,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              borderRadius: 999,
-                              padding: "3px 10px",
-                            }}
-                          >
+                          <span style={{ background: s.badge, color: s.text, fontSize: 11, fontWeight: 600, borderRadius: 999, padding: "3px 10px" }}>
                             {item.status}
                           </span>
                         </div>
 
                         {/* Amount */}
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: s.text,
-                            textAlign: "center",
-                          }}
-                        >
-                          {s.sign}
-                          {formatCurrency(item.amount)}
+                        <div style={{ fontSize: 14, fontWeight: 800, color: s.text, textAlign: "center" }}>
+                          {s.sign}{formatCurrency(item.amount)}
                         </div>
 
                         {/* Actions */}
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "center",
-                            gap: 6,
-                          }}
-                        >
+                        <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
                           <button
                             onClick={() => setEditingTransaction(item)}
-                            style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: "50%",
-                              border: "none",
-                              background: "rgba(255,255,255,0.30)",
-                              color: s.text,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              transition: "transform 0.15s ease",
-                            }}
-                            onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.transform =
-                                "scale(1.12)";
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.transform =
-                                "scale(1)";
-                            }}
+                            style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.30)", color: s.text, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform 0.15s ease" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.12)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
                           >
                             <Pencil size={13} />
                           </button>
                           <button
                             onClick={() => setTransactionToDelete(item)}
-                            style={{
-                              width: 30,
-                              height: 30,
-                              borderRadius: "50%",
-                              border: "none",
-                              background: "rgba(255,255,255,0.30)",
-                              color: s.text,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                              transition: "transform 0.15s ease",
-                            }}
-                            onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.transform =
-                                "scale(1.12)";
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLButtonElement).style.transform =
-                                "scale(1)";
-                            }}
+                            style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.30)", color: s.text, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform 0.15s ease" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.12)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -1017,13 +770,7 @@ export default function TransactionsPage() {
           </section>
         </motion.div>
 
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
         <DeleteTransactionModal
           transaction={transactionToDelete}

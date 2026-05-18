@@ -145,7 +145,6 @@ export const CATEGORY_ICON_MAP: Record<string, string> = {
   // ── Savings & Finance ─────────────────────────────
   savings: "🏦",
   saving: "🏦",
-  investment2: "📈",
   emergency: "🚨",
   tax: "📑",
   zakat: "🌙",
@@ -153,12 +152,31 @@ export const CATEGORY_ICON_MAP: Record<string, string> = {
   charity: "❤️",
   donation: "❤️",
 
+  // ── Debt ──────────────────────────────────────────
+  loan: "🏦",
+  debt: "💳",
+  credit: "💳",
+  borrowed: "🤝",
+  hutang: "💳",
+
+  // ── Investment ────────────────────────────────────
+  stocks: "📈",
+  crypto: "🪙",
+  property: "🏗️",
+  "unit trust": "📊",
+  asnb: "📊",
+  epf: "👴",
+  kwsp: "👴",
+
+  // ── Commitment ────────────────────────────────────
+  commitment: "📄",
+  monthly: "🔔",
+
   // ── Social ────────────────────────────────────────
   family: "👨‍👩‍👧‍👦",
   wedding: "💍",
   birthday: "🎂",
   party: "🥳",
-  travel2: "🌍",
   holiday: "🏖️",
   vacation: "🏖️",
 
@@ -185,13 +203,17 @@ export const CATEGORY_ICON_MAP: Record<string, string> = {
 
 /**
  * Auto-assigns an icon based on category name keyword match.
- * Case-insensitive. Falls back to type-based default.
+ * Case-insensitive. Accepts both uppercase ("EXPENSE") and
+ * title-case ("Expense") for the type param.
  */
 export function getIconForCategory(
   name: string,
-  type: string = "Expense"
+  type: string = "EXPENSE"
 ): string {
-  if (!name) return type === "Income" ? "💰" : "📌";
+  // ✅ Normalize type to uppercase for consistent comparison
+  const normalizedType = type.toUpperCase();
+
+  if (!name) return normalizedType === "INCOME" ? "💰" : "📌";
 
   const lower = name.toLowerCase().replace(/\s+/g, "");
 
@@ -205,7 +227,15 @@ export function getIconForCategory(
     }
   }
 
-  return type === "Income" ? "💰" : "📌";
+  // ✅ Type-based fallback with full TransactionType support
+  switch (normalizedType) {
+    case "INCOME":     return "💰";
+    case "DEBT":       return "💳";
+    case "SAVINGS":    return "🏦";
+    case "INVESTMENT": return "📈";
+    case "COMMITMENT": return "🔔";
+    default:           return "📌"; // EXPENSE + fallback
+  }
 }
 
 /** Grouped icons for the icon picker UI */

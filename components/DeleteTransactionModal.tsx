@@ -6,8 +6,9 @@ type Transaction = {
   category: string;
   date: string;
   amount: number;
-  type: "Income" | "Expense";
+  type: "INCOME" | "EXPENSE" | "DEBT" | "COMMITMENT" | "SAVINGS" | "INVESTMENT";
   status: "Completed" | "Pending";
+  savingsGoalId?: string | null;
 };
 
 type DeleteTransactionModalProps = {
@@ -79,7 +80,7 @@ export default function DeleteTransactionModal({
                   style={{
                     color:
                       label === "Type"
-                        ? transaction.type === "Income" ? "#E8C97A" : "#E8A0A0"
+                        ? transaction.type === "INCOME" ? "#E8C97A" : "#E8A0A0"
                         : label === "Status"
                         ? transaction.status === "Completed" ? "#8EE3B5" : "#FFD27D"
                         : label === "Amount"

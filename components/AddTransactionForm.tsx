@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { X, Plus, Tag } from "lucide-react";
 import { getIconForCategory, ICON_PICKER_GROUPS } from "../lib/categoryIcons";
+import { useSession } from "next-auth/react";
+
 
 /* ─────────────────────────────────────────────────────────────────
    Types
@@ -13,10 +15,18 @@ type Transaction = {
   category: string;
   date: string;
   amount: number;
-  type: "Income" | "Expense";
+  type: "INCOME" | "EXPENSE" | "DEBT" | "COMMITMENT" | "SAVINGS" | "INVESTMENT";
   status: "Completed" | "Pending";
   savingsGoalId?: string | null;
 };
+
+type TransactionType =
+  | "INCOME"
+  | "EXPENSE"
+  | "DEBT"
+  | "COMMITMENT"
+  | "SAVINGS"
+  | "INVESTMENT";
 
 type Category = {
   id: string;
@@ -24,6 +34,7 @@ type Category = {
   icon: string;
   type: string;
   isDefault: boolean;
+  userId?: string | null; // 👈 ADD THIS
 };
 
 type AddTransactionFormProps = {
@@ -66,13 +77,22 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-const emptyForm = {
+// ✅ FIX: Use TransactionType (uppercase) for the type field
+const emptyForm: {
+  title: string;
+  category: string;
+  date: string;
+  amount: string;
+  type: TransactionType;
+  status: "Completed" | "Pending";
+  savingsGoalId: string;
+} = {
   title: "",
   category: "",
   date: "",
   amount: "",
-  type: "Expense" as "Income" | "Expense",
-  status: "Completed" as "Completed" | "Pending",
+  type: "EXPENSE",
+  status: "Completed",
   savingsGoalId: "",
 };
 
@@ -187,6 +207,10 @@ export default function AddTransactionForm({
   const [form, setForm] = useState(emptyForm);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
 
+  
+const { data: session } = useSession();
+const currentUserId = session?.user?.id;
+
   /* Categories from DB */
   const [categories, setCategories] = useState<Category[]>([]);
   const [catLoading, setCatLoading] = useState(false);
@@ -201,7 +225,9 @@ export default function AddTransactionForm({
   const [editingIconForId, setEditingIconForId] = useState<string | null>(null);
 
   /* Filtered by current type */
-  const currentCats = categories.filter((c) => c.type === form.type);
+  const currentCats = categories.filter(
+    (c) => c.type === form.type
+  );
 
   /* ── Load categories from API ── */
   async function fetchCategories() {
@@ -276,7 +302,7 @@ export default function AddTransactionForm({
         category: editingTransaction.category,
         date: editingTransaction.date.split("T")[0],
         amount: String(editingTransaction.amount),
-        type: editingTransaction.type,
+        type: editingTransaction.type, // ✅ already TransactionType
         status: editingTransaction.status,
         savingsGoalId: editingTransaction.savingsGoalId ?? "",
       });
@@ -296,23 +322,28 @@ export default function AddTransactionForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
     if (name === "savingsGoalId" && value) {
+      // ✅ FIX: type is now "EXPENSE" (matches TransactionType)
       setForm((p) => ({
         ...p,
         savingsGoalId: value,
-        type: "Expense",
+        type: "EXPENSE" as TransactionType,
         category: "Savings",
       }));
       return;
     }
+
     if (name === "type") {
+      // ✅ FIX: cast to TransactionType (matches form state)
       setForm((p) => ({
         ...p,
-        type: value as "Income" | "Expense",
+        type: value as TransactionType,
         category: "",
       }));
       return;
     }
+
     setForm((p) => ({ ...p, [name]: value }));
   };
 
@@ -355,7 +386,7 @@ export default function AddTransactionForm({
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .txn-input:focus {
           border-color: rgba(232,201,122,0.65) !important;
           background: rgba(255,255,255,0.10) !important;
@@ -367,7 +398,7 @@ export default function AddTransactionForm({
           filter: invert(1) opacity(0.4); cursor: pointer;
         }
         .cat-chip:hover { background: rgba(255,255,255,0.12) !important; }
-      `}</style>
+      `}}></style>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6">
@@ -694,6 +725,7 @@ export default function AddTransactionForm({
         >
           <div>
             <label style={labelStyle}>Type</label>
+            {/* ✅ FIX: option values use uppercase to match TransactionType */}
             <select
               name="type"
               value={form.type}
@@ -701,8 +733,12 @@ export default function AddTransactionForm({
               className="txn-input"
               style={inputStyle}
             >
-              <option value="Expense">Expense</option>
-              <option value="Income">Income</option>
+              <option value="EXPENSE">Expense</option>
+              <option value="INCOME">Income</option>
+              <option value="DEBT">Debt</option>
+              <option value="COMMITMENT">Commitment</option>
+              <option value="SAVINGS">Savings</option>
+              <option value="INVESTMENT">Investment</option>
             </select>
           </div>
           <div>
@@ -800,8 +836,9 @@ export default function AddTransactionForm({
         <div
           style={{
             display: "grid",
+            // ✅ FIX: condition updated to uppercase "EXPENSE"
             gridTemplateColumns:
-              form.type === "Expense" ? "1fr 1fr" : "1fr",
+              form.type === "EXPENSE" ? "1fr 1fr" : "1fr",
             gap: 12,
             marginBottom: 20,
           }}
@@ -817,7 +854,8 @@ export default function AddTransactionForm({
               style={inputStyle}
             />
           </div>
-          {form.type === "Expense" && (
+          {/* ✅ FIX: condition updated to uppercase "EXPENSE" */}
+          {form.type === "EXPENSE" && (
             <div>
               <label style={labelStyle}>Savings Goal (optional)</label>
               <select

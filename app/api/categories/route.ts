@@ -7,42 +7,85 @@ import { getIconForCategory } from "@/lib/categoryIcons";
 
 /* ─────────────────────────────────────────────────────────────────
    Default categories seeded on first fetch per user
+   ✅ type sekarang uppercase — match TransactionType enum
 ───────────────────────────────────────────────────────────────── */
 const DEFAULT_EXPENSE_CATEGORIES = [
-  { name: "Food & Drinks",    icon: "🍔" },
-  { name: "Transport",        icon: "🚗" },
-  { name: "Shopping",         icon: "🛍️" },
-  { name: "Bills & Utilities",icon: "📄" },
-  { name: "Health",           icon: "💊" },
-  { name: "Entertainment",    icon: "🎮" },
-  { name: "Education",        icon: "🎓" },
-  { name: "Housing",          icon: "🏠" },
-  { name: "Personal Care",    icon: "🪥" },
-  { name: "Savings",          icon: "🏦" },
-  { name: "Other",            icon: "📌" },
+  { name: "Food & Drinks",     icon: "🍔" },
+  { name: "Transport",         icon: "🚗" },
+  { name: "Shopping",          icon: "🛍️" },
+  { name: "Bills & Utilities", icon: "📄" },
+  { name: "Health",            icon: "💊" },
+  { name: "Entertainment",     icon: "🎮" },
+  { name: "Education",         icon: "🎓" },
+  { name: "Housing",           icon: "🏠" },
+  { name: "Personal Care",     icon: "🪥" },
+  { name: "Savings",           icon: "🏦" },
+  { name: "Other",             icon: "📌" },
 ];
 
 const DEFAULT_INCOME_CATEGORIES = [
-  { name: "Salary",           icon: "💼" },
-  { name: "Freelance",        icon: "💻" },
-  { name: "Business",         icon: "🏢" },
-  { name: "Investment",       icon: "📈" },
-  { name: "Gift",             icon: "🎁" },
-  { name: "Rental",           icon: "🏠" },
-  { name: "Bonus",            icon: "🎁" },
-  { name: "Other",            icon: "💰" },
+  { name: "Salary",     icon: "💼" },
+  { name: "Freelance",  icon: "💻" },
+  { name: "Business",   icon: "🏢" },
+  { name: "Investment", icon: "📈" },
+  { name: "Gift",       icon: "🎁" },
+  { name: "Rental",     icon: "🏠" },
+  { name: "Bonus",      icon: "🎁" },
+  { name: "Other",      icon: "💰" },
+];
+
+const DEFAULT_DEBT_CATEGORIES = [
+  { name: "Loan",        icon: "🏦" },
+  { name: "Credit Card", icon: "💳" },
+  { name: "Borrowed",    icon: "🤝" },
+  { name: "Other",       icon: "📌" },
+];
+
+const DEFAULT_SAVINGS_CATEGORIES = [
+  { name: "Emergency Fund", icon: "🚨" },
+  { name: "Retirement",     icon: "👴" },
+  { name: "Travel Fund",    icon: "🏖️" },
+  { name: "Other",          icon: "🏦" },
+];
+
+const DEFAULT_INVESTMENT_CATEGORIES = [
+  { name: "Stocks",      icon: "📈" },
+  { name: "Crypto",      icon: "🪙" },
+  { name: "Property",    icon: "🏗️" },
+  { name: "Unit Trust",  icon: "📊" },
+  { name: "Other",       icon: "💎" },
+];
+
+const DEFAULT_COMMITMENT_CATEGORIES = [
+  { name: "Rent",      icon: "🏠" },
+  { name: "Mortgage",  icon: "🏦" },
+  { name: "Insurance", icon: "🛡️" },
+  { name: "Other",     icon: "📄" },
 ];
 
 async function seedDefaults(userId: string) {
   const existing = await prisma.category.count({ where: { userId } });
   if (existing > 0) return; // already seeded
 
+  // ✅ type stored as uppercase to match TransactionType enum
   const data = [
     ...DEFAULT_EXPENSE_CATEGORIES.map((c) => ({
-      ...c, userId, type: "Expense", isDefault: true,
+      ...c, userId, type: "EXPENSE", isDefault: true,
     })),
     ...DEFAULT_INCOME_CATEGORIES.map((c) => ({
-      ...c, userId, type: "Income", isDefault: true,
+      ...c, userId, type: "INCOME", isDefault: true,
+    })),
+    ...DEFAULT_DEBT_CATEGORIES.map((c) => ({
+      ...c, userId, type: "DEBT", isDefault: true,
+    })),
+    ...DEFAULT_SAVINGS_CATEGORIES.map((c) => ({
+      ...c, userId, type: "SAVINGS", isDefault: true,
+    })),
+    ...DEFAULT_INVESTMENT_CATEGORIES.map((c) => ({
+      ...c, userId, type: "INVESTMENT", isDefault: true,
+    })),
+    ...DEFAULT_COMMITMENT_CATEGORIES.map((c) => ({
+      ...c, userId, type: "COMMITMENT", isDefault: true,
     })),
   ];
 
@@ -83,13 +126,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "name and type are required" }, { status: 400 });
   }
 
-  const resolvedIcon = icon?.trim() || getIconForCategory(name, type);
+  // ✅ Normalize type to uppercase before saving
+  const normalizedType = (type as string).toUpperCase();
+  const resolvedIcon = icon?.trim() || getIconForCategory(name, normalizedType);
 
   try {
     const category = await prisma.category.create({
       data: {
         name: name.trim(),
-        type,
+        type: normalizedType,
         icon: resolvedIcon,
         isDefault: false,
         userId: session.user.id,
@@ -97,7 +142,6 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(category, { status: 201 });
   } catch (err: any) {
-    // Unique constraint — duplicate name+type
     if (err.code === "P2002") {
       return NextResponse.json({ error: "Category already exists" }, { status: 409 });
     }
@@ -119,7 +163,6 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
-  // Verify ownership
   const existing = await prisma.category.findFirst({
     where: { id, userId: session.user.id },
   });
@@ -152,7 +195,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
-  // Verify ownership
   const existing = await prisma.category.findFirst({
     where: { id, userId: session.user.id },
   });
