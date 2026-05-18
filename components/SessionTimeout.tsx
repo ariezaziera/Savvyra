@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const INACTIVITY_TIME    = 5 * 60 * 1000;  // 5 min no activity → warning modal
-const COUNTDOWN_TIME     = 60;              // 60s to respond before auto-logout
+const INACTIVITY_TIME    = 15 * 1000;  // 5 min no activity → warning modal
+const COUNTDOWN_TIME     = 30;              // 60s to respond before auto-logout
 const BACKGROUND_TIMEOUT = 15 * 1000;  // 5 min in background → auto-logout
 
 const LAST_SEEN_KEY = "savvyra_last_seen";
@@ -232,7 +232,7 @@ export default function SessionTimeout() {
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className="fixed inset-0 z-9999 flex items-center justify-center"
       style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(10px)" }}
     >
       <div
