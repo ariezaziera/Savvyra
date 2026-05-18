@@ -55,16 +55,19 @@ export default function SessionTimeout() {
      LOGOUT
   ───────────────────────────────────────────── */
   const handleLogout = useCallback(async () => {
-    if (inactivityRef.current) clearTimeout(inactivityRef.current);
-    if (countdownRef.current)  clearInterval(countdownRef.current);
-    if (backgroundRef.current) clearTimeout(backgroundRef.current);
+    if (inactivityRef.current)  clearTimeout(inactivityRef.current);
+    if (countdownRef.current)   clearInterval(countdownRef.current);
+    if (backgroundRef.current)  clearTimeout(backgroundRef.current);
 
     setShowModal(false);
     setCountdown(COUNTDOWN_TIME);
     clearLastSeen();
 
-    await fetch("/api/logout", { method: "POST" });
+    // ✅ Navigate immediately — don't wait for fetch
     router.push("/login");
+
+    // ✅ Fire logout in background after redirect
+    fetch("/api/logout", { method: "POST" }).catch(() => {});
   }, [router]);
 
   useEffect(() => {
