@@ -55,7 +55,7 @@ export default function SessionTimeout() {
   }, [handleLogout]);
 
   useEffect(() => {
-    if (PUBLIC_ROUTES.includes(pathname)) {
+    if (pathname && PUBLIC_ROUTES.includes(pathname)) {
       setShowModal(false);
 
       if (timeoutRef.current) {
@@ -120,7 +120,7 @@ export default function SessionTimeout() {
      USER ACTIVITY LISTENERS
   ───────────────────────────────────────────── */
   useEffect(() => {
-    if (PUBLIC_ROUTES.includes(pathname)) return;
+    if (pathname && PUBLIC_ROUTES.includes(pathname)) return;
 
     const events = ["mousemove", "mousedown", "keypress", "touchstart", "scroll"];
     const activityHandler = () => {
@@ -138,7 +138,7 @@ export default function SessionTimeout() {
   }, [showModal, pathname, resetTimer]);
 
   /* ── Early return AFTER all hooks ── */
-  if (PUBLIC_ROUTES.includes(pathname)) return null;
+  if (pathname && PUBLIC_ROUTES.includes(pathname)) return null;
   if (!showModal) return null;
 
   return (
