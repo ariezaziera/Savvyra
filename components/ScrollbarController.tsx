@@ -52,65 +52,47 @@ export default function ScrollbarController() {
       showTrack();
     };
 
-    // ── Drag handling ──────────────────────────────────────────────
     const onMouseDown = (e: MouseEvent) => {
       e.preventDefault();
       isDragging.current = true;
       dragStartY.current = e.clientY;
       dragStartScrollTop.current = window.scrollY;
-
       track.style.opacity = "1";
       clearTimeout(fadeTimeout.current);
-
-      // disable smooth thumb transition while dragging for responsiveness
       thumb.style.transition = "none";
       document.body.style.userSelect = "none";
     };
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
-
       const docHeight = document.documentElement.scrollHeight;
       const winHeight = window.innerHeight;
       const scrollable = docHeight - winHeight;
       const thumbHeight = getThumbHeight();
       const trackRange = winHeight - thumbHeight;
-
       const deltaY = e.clientY - dragStartY.current;
       const scrollDelta = (deltaY / trackRange) * scrollable;
-
-      window.scrollTo({
-        top: dragStartScrollTop.current + scrollDelta,
-        behavior: "instant",
-      });
+      window.scrollTo({ top: dragStartScrollTop.current + scrollDelta, behavior: "instant" });
     };
 
     const onMouseUp = () => {
       if (!isDragging.current) return;
       isDragging.current = false;
-
-      // restore smooth transition
       thumb.style.transition = "transform 0.1s linear, height 0.1s linear";
       document.body.style.userSelect = "";
-
-      // start fade-out timer
       fadeTimeout.current = setTimeout(() => {
         track.style.opacity = "0";
       }, 1000);
     };
 
-    // ── Click-on-track to jump ─────────────────────────────────────
     const onTrackClick = (e: MouseEvent) => {
-      if (e.target === thumb) return; // ignore clicks that started a drag
-
+      if (e.target === thumb) return;
       const docHeight = document.documentElement.scrollHeight;
       const winHeight = window.innerHeight;
       const scrollable = docHeight - winHeight;
       const thumbHeight = getThumbHeight();
       const trackRange = winHeight - thumbHeight;
-
-      const clickY = e.clientY;
-      const ratio = (clickY - thumbHeight / 2) / trackRange;
+      const ratio = (e.clientY - thumbHeight / 2) / trackRange;
       window.scrollTo({ top: ratio * scrollable, behavior: "smooth" });
     };
 
@@ -136,8 +118,6 @@ export default function ScrollbarController() {
   return (
     <>
       <style>{`
-        html { scrollbar-width: none; }
-        ::-webkit-scrollbar { display: none; }
         .custom-scrollbar-thumb:hover {
           filter: brightness(1.25) drop-shadow(0 0 4px #6A49FA99);
           width: 7px !important;
@@ -165,7 +145,7 @@ export default function ScrollbarController() {
           position: "fixed",
           top: 0,
           right: "4px",
-          width: "12px",      // wider hit area so hover is easier to trigger
+          width: "12px",
           height: "100vh",
           zIndex: 9999,
           opacity: 0,
@@ -187,8 +167,7 @@ export default function ScrollbarController() {
             right: 0,
             width: "5px",
             borderRadius: "9999px",
-            background:
-              "linear-gradient(180deg, #6A49FA 0%, #C4B5FD 50%, #E2D9FF 100%)",
+            background: "linear-gradient(180deg, #6A49FA 0%, #C4B5FD 50%, #E2D9FF 100%)",
             transition: "transform 0.1s linear, height 0.1s linear, width 0.15s ease, filter 0.15s ease",
             cursor: "grab",
           }}

@@ -59,8 +59,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={{ minHeight: "100%" }}>
-      <body className={inter.className} style={{ minHeight: "100%", margin: 0 }}>
+    <html lang="en" style={{ minHeight: "100%", overscrollBehavior: "none" }}>
+      <body 
+        className={inter.className} 
+        style={{ minHeight: "100%", margin: 0, overscrollBehavior: "none" }}
+      >
         {/* AuthProvider must wrap everything so useSession works anywhere */}
         <AuthProvider>
           <SplashScreen />
