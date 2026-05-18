@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useNoScroll } from "@/hooks/useNoScroll";
+import { signIn } from "next-auth/react";
 
 /* ─────────────────────────────────────────────────────────────────
    FloatingLabel — matches login page exactly
@@ -133,6 +134,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Entry animation
   const [mounted, setMounted] = useState(false);
@@ -166,6 +168,11 @@ export default function RegisterPage() {
       setError("Something went wrong");
       setLoading(false);
     }
+  };
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    await signIn("google", { callbackUrl: "/" });
   };
 
   return (
@@ -415,12 +422,14 @@ export default function RegisterPage() {
                 {/* Google */}
                 <button
                   type="button"
+                  onClick={handleGoogle}
+                  disabled={googleLoading || loading}
                   style={{
                     width: "100%",
                     height: 50,
                     borderRadius: 14,
                     border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.07)",
+                    background: googleLoading ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.07)",
                     color: "rgba(255,255,255,0.85)",
                     fontSize: 14,
                     fontWeight: 500,
@@ -428,19 +437,19 @@ export default function RegisterPage() {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 10,
-                    cursor: "pointer",
+                    cursor: googleLoading ? "not-allowed" : "pointer",
+                    opacity: googleLoading ? 0.7 : 1,
                     transition: "background 0.2s ease",
                     fontFamily: "inherit",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.11)";
+                    if (!googleLoading) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.11)";
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)";
+                    if (!googleLoading) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)";
                   }}
                 >
-                  <GoogleIcon />
-                  Continue with Google
+                  {googleLoading ? <LoadingDots /> : <><GoogleIcon /> Continue with Google</>}
                 </button>
 
               </form>
