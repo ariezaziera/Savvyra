@@ -77,6 +77,7 @@ export default function ScrollbarController() {
           pointerEvents: "none",
           borderRadius: "9999px",
         }}
+        className="hidden md:block"
       >
         {/* Fake scrollbar thumb */}
         <div
