@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
-const WARNING_TIME  = 30 * 1000; // 30 seconds inactivity before warning
-const COUNTDOWN_TIME = 10;       // seconds to auto-logout after warning
+const WARNING_TIME   = 10 * 60 * 1000; // 10 minutes
+const COUNTDOWN_TIME = 60; // seconds
 
 const PUBLIC_ROUTES = ["/login", "/register", "/onboarding"];
 
