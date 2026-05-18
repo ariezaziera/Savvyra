@@ -16,7 +16,7 @@ export default function SessionTimeout() {
   const pathname = usePathname();
 
   const inactivityRef   = useRef<NodeJS.Timeout | null>(null);
-  const countdownRef    = useRef<NodeJS.Timeout | null>(null);
+  const countdownRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const backgroundRef   = useRef<NodeJS.Timeout | null>(null);
   const hiddenAtRef     = useRef<number | null>(null);
   const handleLogoutRef = useRef<() => void>(() => {});
@@ -44,7 +44,7 @@ export default function SessionTimeout() {
   const getElapsedSinceLastSeen = (): number => {
     try {
       const raw = sessionStorage.getItem(LAST_SEEN_KEY);
-      if (!raw) return Infinity; // no record = treat as expired
+      if (!raw) return Infinity;
       return Date.now() - parseInt(raw, 10);
     } catch {
       return Infinity;
@@ -63,10 +63,10 @@ export default function SessionTimeout() {
     setCountdown(COUNTDOWN_TIME);
     clearLastSeen();
 
-    // ✅ Navigate immediately — don't wait for fetch
-    router.push("/login");
+    // Clear custom JWT cookie immediately so middleware lets the redirect through
+    document.cookie = "savvyra_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
-    // ✅ Fire logout in background after redirect
+    router.push("/login");
     fetch("/api/logout", { method: "POST" }).catch(() => {});
   }, [router]);
 
@@ -76,19 +76,31 @@ export default function SessionTimeout() {
 
   /* ─────────────────────────────────────────────
      COUNTDOWN
+     ✅ Fix: setInterval only updates the counter.
+     Logout is triggered by a separate useEffect
+     watching countdown hit 0 — no side effects
+     inside setState.
   ───────────────────────────────────────────── */
   const startCountdown = useCallback(() => {
     setCountdown(COUNTDOWN_TIME);
+    if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          handleLogoutRef.current();
+          clearInterval(countdownRef.current!);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
   }, []);
+
+  // ✅ Watches for countdown hitting 0 and triggers logout
+  useEffect(() => {
+    if (countdown === 0 && showModal) {
+      handleLogout();
+    }
+  }, [countdown, showModal, handleLogout]);
 
   /* ─────────────────────────────────────────────
      INACTIVITY TIMER
@@ -107,22 +119,18 @@ export default function SessionTimeout() {
   const continueSession = useCallback(() => {
     setShowModal(false);
     if (countdownRef.current) clearInterval(countdownRef.current);
+    setCountdown(COUNTDOWN_TIME);
     stampLastSeen();
     resetInactivityTimer();
   }, [resetInactivityTimer]);
 
   /* ─────────────────────────────────────────────
      STARTUP CHECK
-     Runs once on mount — if app was cleared from
-     recents or left too long, logout immediately.
-     sessionStorage is wiped when PWA is killed,
-     so getElapsedSinceLastSeen() returns Infinity.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
 
     const elapsed = getElapsedSinceLastSeen();
-
     if (elapsed >= BACKGROUND_TIMEOUT) {
       handleLogoutRef.current();
       return;
@@ -144,7 +152,6 @@ export default function SessionTimeout() {
 
   /* ─────────────────────────────────────────────
      ACTIVITY LISTENERS
-     Updates last-seen stamp on every interaction.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
@@ -170,9 +177,6 @@ export default function SessionTimeout() {
 
   /* ─────────────────────────────────────────────
      VISIBILITY CHANGE
-     Handles home button, tab switch, app switcher.
-     Also does elapsed-time check on return in case
-     OS throttled/froze the background timer.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
@@ -189,7 +193,6 @@ export default function SessionTimeout() {
       } else {
         if (backgroundRef.current) clearTimeout(backgroundRef.current);
 
-        // Manual elapsed check — OS may have frozen the setTimeout
         const elapsed = hiddenAtRef.current
           ? Date.now() - hiddenAtRef.current
           : getElapsedSinceLastSeen();
@@ -214,8 +217,6 @@ export default function SessionTimeout() {
 
   /* ─────────────────────────────────────────────
      BEFORE UNLOAD
-     Best-effort on tab/browser close.
-     Unreliable on mobile but still worth having.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
