@@ -25,6 +25,8 @@ model User {
   savingsGoals  SavingsGoal[]
   sessions      Session[]
   transactions  Transaction[]
+  salaryProfile SalaryProfile?
+  salaryMonths  SalaryMonth[]
 }
 
 model Account {
@@ -66,7 +68,7 @@ model SavingsGoal {
   name                String
   targetAmount        Float
   currentAmount       Float         @default(0)
-  monthlyContribution Float?        // ← add this
+  monthlyContribution Float?
   deadline            DateTime?
   userId              String
   createdAt           DateTime      @default(now())
@@ -113,12 +115,92 @@ model Category {
   icon      String
   type      String
   isDefault Boolean  @default(false)
-  userId    String?  
+  userId    String?
   createdAt DateTime @default(now())
-
   user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, name, type])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────
+//  SALARY MODULE
+// ─────────────────────────────────────────
+
+/// Persistent salary settings — auto-prefills next month's calculator
+model SalaryProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Basic pay
+  basicSalary      Float
+  // Allowances (stored as JSON array: [{name, amount, cutOnAbsent: bool}])
+  allowances       Json   @default("[]")
+
+  // Statutory deduction rates (%)
+  epfRate          Float  @default(11)
+  socsoRate        Float  @default(0.5)
+  eisRate          Float  @default(0.2)
+
+  // Custom deductions (JSON array: [{name, amount}])
+  customDeductions Json   @default("[]")
+
+  // OT & leave rates
+  otRate           Float  @default(1.5)   // multiplier e.g. 1.5x
+  doublePayRate    Float  @default(2.0)
+  dailyRateFormula String @default("basic/26") // "basic/26" or "basic/22" or custom
+
+  updatedAt DateTime @updatedAt
+}
+
+/// One record per calendar month
+model SalaryMonth {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  month  Int    // 1–12
+  year   Int
+
+  // ── Inputs (snapshot of that month's values) ──
+  basicSalary      Float
+  allowances       Json   @default("[]")   // [{name, amount, isCut: bool}]
+  epfRate          Float
+  socsoRate        Float
+  eisRate          Float
+  customDeductions Json   @default("[]")   // [{name, amount}]
+  otRate           Float
+  doublePayRate    Float
+  dailyRateFormula String @default("basic/26")
+
+  // Leave & OT
+  unpaidLeaveDays  Float  @default(0)
+  annualLeaveDays  Float  @default(0)
+  medicalLeaveDays Float  @default(0)
+  replacementDays  Float  @default(0)
+  otHours          Float  @default(0)
+  doublePayHours   Float  @default(0)
+
+  // ── Computed (stored for history accuracy) ──
+  grossSalary      Float  // after allowances + OT - leave deductions
+  epfAmount        Float
+  socsoAmount      Float
+  eisAmount        Float
+  customDeductTotal Float
+  expectedNet      Float  // gross - all deductions
+
+  // ── Actual (keyed in after payslip) ──
+  actualNet        Float? // null = not received yet
+
+  // ── Allocation plan ──
+  // [{category: "savings"|"commitments"|"spends"|"debts"|"investment", label, amount, isFulfilled, transactionId?}]
+  allocations      Json   @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, month, year])
   @@index([userId])
 }
 
