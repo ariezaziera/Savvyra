@@ -12,9 +12,9 @@ import { motion } from "framer-motion";
 import SavingsGoalsCarousel from "@/components/SavingsGoalsCarousel";
 import { useUser } from "@/hooks/useUser";
 import Link from "next/link";
-// import QuickActions from "@/components/QuickActions";
+import QuickActions from "@/components/QuickActions";
 import { signOut } from "next-auth/react";
-// import NotificationBell from "@/components/NotificationBell";
+import NotificationBell from "@/components/NotificationBell";
 import { LogOut } from "lucide-react";
 
 type DashboardData = {
@@ -190,7 +190,7 @@ export default function Home() {
               <LogOut size={18} />
             </button>
 
-            {/* <NotificationBell /> */}
+            <NotificationBell />
 
             <Link href="/profile">
               <div className="relative group">
@@ -276,7 +276,7 @@ export default function Home() {
             </div>
 
             {/* Quick Actions */}
-            {/* <QuickActions /> */}
+            <QuickActions />
 
             {/* Add Goal */}
             <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
