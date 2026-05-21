@@ -2,7 +2,9 @@
 // Server-side helpers to create notifications + send push
 
 import { prisma } from "@/lib/prisma";
-import webpush from "web-push";
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const webpush = require("web-push");
 
 // ── Configure VAPID (set these in .env) ──
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
