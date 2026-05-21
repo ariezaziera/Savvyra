@@ -147,7 +147,7 @@ export default function CommitmentsPage() {
             <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">Commitments</h1>
             <p className="mt-1.5 text-sm text-white/50">Stay on top of your recurring payments and due dates.</p>
           </div>
-          <button onClick={openAdd} className="mt-2 flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.03] active:scale-[0.97]">
+          <button onClick={openAdd} className="mt-2 flex items-center gap-2 rounded-2xl bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.03] active:scale-[0.97]">
             <Plus size={16}/> Add
           </button>
         </div>
@@ -186,7 +186,7 @@ export default function CommitmentsPage() {
               </div>
               <div className="flex gap-3 mt-5">
                 <button onClick={handleSave} disabled={saving || !form.name || !form.amount || !form.dueDate}
-                  className="flex-1 rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="flex-1 rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
                   {saving ? "Saving…" : editId ? "Update" : "Save"}
                 </button>
                 <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); }}
