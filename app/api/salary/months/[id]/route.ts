@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { calcSalary } from "@/lib/salaryCalc";
+import { TransactionType } from "@prisma/client";
 
 // PATCH — update actual net OR allocations OR recalculate
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -59,7 +60,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       title:       alloc.label || `${alloc.category} — ${monthName} ${record.year}`,
       category:    alloc.category.charAt(0).toUpperCase() + alloc.category.slice(1),
       amount:      parseFloat(alloc.amount),
-      type:        typeMap[alloc.category] ?? "EXPENSE",
+      type: (typeMap[alloc.category] ?? "EXPENSE") as TransactionType,
       status:      "Completed",
       date:        new Date(),
       description: `Auto-created from salary plan — ${monthName} ${record.year}`,
