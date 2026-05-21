@@ -27,6 +27,9 @@ model User {
   transactions  Transaction[]
   salaryProfile SalaryProfile?
   salaryMonths  SalaryMonth[]
+  webAuthnCredentials WebAuthnCredential[]
+  notifications    Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Account {
@@ -97,16 +100,23 @@ model Transaction {
   @@index([savingsGoalId])
 }
 
+
 model Commitment {
-  id      String   @id @default(cuid())
-  name    String
-  amount  Float
-  dueDate DateTime
-  isPaid  Boolean  @default(false)
-  userId  String
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  category   String    @default("General")
+  amount     Float
+  dueDate    DateTime
+  frequency  String    @default("Monthly")  // Monthly, Weekly, Yearly, One-time
+  isPaid     Boolean   @default(false)
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, dueDate])
 }
 
 model Category {
@@ -202,6 +212,55 @@ model SalaryMonth {
 
   @@unique([userId, month, year])
   @@index([userId])
+}
+
+model WebAuthnCredential {
+  id           String   @id @default(cuid())
+  userId       String
+  credentialId String   @unique
+  publicKey    String   // base64 encoded
+  counter      Int      @default(0)
+  deviceName   String?  // e.g. "iPhone 15 Pro", "MacBook Touch ID"
+  createdAt    DateTime @default(now())
+  lastUsed     DateTime?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  data      Json?            // extra context e.g. { goalId, amount, dueDate }
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  deviceName String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum NotificationType {
+  SALARY_REMINDER
+  BILL_DUE
+  SAVINGS_MILESTONE
+  GENERAL
 }
 
 enum TransactionType {
