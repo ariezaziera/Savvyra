@@ -5,8 +5,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { useNoScroll } from "@/hooks/useNoScroll";
-import { useWebAuthn } from "@/hooks/useWebAuthn";
-import { Fingerprint } from "lucide-react";
 
 interface FloatingLabelProps {
   label: string; type?: string; value: string;
@@ -76,7 +74,6 @@ function LoadingDots() {
 export default function LoginPage() {
   useNoScroll();
   const router = useRouter();
-  const { authenticate, status: biometricStatus, error: biometricError, isSupported } = useWebAuthn();
 
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
@@ -85,11 +82,9 @@ export default function LoginPage() {
   const [error,         setError]         = useState("");
   const [mounted,       setMounted]       = useState(false);
   const [expanding,     setExpanding]     = useState(false);
-  const [hasBiometric,  setHasBiometric]  = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 60);
-    setHasBiometric(localStorage.getItem("savvyra_biometric") === "true");
     return () => clearTimeout(t);
   }, []);
 
@@ -107,18 +102,7 @@ export default function LoginPage() {
     await signIn("google", { callbackUrl: "/" });
   };
 
-  const handleBiometric = async () => {
-    setError("");
-    const ok = await authenticate(email || undefined);
-    if (ok) {
-      setExpanding(true);
-      setTimeout(() => router.push("/"), 1100);
-    } else {
-      setError(biometricError || "Biometric login failed. Try your password.");
-    }
-  };
-
-  const anyLoading = loading || googleLoading || biometricStatus === "loading";
+  const anyLoading = loading || googleLoading;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#453284]">
@@ -142,8 +126,6 @@ export default function LoginPage() {
         @keyframes loginDot{0%,80%,100%{transform:scale(0);opacity:0.4}40%{transform:scale(1);opacity:1}}
         .login-enter{animation:loginSlideUp 0.5s cubic-bezier(0.22,1,0.36,1) both}
         .login-fade{animation:loginFadeIn 0.4s ease both}
-        @keyframes bioPulse{0%,100%{box-shadow:0 0 0 0 rgba(196,181,253,0.4)}50%{box-shadow:0 0 0 12px rgba(196,181,253,0)}}
-        .bio-pulse{animation:bioPulse 2s ease-in-out infinite}
         .typing-word{display:inline-block;overflow:hidden;white-space:nowrap;border-right:3px solid #C4B5FD;width:0;animation:typingWord 2.5s steps(30,end) infinite alternate,blink 0.8s step-end infinite}
         @keyframes typingWord{from{width:0}to{width:8ch}}
         @keyframes blink{50%{border-color:transparent}}
@@ -194,24 +176,6 @@ export default function LoginPage() {
               <h2 className="text-[28px] font-bold tracking-tight text-white leading-tight">Welcome back</h2>
               <p className="mt-1.5 text-sm text-white/50">Sign in to continue your journey</p>
             </div>
-
-            {/* Biometric quick-login — if already registered */}
-            {isSupported && hasBiometric && (
-              <div className="login-fade mb-4" style={{ animationDelay:"0.08s" }}>
-                <button onClick={handleBiometric} disabled={anyLoading}
-                  className="w-full flex items-center justify-center gap-3 rounded-2xl border border-[#C4B5FD]/25 bg-[#C4B5FD]/10 py-4 text-sm font-semibold text-[#C4B5FD] transition hover:bg-[#C4B5FD]/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                  <div className={`h-9 w-9 rounded-xl bg-[#C4B5FD]/15 flex items-center justify-center ${biometricStatus === "loading" ? "bio-pulse" : ""}`}>
-                    <Fingerprint size={20} className="text-[#C4B5FD]"/>
-                  </div>
-                  {biometricStatus === "loading" ? "Verifying…" : "Login with Biometric"}
-                </button>
-                <div className="flex items-center gap-3 mt-4 mb-2">
-                  <div style={{ flex:1, height:1, background:"rgba(255,255,255,0.08)" }}/>
-                  <span style={{ fontSize:11, color:"rgba(255,255,255,0.3)", letterSpacing:"1px", textTransform:"uppercase" }}>or use password</span>
-                  <div style={{ flex:1, height:1, background:"rgba(255,255,255,0.08)" }}/>
-                </div>
-              </div>
-            )}
 
             {/* Form card */}
             <div className="login-enter" style={{
@@ -271,25 +235,6 @@ export default function LoginPage() {
                 >
                   {googleLoading ? <LoadingDots/> : <><GoogleIcon/> Continue with Google</>}
                 </button>
-
-                {/* Biometric — first time setup, email required */}
-                {isSupported && !hasBiometric && (
-                  <button type="button" onClick={handleBiometric} disabled={anyLoading || !email}
-                    style={{
-                      width:"100%", height:50, borderRadius:14, marginTop:10,
-                      border:"1px solid rgba(196,181,253,0.2)",
-                      background:"rgba(196,181,253,0.08)",
-                      color:"rgba(196,181,253,0.8)", fontSize:14, fontWeight:500,
-                      display:"flex", alignItems:"center", justifyContent:"center", gap:10,
-                      cursor:!email ? "not-allowed" : "pointer",
-                      opacity:!email ? 0.4 : 1,
-                      transition:"all 0.2s ease", fontFamily:"inherit",
-                    }}
-                  >
-                    <Fingerprint size={18}/>
-                    {biometricStatus === "loading" ? "Verifying…" : "Use Biometric"}
-                  </button>
-                )}
               </form>
             </div>
 
