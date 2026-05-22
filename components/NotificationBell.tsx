@@ -150,7 +150,7 @@ export default function NotificationBell() {
             </div>
 
             {/* List */}
-            <div className="max-h-[380px] overflow-y-auto">
+            <div className="max-h-95 overflow-y-auto">
               {loading && notifs.length === 0 && (
                 <div className="flex items-center justify-center py-10">
                   <div className="h-5 w-5 rounded-full border-2 border-[#6A49FA]/40 border-t-[#6A49FA] animate-spin" />

@@ -100,7 +100,7 @@ export default function QuickActions() {
             <Link
               href={soon ? "#" : href}
               onClick={soon ? (e) => e.preventDefault() : undefined}
-              className={`relative flex flex-col items-center justify-center gap-2.5 rounded-3xl border border-white/10 bg-gradient-to-br ${gradient} p-4 text-center backdrop-blur-xl transition-all duration-200 overflow-hidden
+              className={`relative flex flex-col items-center justify-center gap-2.5 rounded-3xl border border-white/10 bg-linear-to-br ${gradient} p-4 text-center backdrop-blur-xl transition-all duration-200 overflow-hidden
                 ${soon
                   ? "cursor-not-allowed opacity-60"
                   : "hover:-translate-y-0.5 hover:border-white/20 active:scale-[0.97]"

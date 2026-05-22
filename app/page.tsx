@@ -198,7 +198,7 @@ export default function Home() {
                   <img src={user.image} alt={user.name ?? "Profile"}
                     className="h-10 w-10 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60" />
                 ) : (
-                  <div className="h-10 w-10 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-gradient-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
                     <span className="text-sm font-bold text-white">{getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}</span>
                   </div>
                 )}
@@ -228,7 +228,7 @@ export default function Home() {
                   <img src={user.image} alt={user.name ?? "Profile"}
                     className="h-11 w-11 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60" />
                 ) : (
-                  <div className="h-11 w-11 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-gradient-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
+                  <div className="h-11 w-11 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
                     <span className="text-base font-bold text-white">{getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}</span>
                   </div>
                 )}
