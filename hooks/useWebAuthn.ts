@@ -52,9 +52,12 @@ export function useWebAuthn() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          credentialId: bufferToBase64url(credential.rawId),
-          publicKey:    bufferToBase64url(response.getPublicKey()!),
-          deviceName:   deviceName ?? getDeviceName(),
+          credentialId:      bufferToBase64url(credential.rawId),
+          publicKey:         bufferToBase64url(response.getPublicKey()!),
+          deviceName:        deviceName ?? getDeviceName(),
+          challenge:         options.challenge,
+          attestationObject: bufferToBase64url(response.attestationObject),
+          clientDataJSON:    bufferToBase64url(response.clientDataJSON),
         }),
       });
 
@@ -121,10 +124,14 @@ export function useWebAuthn() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          credentialId: bufferToBase64url(assertion.rawId),
-          userHandle:   assertionResponse.userHandle
+          credentialId:      bufferToBase64url(assertion.rawId),
+          challenge:         options.challenge,
+          userHandle:        assertionResponse.userHandle
             ? bufferToBase64url(assertionResponse.userHandle)
             : null,
+          authenticatorData: bufferToBase64url(assertionResponse.authenticatorData),
+          clientDataJSON:    bufferToBase64url(assertionResponse.clientDataJSON),
+          signature:         bufferToBase64url(assertionResponse.signature),
         }),
       });
 

@@ -1,9 +1,8 @@
 // app/api/categories/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/prisma";
 import { getIconForCategory } from "@/lib/categoryIcons";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 /* ─────────────────────────────────────────────────────────────────
    Default categories seeded on first fetch per user
@@ -95,16 +94,16 @@ async function seedDefaults(userId: string) {
 /* ─────────────────────────────────────────────────────────────────
    GET /api/categories  — returns all categories for current user
 ───────────────────────────────────────────────────────────────── */
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+export async function GET(req: NextRequest) {
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  await seedDefaults(session.user.id);
+  await seedDefaults(userId);
 
   const categories = await prisma.category.findMany({
-    where: { userId: session.user.id },
+    where: { userId },
     orderBy: [{ isDefault: "desc" }, { name: "asc" }],
   });
 
@@ -115,8 +114,8 @@ export async function GET() {
    POST /api/categories  — create a new custom category
 ───────────────────────────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -137,7 +136,7 @@ export async function POST(req: NextRequest) {
         type: normalizedType,
         icon: resolvedIcon,
         isDefault: false,
-        userId: session.user.id,
+        userId,
       },
     });
     return NextResponse.json(category, { status: 201 });
@@ -153,8 +152,8 @@ export async function POST(req: NextRequest) {
    PATCH /api/categories  — update icon (or name) of a category
 ───────────────────────────────────────────────────────────────── */
 export async function PATCH(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -164,7 +163,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   const existing = await prisma.category.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId },
   });
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -185,8 +184,8 @@ export async function PATCH(req: NextRequest) {
    DELETE /api/categories  — delete a category
 ───────────────────────────────────────────────────────────────── */
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const userId = await getUserIdFromRequest(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -196,7 +195,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   const existing = await prisma.category.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId },
   });
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });

@@ -81,8 +81,8 @@ export async function DELETE(request: Request) {
 
     const { id } = await request.json();
 
-    await prisma.transaction.delete({
-      where: { id: String(id) },
+    await prisma.transaction.deleteMany({
+      where: { id: String(id), userId },
     });
 
     return NextResponse.json({ message: "Transaction deleted" });
@@ -100,6 +100,13 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
+
+    const existing = await prisma.transaction.findFirst({
+      where: { id: String(body.id), userId },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+    }
 
     const transaction = await prisma.transaction.update({
       where: { id: String(body.id) },
