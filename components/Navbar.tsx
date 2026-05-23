@@ -107,8 +107,8 @@ export default function Navbar() {
                 href="/salary"
                 className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold transition-all duration-200
                   ${isSalaryActive
-                    ? "bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] text-white shadow-[0_6px_24px_rgba(106,73,250,0.55)]"
-                    : "bg-gradient-to-r from-[#6A49FA]/25 to-[#9B7FFF]/20 text-[#C4B5FD] border border-[#6A49FA]/40 hover:from-[#6A49FA]/40 hover:to-[#9B7FFF]/35 hover:shadow-[0_4px_16px_rgba(106,73,250,0.35)]"
+                    ? "bg-linear-to-rrom-[#6A49FA] to-[#9B7FFF] text-white shadow-[0_6px_24px_rgba(106,73,250,0.55)]"
+                    : "bg-linear-to-r from-[#6A49FA]/25 to-[#9B7FFF]/20 text-[#C4B5FD] border border-[#6A49FA]/40 hover:from-[#6A49FA]/40 hover:to-[#9B7FFF]/35 hover:shadow-[0_4px_16px_rgba(106,73,250,0.35)]"
                   }`}
               >
                 <Wallet size={18} className="shrink-0" />
@@ -123,8 +123,8 @@ export default function Navbar() {
                   href="/salary"
                   className={`flex items-center justify-center w-10 h-10 mx-auto rounded-2xl transition-all duration-200
                     ${isSalaryActive
-                      ? "bg-gradient-to-br from-[#6A49FA] to-[#9B7FFF] shadow-[0_4px_16px_rgba(106,73,250,0.55)]"
-                      : "bg-gradient-to-br from-[#6A49FA]/30 to-[#9B7FFF]/25 border border-[#6A49FA]/50 hover:from-[#6A49FA]/50 hover:to-[#9B7FFF]/40"
+                      ? "bg-linear-to-br from-[#6A49FA] to-[#9B7FFF] shadow-[0_4px_16px_rgba(106,73,250,0.55)]"
+                      : "bg-linear-to-br from-[#6A49FA]/30 to-[#9B7FFF]/25 border border-[#6A49FA]/50 hover:from-[#6A49FA]/50 hover:to-[#9B7FFF]/40"
                     }`}
                 >
                   <Wallet size={18} className="text-white" />
@@ -204,7 +204,7 @@ export default function Navbar() {
               hover:scale-105 active:scale-95 transition-all duration-200
               ${isSalaryActive
                 ? "bg-[#453284]"
-                : "bg-gradient-to-br from-[#6A49FA] to-[#9B7FFF]"
+                : "bg-linear-to-br from-[#6A49FA] to-[#9B7FFF]"
               }`}
           >
             <Wallet size={22} className="text-white" />

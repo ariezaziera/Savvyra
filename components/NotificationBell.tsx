@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, Trash2, Wallet, HandCoins, PiggyBank, Info, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Bell, Info, X, Wallet, HandCoins, PiggyBank } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Notification = {
@@ -40,11 +41,17 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NotificationBell() {
-  const [open, setOpen]     = useState(false);
-  const [notifs, setNotifs] = useState<Notification[]>([]);
-  const [unread, setUnread] = useState(0);
+  const [open, setOpen]       = useState(false);
+  const [notifs, setNotifs]   = useState<Notification[]>([]);
+  const [unread, setUnread]   = useState(0);
   const [loading, setLoading] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
+  const [mounted, setMounted] = useState(false);
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef  = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const fetchNotifs = async () => {
     setLoading(true);
@@ -62,7 +69,6 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifs();
-    // Poll every 2 minutes for new notifications
     const interval = setInterval(fetchNotifs, 120000);
     return () => clearInterval(interval);
   }, []);
@@ -70,11 +76,29 @@ export default function NotificationBell() {
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (
+        panelRef.current && !panelRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  const handleOpen = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // Position dropdown below the button, aligned to its right edge
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(!open);
+    if (!open) fetchNotifs();
+  };
 
   const markAllRead = async () => {
     await fetch("/api/notifications", { method: "PATCH" });
@@ -101,10 +125,11 @@ export default function NotificationBell() {
   };
 
   return (
-    <div ref={ref} className="relative">
+    <>
       {/* Bell Button */}
       <button
-        onClick={() => { setOpen(!open); if (!open) fetchNotifs(); }}
+        ref={buttonRef}
+        onClick={handleOpen}
         className="relative flex items-center justify-center h-10 w-10 rounded-2xl border border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200 backdrop-blur-xl"
       >
         <Bell size={18} />
@@ -115,98 +140,103 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown panel */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 top-12 z-50 w-80 rounded-3xl border border-white/10 bg-[#1a1035]/95 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/8">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white">Notifications</span>
-                {unread > 0 && (
-                  <span className="rounded-full bg-[#FF8C8C]/20 text-[#FF8C8C] text-[10px] font-bold px-2 py-0.5">
-                    {unread} new
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {unread > 0 && (
-                  <button onClick={markAllRead} className="text-[10px] text-[#C4B5FD] hover:text-white transition font-medium">
-                    Mark all read
-                  </button>
-                )}
-                {notifs.length > 0 && (
-                  <button onClick={clearAll} className="text-[10px] text-white/30 hover:text-white/60 transition">
-                    Clear all
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* List */}
-            <div className="max-h-95 overflow-y-auto">
-              {loading && notifs.length === 0 && (
-                <div className="flex items-center justify-center py-10">
-                  <div className="h-5 w-5 rounded-full border-2 border-[#6A49FA]/40 border-t-[#6A49FA] animate-spin" />
+      {/* Portal dropdown — renders at document.body, escapes all stacking contexts */}
+      {mounted && createPortal(
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              ref={panelRef}
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              style={{
+                position: "fixed",
+                top: dropdownPos.top,
+                right: dropdownPos.right,
+                zIndex: 99999,
+                width: "20rem",
+                maxWidth: "calc(100vw - 1.5rem)",
+              }}
+              className="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 top-12 z-9999 w-80 rounded-3xl border border-white/10 bg-[#1a1035]/95 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/8">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white">Notifications</span>
+                  {unread > 0 && (
+                    <span className="rounded-full bg-[#FF8C8C]/20 text-[#FF8C8C] text-[10px] font-bold px-2 py-0.5">
+                      {unread} new
+                    </span>
+                  )}
                 </div>
-              )}
-
-              {!loading && notifs.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-12 gap-3">
-                  <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center">
-                    <Bell size={20} className="text-white/20" />
-                  </div>
-                  <p className="text-xs text-white/30">No notifications yet</p>
-                </div>
-              )}
-
-              {notifs.map((n) => {
-                const Icon = TYPE_ICON[n.type] ?? Info;
-                const color = TYPE_COLOR[n.type] ?? TYPE_COLOR.GENERAL;
-                return (
-                  <div
-                    key={n.id}
-                    onClick={() => !n.isRead && markRead(n.id)}
-                    className={`relative flex items-start gap-3 px-4 py-3.5 border-b border-white/5 last:border-0 transition-all cursor-pointer group
-                      ${n.isRead ? "opacity-60" : "bg-white/3 hover:bg-white/5"}`}
-                  >
-                    {/* Unread dot */}
-                    {!n.isRead && (
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-[#C4B5FD]" />
-                    )}
-
-                    {/* Icon */}
-                    <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-                      <Icon size={16} />
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 pr-6">
-                      <p className="text-xs font-semibold text-white leading-snug">{n.title}</p>
-                      <p className="text-xs text-white/45 mt-0.5 leading-snug">{n.body}</p>
-                      <p className="text-[10px] text-white/25 mt-1">{timeAgo(n.createdAt)}</p>
-                    </div>
-
-                    {/* Delete */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteNotif(n.id, !n.isRead); }}
-                      className="absolute right-3 top-3.5 opacity-0 group-hover:opacity-100 transition p-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10"
-                    >
-                      <X size={13} />
+                <div className="flex items-center gap-2">
+                  {unread > 0 && (
+                    <button onClick={markAllRead} className="text-[10px] text-[#C4B5FD] hover:text-white transition font-medium">
+                      Mark all read
                     </button>
+                  )}
+                  {notifs.length > 0 && (
+                    <button onClick={clearAll} className="text-[10px] text-white/30 hover:text-white/60 transition">
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* List */}
+              <div className="max-h-96 overflow-y-auto">
+                {loading && notifs.length === 0 && (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="h-5 w-5 rounded-full border-2 border-[#6A49FA]/40 border-t-[#6A49FA] animate-spin" />
                   </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+                )}
+
+                {!loading && notifs.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center">
+                      <Bell size={20} className="text-white/20" />
+                    </div>
+                    <p className="text-xs text-white/30">No notifications yet</p>
+                  </div>
+                )}
+
+                {notifs.map((n) => {
+                  const Icon = TYPE_ICON[n.type] ?? Info;
+                  const color = TYPE_COLOR[n.type] ?? TYPE_COLOR.GENERAL;
+                  return (
+                    <div
+                      key={n.id}
+                      onClick={() => !n.isRead && markRead(n.id)}
+                      className={`relative flex items-start gap-3 px-4 py-3.5 border-b border-white/5 last:border-0 transition-all cursor-pointer group
+                        ${n.isRead ? "opacity-60" : "bg-white/3 hover:bg-white/5"}`}
+                    >
+                      {!n.isRead && (
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-[#C4B5FD]" />
+                      )}
+                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+                        <Icon size={16} />
+                      </div>
+                      <div className="flex-1 min-w-0 pr-6">
+                        <p className="text-xs font-semibold text-white leading-snug">{n.title}</p>
+                        <p className="text-xs text-white/45 mt-0.5 leading-snug">{n.body}</p>
+                        <p className="text-[10px] text-white/25 mt-1">{timeAgo(n.createdAt)}</p>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteNotif(n.id, !n.isRead); }}
+                        className="absolute right-3 top-3.5 opacity-0 group-hover:opacity-100 transition p-1 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/10"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+    </>
   );
 }

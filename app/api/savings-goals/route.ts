@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { savingsGoalSchema } from "@/lib/schemas"; // ✅
 
 export async function GET(request: Request) {
   const userId = await getUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const goals = await prisma.savingsGoal.findMany({
     where: { userId },
@@ -18,42 +17,42 @@ export async function GET(request: Request) {
     },
   });
 
-  const goalsWithProgress = goals.map((goal) => {
-    const currentAmount = goal.transactions.reduce(
-      (sum, t) => sum + t.amount,
-      0
-    );
-
-    return {
-      id: goal.id,
-      name: goal.name,
-      targetAmount: goal.targetAmount,
-      currentAmount,
-      deadline: goal.deadline,
-      monthlyContribution: goal.monthlyContribution ?? null,
-    };
-  });
+  const goalsWithProgress = goals.map((goal) => ({
+    id: goal.id,
+    name: goal.name,
+    targetAmount: goal.targetAmount,
+    currentAmount: goal.transactions.reduce((sum, t) => sum + t.amount, 0),
+    deadline: goal.deadline,
+    monthlyContribution: goal.monthlyContribution ?? null,
+  }));
 
   return NextResponse.json(goalsWithProgress);
 }
 
 export async function POST(request: Request) {
   const userId = await getUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
 
+  // ✅ Zod validation
+  const parsed = savingsGoalSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const { name, targetAmount, currentAmount, deadline, monthlyContribution } = parsed.data;
+
   const goal = await prisma.savingsGoal.create({
     data: {
-      name: body.name,
-      targetAmount: Number(body.targetAmount ?? body.target),
-      currentAmount: Number(body.currentAmount ?? body.current ?? 0),
-      deadline: body.deadline ? new Date(body.deadline) : null,
-      monthlyContribution: body.monthlyContribution
-        ? Number(body.monthlyContribution)
-        : null,
+      name,
+      targetAmount,
+      currentAmount: currentAmount ?? 0,
+      deadline: deadline ? new Date(deadline) : null,
+      monthlyContribution: monthlyContribution ?? null,
       userId,
     },
   });
@@ -63,9 +62,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   const userId = await getUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
 
@@ -77,14 +74,12 @@ export async function PUT(request: Request) {
   }
 
   // ── TOP UP flow ──────────────────────────────────────────────
-  // Detected when body.topUpAmount is provided
   if (body.topUpAmount !== undefined) {
     const topUpAmount = Number(body.topUpAmount);
     if (isNaN(topUpAmount) || topUpAmount <= 0) {
       return NextResponse.json({ error: "Invalid top up amount" }, { status: 400 });
     }
 
-    // 1. Create a transaction in history
     await prisma.transaction.create({
       data: {
         title: `Top Up — ${existing.name}`,
@@ -98,28 +93,34 @@ export async function PUT(request: Request) {
       },
     });
 
-    // 2. Update currentAmount in SavingsGoal
     const updated = await prisma.savingsGoal.update({
       where: { id: body.id },
-      data: {
-        currentAmount: existing.currentAmount + topUpAmount,
-      },
+      data: { currentAmount: existing.currentAmount + topUpAmount },
     });
 
     return NextResponse.json(updated);
   }
 
-  // ── EDIT flow (name, target, deadline, etc.) ─────────────────
+  // ── EDIT flow ────────────────────────────────────────────────
+  // ✅ Zod validation untuk edit
+  const parsed = savingsGoalSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const { name, targetAmount, currentAmount, deadline, monthlyContribution } = parsed.data;
+
   const goal = await prisma.savingsGoal.update({
     where: { id: body.id },
     data: {
-      name: body.name,
-      targetAmount: Number(body.targetAmount ?? body.target),
-      currentAmount: Number(body.currentAmount ?? body.current ?? 0),
-      deadline: body.deadline ? new Date(body.deadline) : null,
-      monthlyContribution: body.monthlyContribution
-        ? Number(body.monthlyContribution)
-        : null,
+      name,
+      targetAmount,
+      currentAmount: currentAmount ?? existing.currentAmount,
+      deadline: deadline ? new Date(deadline) : null,
+      monthlyContribution: monthlyContribution ?? null,
     },
   });
 
@@ -128,22 +129,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const userId = await getUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await request.json();
 
-  const existing = await prisma.savingsGoal.findFirst({
-    where: { id, userId },
-  });
+  const existing = await prisma.savingsGoal.findFirst({ where: { id, userId } });
   if (!existing) {
     return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
   }
 
-  await prisma.savingsGoal.delete({
-    where: { id },
-  });
+  await prisma.savingsGoal.delete({ where: { id } });
 
   return NextResponse.json({ message: "Deleted" });
 }

@@ -16,6 +16,8 @@ import {
 import { Doughnut } from "react-chartjs-2";
 import TransactionFilter, { DateFilter } from "@/components/TransactionFilter";
 import { getIconForCategory } from "@/lib/categoryIcons";
+import ExportMenu from "@/components/ExportMenu";
+import ImportTransactions from "@/components/ImportTransactions";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -47,6 +49,15 @@ type Category = {
   icon: string;
   type: string;
   isDefault: boolean;
+};
+
+type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 };
 
 /* ─────────────────────────────────────────────────────────────────
@@ -143,6 +154,20 @@ function applyDateFilter(txs: Transaction[], f: DateFilter): Transaction[] {
     if (to && d > to) return false;
     return true;
   });
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   2. HELPER — shape transaction data untuk export
+───────────────────────────────────────────────────────────────── */
+function toExportRows(txs: Transaction[]) {
+  return txs.map((t) => ({
+    Date:        formatDate(t.date),
+    Title:       t.title,
+    Category:    t.category,
+    Type:        t.type,
+    Amount:      t.amount,
+    Status:      t.status,
+  }));
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -328,6 +353,10 @@ export default function TransactionsPage() {
   const [toast, setToast]               = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
 
+  // ── Pagination state ──
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+
   const now = new Date();
   const [dateFilter, setDateFilter] = useState<DateFilter>({
     mode: "picker",
@@ -340,16 +369,20 @@ export default function TransactionsPage() {
   const transactionsSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions(page);
+  }, [page]);
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (p = page) => {
     try {
       setIsLoading(true);
-      const res  = await fetch("/api/transactions");
+      const res  = await fetch(`/api/transactions?page=${p}`);
       const data = await res.json();
-      setTransactions(Array.isArray(data) ? data : data.transactions ?? data.data ?? []);
+      setTransactions(Array.isArray(data) ? data : data.data ?? []);
+      setPagination(data.pagination ?? null);
     } catch {
       showToast("Failed to load transactions.", "error");
       setTransactions([]);
@@ -382,7 +415,8 @@ export default function TransactionsPage() {
     transactionsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const handleTransactionSaved = () => {
-    fetchTransactions();
+    setPage(1);
+    fetchTransactions(1);
     fetchCategories();
   };
 
@@ -396,7 +430,8 @@ export default function TransactionsPage() {
     if (!res.ok) { showToast("Failed to delete.", "error"); return; }
     setTransactionToDelete(null);
     showToast("Transaction deleted.");
-    fetchTransactions();
+    setPage(1);
+    fetchTransactions(1);
     scrollToTransactions();
   };
 
@@ -441,8 +476,6 @@ export default function TransactionsPage() {
         >
           {/* ── Stat Cards ── */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-
-            {/* Total */}
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
               className="relative overflow-hidden rounded-3xl p-6"
@@ -455,11 +488,10 @@ export default function TransactionsPage() {
               </div>
               <p className="relative z-10 text-xs font-medium text-[#2D1B6B]/60 uppercase tracking-wide">Total Transactions</p>
               <h2 className="relative z-10 mt-1.5 text-3xl font-bold tracking-tight text-[#2D1B6B]">
-                {periodFiltered.length}
+                {pagination ? pagination.total : periodFiltered.length}
               </h2>
             </motion.div>
 
-            {/* Income */}
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}
               className="relative overflow-hidden rounded-3xl p-6"
@@ -476,7 +508,6 @@ export default function TransactionsPage() {
               </h2>
             </motion.div>
 
-            {/* Expenses */}
             <motion.div
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
               className="relative overflow-hidden rounded-3xl p-6"
@@ -515,12 +546,23 @@ export default function TransactionsPage() {
           </div>
 
           {/* ── Date filter + heading ── */}
+          {/* 3. LETAK ExportMenu SEBELAH TransactionFilter */}
           <div className="flex items-start justify-between flex-wrap gap-3">
             <div>
               <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
               <p className="text-sm text-white/45">A quick overview of your latest activity</p>
             </div>
-            <TransactionFilter value={dateFilter} onChange={setDateFilter} />
+
+            {/* Right side — filter + import + export */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <TransactionFilter value={dateFilter} onChange={setDateFilter} />
+              <ImportTransactions onSuccess={handleTransactionSaved} />
+              <ExportMenu
+                data={toExportRows(filteredTransactions)}
+                filename="transactions"
+                title="Transaction History"
+              />
+            </div>
           </div>
 
           {/* ── Two-column layout ── */}
@@ -658,7 +700,6 @@ export default function TransactionsPage() {
               {/* ── Desktop rows ── */}
               {!isLoading && filteredTransactions.length > 0 && (
                 <div className="hidden md:flex flex-col gap-2">
-                  {/* Header */}
                   <div
                     style={{
                       display: "grid",
@@ -682,7 +723,6 @@ export default function TransactionsPage() {
                     ))}
                   </div>
 
-                  {/* Rows */}
                   {filteredTransactions.map((item, i) => {
                     const s = TYPE_STYLE[item.type] ?? TYPE_STYLE["EXPENSE"];
                     const icon = getCategoryIcon(item.category, item.type);
@@ -705,12 +745,10 @@ export default function TransactionsPage() {
                       >
                         <div style={{ position: "absolute", inset: "0 0 auto", height: 1, background: "rgba(255,255,255,0.40)" }} />
 
-                        {/* Title */}
                         <div style={{ fontWeight: 700, fontSize: 13, color: s.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 8 }}>
                           {item.title}
                         </div>
 
-                        {/* Category */}
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                           <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>
                             {icon}
@@ -720,29 +758,24 @@ export default function TransactionsPage() {
                           </span>
                         </div>
 
-                        {/* Date */}
                         <div style={{ fontSize: 12, color: s.sub, textAlign: "center" }}>{formatDate(item.date)}</div>
 
-                        {/* Type */}
                         <div style={{ textAlign: "center" }}>
                           <span style={{ background: s.badge, color: s.text, fontSize: 11, fontWeight: 600, borderRadius: 999, padding: "3px 10px" }}>
                             {item.type}
                           </span>
                         </div>
 
-                        {/* Status */}
                         <div style={{ textAlign: "center" }}>
                           <span style={{ background: s.badge, color: s.text, fontSize: 11, fontWeight: 600, borderRadius: 999, padding: "3px 10px" }}>
                             {item.status}
                           </span>
                         </div>
 
-                        {/* Amount */}
                         <div style={{ fontSize: 14, fontWeight: 800, color: s.text, textAlign: "center" }}>
                           {s.sign}{formatCurrency(item.amount)}
                         </div>
 
-                        {/* Actions */}
                         <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
                           <button
                             onClick={() => setEditingTransaction(item)}
@@ -766,6 +799,52 @@ export default function TransactionsPage() {
                   })}
                 </div>
               )}
+
+              {/* ── Pagination ── */}
+              {pagination && !isLoading && (
+                <div className="flex items-center justify-between mt-4 px-1">
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>
+                    Page {pagination.page} of {pagination.totalPages} · {pagination.total} transactions
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPage((p) => p - 1)}
+                      disabled={!pagination.hasPrev}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: pagination.hasPrev ? "rgba(196,181,253,0.15)" : "rgba(255,255,255,0.05)",
+                        color: pagination.hasPrev ? "#C4B5FD" : "rgba(255,255,255,0.2)",
+                        cursor: pagination.hasPrev ? "pointer" : "not-allowed",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      ← Previous
+                    </button>
+                    <button
+                      onClick={() => setPage((p) => p + 1)}
+                      disabled={!pagination.hasNext}
+                      style={{
+                        padding: "6px 14px",
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        background: pagination.hasNext ? "rgba(196,181,253,0.15)" : "rgba(255,255,255,0.05)",
+                        color: pagination.hasNext ? "#C4B5FD" : "rgba(255,255,255,0.2)",
+                        cursor: pagination.hasNext ? "pointer" : "not-allowed",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </motion.div>
           </section>
         </motion.div>

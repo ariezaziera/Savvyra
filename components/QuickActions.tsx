@@ -70,33 +70,32 @@ const actions: QuickAction[] = [
     glow: "rgba(251,211,141,0.20)",
     soon: true,
   },
-  {
-    label: "Security",
-    subtitle: "Biometric & privacy",
-    href: "/settings#security",
-    icon: ShieldCheck,
-    gradient: "from-[#FF8C8C]/20 to-[#ef4444]/10",
-    iconColor: "text-[#FF8C8C]",
-    glow: "rgba(255,140,140,0.20)",
-    soon: true,
-  },
 ];
 
 export default function QuickActions() {
   return (
-    <section>
+    // ✅ Buang z-index dari section ni — jangan create stacking context baru
+    <section style={{ position: "static" }}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-white/60 uppercase tracking-wider">Quick Access</h2>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
         {actions.map(({ label, subtitle, href, icon: Icon, gradient, iconColor, glow, soon }, i) => (
-          <motion.div
+          // ✅ Buang motion.div wrapper yang create stacking context — guna CSS animation je
+          <div
             key={label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06, duration: 0.35, ease: "easeOut" }}
+            style={{
+              opacity: 0,
+              animation: `fadeSlideUp 0.35s ease-out ${i * 0.06}s forwards`,
+            }}
           >
+            <style>{`
+              @keyframes fadeSlideUp {
+                from { opacity: 0; transform: translateY(10px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
             <Link
               href={soon ? "#" : href}
               onClick={soon ? (e) => e.preventDefault() : undefined}
@@ -109,31 +108,24 @@ export default function QuickActions() {
                 boxShadow: soon ? "none" : `0 4px 24px ${glow}`,
               }}
             >
-              {/* Shine */}
               <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
-
-              {/* Icon */}
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10"
                 style={{ background: "rgba(255,255,255,0.06)" }}
               >
                 <Icon size={20} className={iconColor} />
               </div>
-
-              {/* Label */}
               <div>
                 <p className="text-xs font-semibold text-white leading-tight">{label}</p>
                 <p className="mt-0.5 text-[10px] text-white/40 leading-tight hidden sm:block">{subtitle}</p>
               </div>
-
-              {/* Coming soon badge */}
               {soon && (
                 <span className="absolute top-2 right-2 rounded-full bg-white/10 px-1.5 py-0.5 text-[8px] font-medium text-white/50 uppercase tracking-wider">
                   Soon
                 </span>
               )}
             </Link>
-          </motion.div>
+          </div>
         ))}
       </div>
     </section>

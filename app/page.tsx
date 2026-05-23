@@ -16,6 +16,19 @@ import QuickActions from "@/components/QuickActions";
 import { signOut } from "next-auth/react";
 import NotificationBell from "@/components/NotificationBell";
 import { LogOut } from "lucide-react";
+import { exportDashboardPDF } from "@/lib/exportUtils";
+
+type ChartData = {
+  name: string;
+  income: number;
+  expenses: number;
+};
+
+type MonthlyTrendData = {
+  month: string;
+  income: number;
+  expenses: number;
+};
 
 type DashboardData = {
   balance: number;
@@ -25,8 +38,8 @@ type DashboardData = {
   cashSavings: number;
   goldSavings: number;
   expenseByCategory: { name: string; value: number }[];
-  incomeExpenseSummary: { name: string; income: number; expenses: number }[];
-  monthlyTrend: { month: string; income: number; expenses: number }[];
+  incomeExpenseSummary: ChartData[];
+  monthlyTrend: MonthlyTrendData[];
 };
 
 function getGreeting() {
@@ -56,11 +69,12 @@ export default function Home() {
     monthlyTrend: [],
   });
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading]           = useState(true);
+  const [isExporting, setIsExporting]       = useState(false);
   const [completionToast, setCompletionToast] = useState("");
-  const [goals, setGoals] = useState<any[]>([]);
-  const [goalName, setGoalName] = useState("");
-  const [goalTarget, setGoalTarget] = useState("");
+  const [goals, setGoals]                   = useState<any[]>([]);
+  const [goalName, setGoalName]             = useState("");
+  const [goalTarget, setGoalTarget]         = useState("");
 
   const fetchDashboard = async () => {
     try {
@@ -69,7 +83,7 @@ export default function Home() {
         fetch("/api/dashboard"),
         fetch("/api/savings-goals"),
       ]);
-      const data = await dashboardRes.json();
+      const data      = await dashboardRes.json();
       const goalsData = await goalsRes.json();
       setDashboardData(data);
       setGoals(Array.isArray(goalsData) ? goalsData : []);
@@ -85,7 +99,7 @@ export default function Home() {
   useEffect(() => {
     if (goals.length === 0) return;
     goals.forEach((goal: any) => {
-      const progress = goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0;
+      const progress   = goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0;
       const storageKey = `savvyra-goal-completed-${goal.id}`;
       if (progress >= 1 && !localStorage.getItem(storageKey)) {
         setCompletionToast(`${goal.name} completed 🎉`);
@@ -105,10 +119,15 @@ export default function Home() {
   const handleAddGoal = async () => {
     if (!goalName || !goalTarget) return;
     const res = await fetch("/api/savings-goals", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ name: goalName, targetAmount: goalTarget, currentAmount: 0, deadline: null }),
+      body: JSON.stringify({
+        name:          goalName,
+        targetAmount:  goalTarget,
+        currentAmount: 0,
+        deadline:      null,
+      }),
     });
     if (!res.ok) {
       console.error("Failed to add goal:", await res.json());
@@ -116,6 +135,15 @@ export default function Home() {
       setGoalName("");
       setGoalTarget("");
       await fetchDashboard();
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      await exportDashboardPDF(dashboardData, user?.name ?? "User");
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -168,6 +196,29 @@ export default function Home() {
             from { transform: translate(0, 0) scale(1); }
             to   { transform: translate(40px, -60px) scale(0.92); }
           }
+          .export-btn {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: background 0.15s ease, transform 0.15s ease;
+          }
+          .export-btn:hover:not(:disabled) {
+            background: rgba(196,181,253,0.15);
+            transform: scale(1.02);
+          }
+          .export-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+          }
         `}</style>
 
         {/* Completion Toast */}
@@ -177,10 +228,10 @@ export default function Home() {
           </div>
         )}
 
-        {/* Header with Greeting */}
+        {/* ── Header ── */}
         <div className="relative z-10 mb-8">
 
-          {/* Mobile top bar — logout left, avatar right */}
+          {/* Mobile top bar */}
           <div className="flex items-center justify-between mb-4 md:hidden">
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
@@ -195,11 +246,16 @@ export default function Home() {
             <Link href="/profile">
               <div className="relative group">
                 {user?.image ? (
-                  <img src={user.image} alt={user.name ?? "Profile"}
-                    className="h-10 w-10 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60" />
+                  <img
+                    src={user.image}
+                    alt={user.name ?? "Profile"}
+                    className="h-10 w-10 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60"
+                  />
                 ) : (
                   <div className="h-10 w-10 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
-                    <span className="text-sm font-bold text-white">{getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}</span>
+                    <span className="text-sm font-bold text-white">
+                      {getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}
+                    </span>
                   </div>
                 )}
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#8EE3B5] border-2 border-[#1a1035]" />
@@ -221,20 +277,28 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Avatar desktop only */}
-            <Link href="/profile" className="shrink-0 mt-2 hidden md:block">
-              <div className="relative group">
-                {user?.image ? (
-                  <img src={user.image} alt={user.name ?? "Profile"}
-                    className="h-11 w-11 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60" />
-                ) : (
-                  <div className="h-11 w-11 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
-                    <span className="text-base font-bold text-white">{getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}</span>
-                  </div>
-                )}
-                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#8EE3B5] border-2 border-[#1a1035]" />
-              </div>
-            </Link>
+            {/* Desktop right — export + notification + avatar */}
+            <div className="shrink-0 mt-2 hidden md:flex items-center gap-3 z-10">
+              <NotificationBell />
+              <Link href="/profile">
+                <div className="relative group">
+                  {user?.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name ?? "Profile"}
+                      className="h-11 w-11 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60"
+                    />
+                  ) : (
+                    <div className="h-11 w-11 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
+                      <span className="text-base font-bold text-white">
+                        {getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}
+                      </span>
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#8EE3B5] border-2 border-[#1a1035]" />
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -247,36 +311,25 @@ export default function Home() {
             transition={{ duration: 0.45, ease: "easeOut" }}
             className="relative z-10 space-y-5"
           >
+            {/* Quick Actions */}
+            <QuickActions />
+
+            {/* Export */}
+            {!isLoading && (
+                <button
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="export-btn"
+                >
+                  {isExporting ? "⏳ Exporting…" : "🖨 Export Summary"}
+                </button>
+              )}
+
             <DashboardStats stats={stats} formatCurrency={formatCurrency} />
-
-            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="relative overflow-hidden rounded-3xl p-6 shadow-[0_12px_40px_rgba(106,73,250,0.20)]"
-                style={{ background: "linear-gradient(135deg, #E2D9FF 0%, #C4B5FD 100%)" }}>
-                <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
-                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
-                <p className="relative z-10 text-sm font-medium text-[#2D1B6B]/65">Cash Savings</p>
-                <h2 className="relative z-10 mt-2 text-3xl font-bold tracking-tight text-[#2D1B6B]">
-                  {formatCurrency(dashboardData.cashSavings)}
-                </h2>
-              </div>
-
-              <div className="relative overflow-hidden rounded-3xl p-6 shadow-[0_12px_40px_rgba(232,160,160,0.20)]"
-                style={{ background: "linear-gradient(135deg, #FEDADA 0%, #E8A0A0 100%)" }}>
-                <div className="absolute inset-x-0 top-0 h-px bg-white/50" />
-                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/25 blur-2xl" />
-                <p className="relative z-10 text-sm font-medium text-[#4A1818]/65">Gold Savings</p>
-                <h2 className="relative z-10 mt-2 text-3xl font-bold tracking-tight text-[#4A1818]">
-                  {formatCurrency(dashboardData.goldSavings)}
-                </h2>
-              </div>
-            </section>
 
             <div className="-mx-1 px-1 py-1">
               <SavingsGoalsCarousel goals={goals} />
             </div>
-
-            {/* Quick Actions */}
-            <QuickActions />
 
             {/* Add Goal */}
             <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
@@ -284,14 +337,26 @@ export default function Home() {
               <div className="space-y-4">
                 <div>
                   <h2 className="text-lg font-semibold text-white">Add Savings Goal</h2>
-                  <p className="mt-0.5 text-sm text-white/45">Set a new target and track your financial progress.</p>
+                  <p className="mt-0.5 text-sm text-white/45">
+                    Set a new target and track your financial progress.
+                  </p>
                 </div>
-                <input value={goalName} onChange={(e) => setGoalName(e.target.value)} placeholder="Goal name"
-                  className="w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 backdrop-blur-xl transition focus:border-[#6A49FA]/60 focus:bg-white/10 focus:ring-2 focus:ring-[#6A49FA]/20" />
-                <input value={goalTarget} onChange={(e) => setGoalTarget(e.target.value)} placeholder="Target amount (RM)"
-                  className="w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 backdrop-blur-xl transition focus:border-[#6A49FA]/60 focus:bg-white/10 focus:ring-2 focus:ring-[#6A49FA]/20" />
-                <button onClick={handleAddGoal}
-                  className="w-full rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98] shadow-[0_8px_24px_rgba(106,73,250,0.40)]">
+                <input
+                  value={goalName}
+                  onChange={(e) => setGoalName(e.target.value)}
+                  placeholder="Goal name"
+                  className="w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 backdrop-blur-xl transition focus:border-[#6A49FA]/60 focus:bg-white/10 focus:ring-2 focus:ring-[#6A49FA]/20"
+                />
+                <input
+                  value={goalTarget}
+                  onChange={(e) => setGoalTarget(e.target.value)}
+                  placeholder="Target amount (RM)"
+                  className="w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-white/30 backdrop-blur-xl transition focus:border-[#6A49FA]/60 focus:bg-white/10 focus:ring-2 focus:ring-[#6A49FA]/20"
+                />
+                <button
+                  onClick={handleAddGoal}
+                  className="w-full rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3 text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98] shadow-[0_8px_24px_rgba(106,73,250,0.40)]"
+                >
                   Add Goal
                 </button>
               </div>
@@ -312,6 +377,17 @@ export default function Home() {
             <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
               <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
               <MonthlyTrendChart data={dashboardData.monthlyTrend} />
+            </div>
+
+            {/* Mobile export button — bottom of page */}
+            <div className="flex justify-center pb-4 md:hidden">
+              <button
+                onClick={handleExportPDF}
+                disabled={isExporting}
+                className="export-btn"
+              >
+                {isExporting ? "⏳ Exporting…" : "🖨 Export PDF"}
+              </button>
             </div>
           </motion.div>
         )}

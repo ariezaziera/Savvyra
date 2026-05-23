@@ -104,10 +104,12 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
 
   const grossSalary = basicPay + allowanceTotal + otEarnings + doublePayEarnings;
 
-  // Statutory deductions on GROSS
-  const epfAmount = (epfRate / 100) * grossSalary;
-  const socsoAmount = (socsoRate / 100) * grossSalary;
-  const eisAmount = (eisRate / 100) * grossSalary;
+  const SOCSO_SALARY_CAP = 4000;
+  const EIS_SALARY_CAP   = 4000;
+
+  const epfAmount   = (epfRate / 100) * grossSalary;
+  const socsoAmount = (socsoRate / 100) * Math.min(grossSalary, SOCSO_SALARY_CAP);
+  const eisAmount   = (eisRate / 100) * Math.min(grossSalary, EIS_SALARY_CAP);
   const customDeductTotal = customDeductions.reduce((s, d) => s + d.amount, 0);
 
   const totalDeductions = epfAmount + socsoAmount + eisAmount + customDeductTotal;

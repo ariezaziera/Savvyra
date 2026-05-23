@@ -6,13 +6,15 @@ import { prisma } from "@/lib/prisma";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const webpush = require("web-push");
 
-// ── Configure VAPID (set these in .env) ──
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    `mailto:${process.env.VAPID_EMAIL ?? "support@savvyra.app"}`,
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
+// ── Configure VAPID ──
+const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
+const VAPID_EMAIL   = process.env.VAPID_EMAIL ?? "support@savvyra.app";
+
+if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+  console.warn("⚠️  VAPID keys not set — push notifications disabled");
+} else {
+  webpush.setVapidDetails(`mailto:${VAPID_EMAIL}`, VAPID_PUBLIC, VAPID_PRIVATE);
 }
 
 export type NotifType = "SALARY_REMINDER" | "BILL_DUE" | "SAVINGS_MILESTONE" | "GENERAL";
@@ -45,12 +47,15 @@ export async function notify({
   // 1. Always create in-app record
   await createNotification({ userId, type, title, body, data });
 
-  // 2. Get all push subscriptions for this user
+  // 2. Skip push if VAPID not configured
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+
+  // 3. Get all push subscriptions for this user
   const subs = await prisma.pushSubscription.findMany({ where: { userId } });
 
   const payload = JSON.stringify({ title, body, data: data ?? {} });
 
-  // 3. Send to each device (fire-and-forget, remove invalid subs)
+  // 4. Send to each device (fire-and-forget, remove invalid subs)
   await Promise.allSettled(
     subs.map(async (sub) => {
       try {

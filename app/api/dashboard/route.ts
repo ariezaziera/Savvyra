@@ -43,15 +43,6 @@ export async function GET(request: Request) {
       0
     );
 
-    // Cash & gold savings = filter by goal name
-    const cashSavings = goalsWithProgress
-      .filter((g) => g.name.toLowerCase().includes("cash"))
-      .reduce((sum, g) => sum + g.currentAmount, 0);
-
-    const goldSavings = goalsWithProgress
-      .filter((g) => g.name.toLowerCase().includes("gold"))
-      .reduce((sum, g) => sum + g.currentAmount, 0);
-
     // Income & expenses dari transactions
     const income = transactions
       .filter((t) => t.type.toLowerCase() === "income")
@@ -106,8 +97,6 @@ export async function GET(request: Request) {
       income,
       expenses,
       savings: totalSavings,
-      cashSavings,
-      goldSavings,
       expenseByCategory,
       incomeExpenseSummary,
       monthlyTrend,

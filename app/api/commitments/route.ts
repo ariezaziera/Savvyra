@@ -1,7 +1,7 @@
-// app/api/commitments/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { commitmentSchema } from "@/lib/schemas"; // ✅
 
 export async function GET(request: Request) {
   const userId = await getUserIdFromRequest(request);
@@ -20,16 +20,23 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { name, amount, dueDate, category, frequency, note } = body;
 
-  if (!name || !amount || !dueDate)
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  // ✅ Zod validation
+  const parsed = commitmentSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0].message },
+      { status: 400 }
+    );
+  }
+
+  const { name, amount, dueDate, category, frequency, note } = parsed.data;
 
   const commitment = await prisma.commitment.create({
     data: {
       userId,
       name,
-      amount: parseFloat(amount),
+      amount,
       dueDate: new Date(dueDate),
       category: category ?? "General",
       frequency: frequency ?? "Monthly",
