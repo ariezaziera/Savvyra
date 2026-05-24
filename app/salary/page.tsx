@@ -74,9 +74,6 @@ const fmt = (n: number) =>
 const defaultProfile: SalaryInputs = {
   basicSalary: 0,
   allowances: [],
-  epfRate: 11,
-  socsoRate: 0.5,
-  eisRate: 0.2,
   customDeductions: [],
   otRate: 1.5,
   doublePayRate: 2.0,
@@ -158,9 +155,6 @@ export default function SalaryPage() {
           const p = {
             basicSalary: data.basicSalary,
             allowances: data.allowances ?? [],
-            epfRate: data.epfRate,
-            socsoRate: data.socsoRate,
-            eisRate: data.eisRate,
             customDeductions: data.customDeductions ?? [],
             otRate: data.otRate,
             doublePayRate: data.doublePayRate,
@@ -575,6 +569,7 @@ export default function SalaryPage() {
                     <span className="text-white/45">EIS (0.2%, capped RM6k)</span>
                     <span className="text-[#FF8C8C]">− {fmt(breakdown.eisAmount)}</span>
                   </div>
+
                   {inputs.customDeductions.map((d, i) => (
                     <div key={i} className="flex justify-between">
                       <span className="text-white/45">{d.name || "Custom"}</span>
