@@ -1,5 +1,4 @@
 // app/api/salary/months/route.ts
-
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
@@ -27,28 +26,27 @@ export async function POST(request: Request) {
   const existing = await prisma.salaryMonth.findUnique({
     where: { userId_month_year: { userId, month: body.month, year: body.year } },
   });
-
   if (existing) {
     return NextResponse.json({ error: "Month already exists" }, { status: 409 });
   }
 
-  // Calculate breakdown — epfRate/socsoRate/eisRate removed (now table-based in salaryCalc)
+  // Calculate breakdown — strictly follows SalaryInputs type from salaryCalc.ts
   const breakdown = calcSalary({
-    basicSalary:      parseFloat(body.basicSalary),
-    allowances:       body.allowances       ?? [],
-    customDeductions: body.customDeductions  ?? [],
-    otRate:           parseFloat(body.otRate)           || 1.5,
-    doublePayRate:    parseFloat(body.doublePayRate)    || 2.0,
-    hoursPerDay:      parseFloat(body.hoursPerDay)      || 7.5,
-    dailyRateFormula: body.dailyRateFormula  ?? "basic/26",
-    unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays)  || 0,
-    annualLeaveDays:  parseFloat(body.annualLeaveDays)  || 0,
+    basicSalary:      parseFloat(body.basicSalary) || 0,
+    allowances:       body.allowances ?? [],
+    customDeductions: body.customDeductions ?? [],
+    otRate:           parseFloat(body.otRate) || 1.5,
+    doublePayRate:    parseFloat(body.doublePayRate) || 2.0,
+    hoursPerDay:      parseFloat(body.hoursPerDay) || 7.5,
+    dailyRateFormula: body.dailyRateFormula ?? "basic/26",
+    unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays) || 0,
+    annualLeaveDays:  parseFloat(body.annualLeaveDays) || 0,
     medicalLeaveDays: parseFloat(body.medicalLeaveDays) || 0,
-    replacementDays:  parseFloat(body.replacementDays)  || 0,
-    otHours:          parseFloat(body.otHours)          || 0,
-    doublePayHours:   parseFloat(body.doublePayHours)   || 0,
-    month:            parseInt(body.month)              || new Date().getMonth() + 1,
-    year:             parseInt(body.year)               || new Date().getFullYear(),
+    replacementDays:  parseFloat(body.replacementDays) || 0,
+    otHours:          parseFloat(body.otHours) || 0,
+    doublePayHours:   parseFloat(body.doublePayHours) || 0,
+    month:            parseInt(body.month),
+    year:             parseInt(body.year),
   });
 
   const record = await prisma.salaryMonth.create({
@@ -56,21 +54,19 @@ export async function POST(request: Request) {
       userId,
       month:            body.month,
       year:             body.year,
-      basicSalary:      parseFloat(body.basicSalary),
-      allowances:       body.allowances       ?? [],
-      epfRate:          11,   // kept in DB for historical display; calc now uses table
-      socsoRate:        0.5,
-      eisRate:          0.2,
-      customDeductions: body.customDeductions  ?? [],
-      otRate:           parseFloat(body.otRate)           || 1.5,
-      doublePayRate:    parseFloat(body.doublePayRate)    || 2.0,
-      dailyRateFormula: body.dailyRateFormula  ?? "basic/26",
-      unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays)  || 0,
-      annualLeaveDays:  parseFloat(body.annualLeaveDays)  || 0,
+      basicSalary:      parseFloat(body.basicSalary) || 0,
+      allowances:       body.allowances ?? [],
+      customDeductions: body.customDeductions ?? [],
+      otRate:           parseFloat(body.otRate) || 1.5,
+      doublePayRate:    parseFloat(body.doublePayRate) || 2.0,
+      hoursPerDay:      parseFloat(body.hoursPerDay) || 7.5,
+      dailyRateFormula: body.dailyRateFormula ?? "basic/26",
+      unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays) || 0,
+      annualLeaveDays:  parseFloat(body.annualLeaveDays) || 0,
       medicalLeaveDays: parseFloat(body.medicalLeaveDays) || 0,
-      replacementDays:  parseFloat(body.replacementDays)  || 0,
-      otHours:          parseFloat(body.otHours)          || 0,
-      doublePayHours:   parseFloat(body.doublePayHours)   || 0,
+      replacementDays:  parseFloat(body.replacementDays) || 0,
+      otHours:          parseFloat(body.otHours) || 0,
+      doublePayHours:   parseFloat(body.doublePayHours) || 0,
       grossSalary:      breakdown.grossSalary,
       epfAmount:        breakdown.epfAmount,
       socsoAmount:      breakdown.socsoAmount,
