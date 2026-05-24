@@ -59,7 +59,6 @@ export async function POST(request: Request) {
       customDeductions: body.customDeductions ?? [],
       otRate:           parseFloat(body.otRate) || 1.5,
       doublePayRate:    parseFloat(body.doublePayRate) || 2.0,
-      hoursPerDay:      parseFloat(body.hoursPerDay) || 7.5,
       dailyRateFormula: body.dailyRateFormula ?? "basic/26",
       unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays) || 0,
       annualLeaveDays:  parseFloat(body.annualLeaveDays) || 0,
