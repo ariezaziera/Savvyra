@@ -426,57 +426,54 @@ export default function SalaryPage() {
 
               {/* Allowances */}
               <SectionCard title="Allowances">
+                <p className="mb-3 text-xs text-white/40">
+                  Add fixed monthly allowances (transport, meal, phone, etc.). Use the toggles to set behaviour per allowance.
+                </p>
                 <div className="space-y-3">
                   {inputs.allowances.map((a, i) => (
-                    <div key={i} className="flex items-center gap-2 min-w-0">
-                      <Input
-                        value={a.name}
-                        onChange={(e: any) => updateAllowance(i, "name", e.target.value)}
-                        placeholder="Allowance name"
-                        type="text"
-                        className="flex-1 min-w-0 w-full"
-                      />
-                      <Input
-                        value={a.amount || ""}
-                        onChange={(e: any) => updateAllowance(i, "amount", +e.target.value)}
-                        placeholder="Amount"
-                        className="w-24 shrink-0"
-                      />
-                      <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer whitespace-nowrap shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={a.cutOnAbsent}
-                          onChange={(e) => updateAllowance(i, "cutOnAbsent", e.target.checked)}
-                          className="rounded accent-[#6A49FA]"
-                        />
-                        Cut on absent
-                      </label>
-                      <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer whitespace-nowrap shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={a.isReimbursement}
-                          onChange={(e) => updateAllowance(i, "isReimbursement", e.target.checked)}
-                          className="rounded accent-[#6A49FA]"
-                        />
-                        Reimbursement
-                      </label>
-                      <button onClick={() => removeAllowance(i)} className="text-white/30 hover:text-[#FF8C8C] transition shrink-0">
-                        <Trash2 size={15} />
-                      </button>
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Input value={a.name} onChange={(e: any) => updateAllowance(i, "name", e.target.value)} placeholder="e.g. Transport, Meal" type="text" className="flex-1 w-full" />
+                        <Input value={a.amount || ""} onChange={(e: any) => updateAllowance(i, "amount", +e.target.value)} placeholder="Amount" className="w-28 shrink-0" />
+                        <button onClick={() => removeAllowance(i)} className="text-white/30 hover:text-[#FF8C8C] transition shrink-0"><Trash2 size={15} /></button>
+                      </div>
+                      <div className="flex items-center gap-2 pl-1">
+                        {/* Cut on absent toggle */}
+                        <button
+                          onClick={() => updateAllowance(i, "cutOnAbsent", !a.cutOnAbsent)}
+                          className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium transition-all ${
+                            a.cutOnAbsent
+                              ? "bg-[#FF8C8C]/20 text-[#FF8C8C] border border-[#FF8C8C]/30"
+                              : "bg-white/5 text-white/35 border border-white/10 hover:text-white/60"
+                          }`}
+                        >
+                          <span>{a.cutOnAbsent ? "✕" : "○"}</span>
+                          Cut on unpaid leave
+                        </button>
+                        {/* Reimbursement toggle */}
+                        <button
+                          onClick={() => updateAllowance(i, "isReimbursement", !a.isReimbursement)}
+                          className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-medium transition-all ${
+                            a.isReimbursement
+                              ? "bg-[#FBD38D]/20 text-[#FBD38D] border border-[#FBD38D]/30"
+                              : "bg-white/5 text-white/35 border border-white/10 hover:text-white/60"
+                          }`}
+                        >
+                          <span>{a.isReimbursement ? "✓" : "○"}</span>
+                          Receipt-based reimbursement
+                        </button>
+                      </div>
+                      {a.isReimbursement && (
+                        <p className="pl-1 text-[10px] text-[#FBD38D]/60">
+                          ⚠ Tick ini hanya untuk bayaran balik resit (e.g. parking, toll). Excluded dari EPF, SOCSO & EIS. Allowance flat bulanan — jangan tick.
+                        </p>
+                      )}
                     </div>
                   ))}
-                  <button
-                    onClick={addAllowance}
-                    className="flex items-center gap-1.5 text-xs text-[#C4B5FD] hover:text-white transition"
-                  >
+                  <button onClick={addAllowance} className="flex items-center gap-1.5 text-xs text-[#C4B5FD] hover:text-white transition">
                     <Plus size={14} /> Add allowance
                   </button>
                 </div>
-                {inputs.allowances.some((a) => a.isReimbursement) && (
-                  <p className="mt-3 text-xs text-white/35">
-                    Reimbursements are excluded from EPF base but included in SOCSO/EIS base.
-                  </p>
-                )}
               </SectionCard>
 
               {/* Leave & OT */}
