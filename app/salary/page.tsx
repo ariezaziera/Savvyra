@@ -77,6 +77,7 @@ const defaultProfile: SalaryInputs = {
   customDeductions: [],
   otRate: 1.5,
   doublePayRate: 2.0,
+  hoursPerDay: 7.5,
   dailyRateFormula: "basic/26",
   unpaidLeaveDays: 0,
   annualLeaveDays: 0,
@@ -84,6 +85,8 @@ const defaultProfile: SalaryInputs = {
   replacementDays: 0,
   otHours: 0,
   doublePayHours: 0,
+  month: new Date().getMonth() + 1,
+  year: new Date().getFullYear(),
 };
 
 // ─────────────────────────────────────────
@@ -108,7 +111,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// ── KEY FIX: removed w-full from default classes ──
 function Input({ value, onChange, placeholder = "0", type = "number", className = "" }: any) {
   return (
     <input
@@ -116,7 +118,7 @@ function Input({ value, onChange, placeholder = "0", type = "number", className 
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={`rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 backdrop-blur-xl transition focus:border-[#6A49FA]/60 focus:bg-white/10 focus:ring-2 focus:ring-[#6A49FA]/20 ${className}`}
+      className={`w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 backdrop-blur-xl transition focus:border-[#6A49FA]/60 focus:bg-white/10 focus:ring-2 focus:ring-[#6A49FA]/20 ${className}`}
     />
   );
 }
@@ -213,6 +215,7 @@ export default function SalaryPage() {
     if (res.ok) {
       const record = await res.json();
       setMonths((prev) => [record, ...prev]);
+      // Save profile for next month prefill
       await fetch("/api/salary/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -255,7 +258,7 @@ export default function SalaryPage() {
 
   // ── Allowance helpers ──
   const addAllowance = () => {
-    setInputs((p) => ({ ...p, allowances: [...p.allowances, { name: "", amount: 0, cutOnAbsent: false }] }));
+    setInputs((p) => ({ ...p, allowances: [...p.allowances, { name: "", amount: 0, cutOnAbsent: false, isReimbursement: false }] }));
   };
   const updateAllowance = (i: number, field: keyof Allowance, value: any) => {
     setInputs((p) => {
@@ -357,17 +360,17 @@ export default function SalaryPage() {
               {/* Month selector */}
               <SectionCard title="Month">
                 <div className="flex gap-3">
-                  <select value={calcMonth} onChange={(e) => setCalcMonth(+e.target.value)}
+                  <select value={calcMonth} onChange={(e) => { setCalcMonth(+e.target.value); setInputs(p => ({ ...p, month: +e.target.value })); }}
                     className="flex-1 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none focus:border-[#6A49FA]/60 focus:ring-2 focus:ring-[#6A49FA]/20 backdrop-blur-xl">
                     {MONTHS.map((m, i) => <option key={m} value={i + 1} className="bg-[#1a1035]">{m}</option>)}
                   </select>
-                  <Input value={calcYear} onChange={(e: any) => setCalcYear(+e.target.value)} placeholder="2025" className="w-28" />
+                  <Input value={calcYear} onChange={(e: any) => { setCalcYear(+e.target.value); setInputs(p => ({ ...p, year: +e.target.value })); }} placeholder="2025" className="w-28" />
                 </div>
               </SectionCard>
 
               {/* Basic + Daily Rate */}
               <SectionCard title="Basic Pay">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   <Field label="Basic Salary (RM)">
                     <Input value={inputs.basicSalary || ""} onChange={(e: any) => setInputs((p) => ({ ...p, basicSalary: +e.target.value }))} className="w-full" />
                   </Field>
@@ -379,6 +382,9 @@ export default function SalaryPage() {
                       <option value="basic/22" className="bg-[#1a1035]">Basic ÷ 22 (working days)</option>
                     </select>
                   </Field>
+                  <Field label="Hours Per Day">
+                    <Input value={inputs.hoursPerDay || ""} onChange={(e: any) => setInputs((p) => ({ ...p, hoursPerDay: +e.target.value }))} placeholder="7.5" className="w-full" />
+                  </Field>
                 </div>
                 <p className="mt-3 text-xs text-white/35">Daily rate: {fmt(breakdown.dailyRate)} / day · Hourly: {fmt(breakdown.hourlyRate)} / hr</p>
               </SectionCard>
@@ -387,32 +393,20 @@ export default function SalaryPage() {
               <SectionCard title="Allowances">
                 <div className="space-y-3">
                   {inputs.allowances.map((a, i) => (
-                    // ── FIX: min-w-0 on container prevents overflow squishing children out ──
                     <div key={i} className="flex items-center gap-2 min-w-0">
-                      {/* flex-1 min-w-0 → grows to fill, won't push others out */}
-                      <Input
-                        value={a.name}
-                        onChange={(e: any) => updateAllowance(i, "name", e.target.value)}
-                        placeholder="Allowance name"
-                        type="text"
-                        className="flex-1 min-w-0 w-full"
-                      />
-                      {/* w-24 shrink-0 → fixed width, won't shrink */}
-                      <Input
-                        value={a.amount || ""}
-                        onChange={(e: any) => updateAllowance(i, "amount", +e.target.value)}
-                        placeholder="Amount"
-                        className="w-24 shrink-0"
-                      />
-                      {/* shrink-0 + whitespace-nowrap → checkbox label never gets squeezed */}
+                      <Input value={a.name} onChange={(e: any) => updateAllowance(i, "name", e.target.value)} placeholder="Allowance name" type="text" className="flex-1 min-w-0 w-full" />
+                      <Input value={a.amount || ""} onChange={(e: any) => updateAllowance(i, "amount", +e.target.value)} placeholder="Amount" className="w-24 shrink-0" />
                       <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer whitespace-nowrap shrink-0">
-                        <input
-                          type="checkbox"
-                          checked={a.cutOnAbsent}
+                        <input type="checkbox" checked={a.cutOnAbsent}
                           onChange={(e) => updateAllowance(i, "cutOnAbsent", e.target.checked)}
-                          className="rounded accent-[#6A49FA]"
-                        />
+                          className="rounded accent-[#6A49FA]" />
                         Cut on absent
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-white/50 cursor-pointer whitespace-nowrap shrink-0">
+                        <input type="checkbox" checked={a.isReimbursement}
+                          onChange={(e) => updateAllowance(i, "isReimbursement", e.target.checked)}
+                          className="rounded accent-[#8EE3B5]" />
+                        Reimburse
                       </label>
                       <button onClick={() => removeAllowance(i)} className="text-white/30 hover:text-[#FF8C8C] transition shrink-0">
                         <Trash2 size={15} />
@@ -430,31 +424,31 @@ export default function SalaryPage() {
               <SectionCard title="Leave & Overtime">
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <Field label="Unpaid Leave (days)">
-                    <Input value={inputs.unpaidLeaveDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, unpaidLeaveDays: +e.target.value }))} className="w-full" />
+                    <Input value={inputs.unpaidLeaveDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, unpaidLeaveDays: +e.target.value }))} />
                   </Field>
                   <Field label="Annual Leave (days)">
-                    <Input value={inputs.annualLeaveDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, annualLeaveDays: +e.target.value }))} className="w-full" />
+                    <Input value={inputs.annualLeaveDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, annualLeaveDays: +e.target.value }))} />
                   </Field>
                   <Field label="Medical Leave (days)">
-                    <Input value={inputs.medicalLeaveDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, medicalLeaveDays: +e.target.value }))} className="w-full" />
+                    <Input value={inputs.medicalLeaveDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, medicalLeaveDays: +e.target.value }))} />
                   </Field>
                   <Field label="Replacement Leave (days)">
-                    <Input value={inputs.replacementDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, replacementDays: +e.target.value }))} className="w-full" />
+                    <Input value={inputs.replacementDays || ""} onChange={(e: any) => setInputs((p) => ({ ...p, replacementDays: +e.target.value }))} />
                   </Field>
                   <Field label="OT Hours">
-                    <Input value={inputs.otHours || ""} onChange={(e: any) => setInputs((p) => ({ ...p, otHours: +e.target.value }))} className="w-full" />
+                    <Input value={inputs.otHours || ""} onChange={(e: any) => setInputs((p) => ({ ...p, otHours: +e.target.value }))} />
                   </Field>
                   <Field label="Double Pay Hours">
-                    <Input value={inputs.doublePayHours || ""} onChange={(e: any) => setInputs((p) => ({ ...p, doublePayHours: +e.target.value }))} className="w-full" />
+                    <Input value={inputs.doublePayHours || ""} onChange={(e: any) => setInputs((p) => ({ ...p, doublePayHours: +e.target.value }))} />
                   </Field>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 border-t border-white/10 pt-4">
                   <Field label="OT Rate (×)">
-                    <Input value={inputs.otRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, otRate: +e.target.value }))} placeholder="1.5" className="w-full" />
+                    <Input value={inputs.otRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, otRate: +e.target.value }))} placeholder="1.5" />
                   </Field>
                   <Field label="Double Pay Rate (×)">
-                    <Input value={inputs.doublePayRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, doublePayRate: +e.target.value }))} placeholder="2.0" className="w-full" />
+                    <Input value={inputs.doublePayRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, doublePayRate: +e.target.value }))} placeholder="2.0" />
                   </Field>
                 </div>
               </SectionCard>
@@ -463,21 +457,21 @@ export default function SalaryPage() {
               <SectionCard title="Deductions">
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <Field label="EPF (%)">
-                    <Input value={inputs.epfRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, epfRate: +e.target.value }))} placeholder="11" className="w-full" />
+                    <Input value={inputs.epfRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, epfRate: +e.target.value }))} placeholder="11" />
                   </Field>
                   <Field label="SOCSO (%)">
-                    <Input value={inputs.socsoRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, socsoRate: +e.target.value }))} placeholder="0.5" className="w-full" />
+                    <Input value={inputs.socsoRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, socsoRate: +e.target.value }))} placeholder="0.5" />
                   </Field>
                   <Field label="EIS (%)">
-                    <Input value={inputs.eisRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, eisRate: +e.target.value }))} placeholder="0.2" className="w-full" />
+                    <Input value={inputs.eisRate || ""} onChange={(e: any) => setInputs((p) => ({ ...p, eisRate: +e.target.value }))} placeholder="0.2" />
                   </Field>
                 </div>
                 <div className="space-y-3">
                   {inputs.customDeductions.map((d, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <Input value={d.name} onChange={(e: any) => updateDeduction(i, "name", e.target.value)} placeholder="e.g. KRSM, Loan" type="text" className="flex-1 w-full" />
-                      <Input value={d.amount || ""} onChange={(e: any) => updateDeduction(i, "amount", +e.target.value)} placeholder="Amount" className="w-28 shrink-0" />
-                      <button onClick={() => removeDeduction(i)} className="text-white/30 hover:text-[#FF8C8C] transition shrink-0"><Trash2 size={15} /></button>
+                      <Input value={d.name} onChange={(e: any) => updateDeduction(i, "name", e.target.value)} placeholder="e.g. KRSM, Loan" type="text" className="flex-1" />
+                      <Input value={d.amount || ""} onChange={(e: any) => updateDeduction(i, "amount", +e.target.value)} placeholder="Amount" className="w-28" />
+                      <button onClick={() => removeDeduction(i)} className="text-white/30 hover:text-[#FF8C8C] transition"><Trash2 size={15} /></button>
                     </div>
                   ))}
                   <button onClick={addDeduction} className="flex items-center gap-1.5 text-xs text-[#C4B5FD] hover:text-white transition">
@@ -487,7 +481,7 @@ export default function SalaryPage() {
               </SectionCard>
 
               {/* Live Breakdown */}
-              <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-linear-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl shadow-[0_8px_40px_rgba(106,73,250,0.25)]">
+              <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-gradient-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl shadow-[0_8px_40px_rgba(106,73,250,0.25)]">
                 <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
                 <h3 className="mb-5 text-sm font-semibold text-white/60 uppercase tracking-wider">Expected Breakdown</h3>
 
@@ -541,7 +535,7 @@ export default function SalaryPage() {
                   Save as Default Profile
                 </button>
                 <button onClick={() => setTab("plan")}
-                  className="flex-1 rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98]">
+                  className="flex-1 rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98]">
                   Plan This Month →
                 </button>
               </div>
@@ -555,7 +549,7 @@ export default function SalaryPage() {
             <motion.div key="plan" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-5">
 
               {/* Summary */}
-              <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-linear-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl">
+              <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-gradient-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl">
                 <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
                 <p className="text-sm text-white/50">{MONTHS[calcMonth - 1]} {calcYear} — Expected Net</p>
                 <p className="mt-1 text-3xl font-bold text-[#C4B5FD]">{fmt(breakdown.expectedNet)}</p>
@@ -598,7 +592,7 @@ export default function SalaryPage() {
                     ))}
                   </div>
                   <Input value={newAllocLabel} onChange={(e: any) => setNewAllocLabel(e.target.value)}
-                    placeholder="Label (e.g. ASNB, Car loan, Groceries)" type="text" className="w-full" />
+                    placeholder="Label (e.g. ASNB, Car loan, Groceries)" type="text" />
                   <div className="flex gap-3">
                     <Input value={newAllocAmt} onChange={(e: any) => setNewAllocAmt(e.target.value)} placeholder="Amount (RM)" className="flex-1" />
                     <button onClick={addAllocation}
@@ -635,7 +629,7 @@ export default function SalaryPage() {
               )}
 
               <button onClick={saveMonth} disabled={saving}
-                className="w-full rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98]">
+                className="w-full rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98]">
                 {saving ? "Saving…" : `Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
               </button>
             </motion.div>
