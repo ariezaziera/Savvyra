@@ -771,7 +771,7 @@ export default function SalaryPage() {
                                   ) : (
                                     <button onClick={() => fulfillAllocation(m.id, i)}
                                       className="rounded-xl bg-[#6A49FA]/20 px-3 py-1 text-xs text-[#C4B5FD] hover:bg-[#6A49FA]/40 transition">
-                                      Mark paid
+                                      Mark paid✅
                                     </button>
                                   )}
                                 </div>
