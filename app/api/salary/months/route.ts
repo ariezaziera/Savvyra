@@ -59,6 +59,9 @@ export async function POST(request: Request) {
       customDeductions: body.customDeductions ?? [],
       otRate:           parseFloat(body.otRate) || 1.5,
       doublePayRate:    parseFloat(body.doublePayRate) || 2.0,
+      epfRate:          11,    // statutory — Third Schedule (employee 11%)
+      socsoRate:        0.5,   // statutory — PERKESO First Category (~0.5%)
+      eisRate:          0.2,   // statutory — 0.2% employee share
       dailyRateFormula: body.dailyRateFormula ?? "basic/26",
       unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays) || 0,
       annualLeaveDays:  parseFloat(body.annualLeaveDays) || 0,
