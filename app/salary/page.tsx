@@ -591,12 +591,6 @@ export default function SalaryPage() {
                   ))}
                 </div>
 
-                {/* EPF / SOCSO bases info */}
-                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 space-y-1">
-                  <p className="text-xs text-white/40">EPF base (basic only): {fmt(breakdown.epfBase)}</p>
-                  <p className="text-xs text-white/40">SOCSO/EIS base (gross incl. reimb.): {fmt(breakdown.socsoEisBase)}</p>
-                </div>
-
                 <div className="my-4 border-t border-white/10" />
                 <div className="flex justify-between items-center">
                   <span className="text-base font-bold text-white">Expected Net</span>
