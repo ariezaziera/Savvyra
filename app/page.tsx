@@ -221,20 +221,23 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Avatar desktop only */}
-            <Link href="/profile" className="shrink-0 mt-2 hidden md:block">
-              <div className="relative group">
-                {user?.image ? (
-                  <img src={user.image} alt={user.name ?? "Profile"}
-                    className="h-11 w-11 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60" />
-                ) : (
-                  <div className="h-11 w-11 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
-                    <span className="text-base font-bold text-white">{getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}</span>
-                  </div>
-                )}
-                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#8EE3B5] border-2 border-[#1a1035]" />
-              </div>
-            </Link>
+            {/* Desktop: bell + avatar */}
+            <div className="hidden md:flex items-center gap-3 mt-2 shrink-0">
+              <NotificationBell />
+              <Link href="/profile">
+                <div className="relative group">
+                  {user?.image ? (
+                    <img src={user.image} alt={user.name ?? "Profile"}
+                      className="h-11 w-11 rounded-full object-cover border-2 border-white/20 shadow-lg transition group-hover:border-[#C4B5FD]/60" />
+                  ) : (
+                    <div className="h-11 w-11 rounded-full flex items-center justify-center border-2 border-white/20 shadow-lg bg-linear-to-br from-[#6A49FA] to-[#C4B5FD] transition group-hover:border-[#C4B5FD]/60">
+                      <span className="text-base font-bold text-white">{getFirstName(user?.name)?.[0]?.toUpperCase() ?? "?"}</span>
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#8EE3B5] border-2 border-[#1a1035]" />
+                </div>
+              </Link>
+            </div>
           </div>
         </div>
 

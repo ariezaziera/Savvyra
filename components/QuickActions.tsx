@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Bell,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 
 type QuickAction = {
@@ -68,6 +69,16 @@ const actions: QuickAction[] = [
     gradient: "from-[#FBD38D]/20 to-[#f59e0b]/10",
     iconColor: "text-[#FBD38D]",
     glow: "rgba(251,211,141,0.20)",
+    soon: true,
+  },
+  {
+    label: "Debts",
+    subtitle: "Loans & repayments",
+    href: "/debts",
+    icon: CreditCard,
+    gradient: "from-[#FF8C8C]/20 to-[#ef4444]/10",
+    iconColor: "text-[#FF8C8C]",
+    glow: "rgba(255,140,140,0.20)",
     soon: true,
   },
 ];
