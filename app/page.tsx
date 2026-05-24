@@ -247,6 +247,10 @@ export default function Home() {
             transition={{ duration: 0.45, ease: "easeOut" }}
             className="relative z-10 space-y-5"
           >
+            
+            {/* Quick Actions */}
+            <QuickActions />
+
             <DashboardStats stats={stats} formatCurrency={formatCurrency} />
 
             <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -274,9 +278,6 @@ export default function Home() {
             <div className="-mx-1 px-1 py-1">
               <SavingsGoalsCarousel goals={goals} />
             </div>
-
-            {/* Quick Actions */}
-            <QuickActions />
 
             {/* Add Goal */}
             <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]">

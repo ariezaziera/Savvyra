@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "SalaryMonth" ADD COLUMN     "hoursPerDay" DOUBLE PRECISION NOT NULL DEFAULT 7.5;

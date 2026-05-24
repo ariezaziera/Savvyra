@@ -5,7 +5,7 @@ import { getUserIdFromRequest } from "@/lib/auth";
 import { calcSalary } from "@/lib/salaryCalc";
 import { TransactionType } from "@prisma/client";
 
-// PATCH — update actual net OR allocations OR recalculate
+// PATCH — update actual net OR allocations OR full recalculate
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,6 +15,55 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!record || record.userId !== userId)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Full recalculate edit — triggered when basicSalary is present in body
+  if (body.basicSalary !== undefined) {
+    const breakdown = calcSalary({
+      basicSalary:      parseFloat(body.basicSalary) || 0,
+      allowances:       body.allowances ?? [],
+      customDeductions: body.customDeductions ?? [],
+      otRate:           parseFloat(body.otRate) || 1.5,
+      doublePayRate:    parseFloat(body.doublePayRate) || 2.0,
+      hoursPerDay:      parseFloat(body.hoursPerDay) || 7.5,
+      dailyRateFormula: body.dailyRateFormula ?? "basic/26",
+      unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays) || 0,
+      annualLeaveDays:  parseFloat(body.annualLeaveDays) || 0,
+      medicalLeaveDays: parseFloat(body.medicalLeaveDays) || 0,
+      replacementDays:  parseFloat(body.replacementDays) || 0,
+      otHours:          parseFloat(body.otHours) || 0,
+      doublePayHours:   parseFloat(body.doublePayHours) || 0,
+      month:            record.month,
+      year:             record.year,
+    });
+
+    const updated = await prisma.salaryMonth.update({
+      where: { id: params.id },
+      data: {
+        basicSalary:       parseFloat(body.basicSalary) || 0,
+        allowances:        body.allowances ?? [],
+        customDeductions:  body.customDeductions ?? [],
+        otRate:            parseFloat(body.otRate) || 1.5,
+        doublePayRate:     parseFloat(body.doublePayRate) || 2.0,
+        hoursPerDay:       parseFloat(body.hoursPerDay) || 7.5,
+        dailyRateFormula:  body.dailyRateFormula ?? "basic/26",
+        unpaidLeaveDays:   parseFloat(body.unpaidLeaveDays) || 0,
+        annualLeaveDays:   parseFloat(body.annualLeaveDays) || 0,
+        medicalLeaveDays:  parseFloat(body.medicalLeaveDays) || 0,
+        replacementDays:   parseFloat(body.replacementDays) || 0,
+        otHours:           parseFloat(body.otHours) || 0,
+        doublePayHours:    parseFloat(body.doublePayHours) || 0,
+        grossSalary:       breakdown.grossSalary,
+        epfAmount:         breakdown.epfAmount,
+        socsoAmount:       breakdown.socsoAmount,
+        eisAmount:         breakdown.eisAmount,
+        customDeductTotal: breakdown.customDeductTotal,
+        expectedNet:       breakdown.expectedNet,
+      },
+    });
+
+    return NextResponse.json(updated);
+  }
+
+  // Partial update — actualNet and/or allocations only
   const updated = await prisma.salaryMonth.update({
     where: { id: params.id },
     data: {

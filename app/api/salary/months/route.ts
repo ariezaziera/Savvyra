@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       socsoRate:        0.5,   // statutory — PERKESO First Category (~0.5%)
       eisRate:          0.2,   // statutory — 0.2% employee share
       dailyRateFormula: body.dailyRateFormula ?? "basic/26",
+      hoursPerDay:      parseFloat(body.hoursPerDay) || 7.5,
       unpaidLeaveDays:  parseFloat(body.unpaidLeaveDays) || 0,
       annualLeaveDays:  parseFloat(body.annualLeaveDays) || 0,
       medicalLeaveDays: parseFloat(body.medicalLeaveDays) || 0,

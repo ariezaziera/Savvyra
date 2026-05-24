@@ -183,6 +183,7 @@ model SalaryMonth {
   otRate           Float
   doublePayRate    Float
   dailyRateFormula String @default("basic/26")
+  hoursPerDay      Float  @default(7.5)
 
   // Leave & OT
   unpaidLeaveDays  Float  @default(0)
