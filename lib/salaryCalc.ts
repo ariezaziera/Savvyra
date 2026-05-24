@@ -1,10 +1,11 @@
 // lib/salaryCalc.ts
+
 // Pure functions — no DB calls, safe to use on client and server
 
 export type Allowance = {
   name: string;
   amount: number;
-  cutOnAbsent: boolean;    // if true, deduct proportionally on unpaid leave
+  cutOnAbsent: boolean; // if true, deduct proportionally on unpaid leave
   isReimbursement: boolean; // if true, excluded from EPF/SOCSO/EIS base
 };
 
@@ -17,9 +18,9 @@ export type SalaryInputs = {
   basicSalary: number;
   allowances: Allowance[];
   customDeductions: CustomDeduction[];
-  otRate: number;          // multiplier e.g. 1.5
-  doublePayRate: number;   // multiplier e.g. 2.0
-  hoursPerDay: number;     // e.g. 7.5 or 8
+  otRate: number; // multiplier e.g. 1.5
+  doublePayRate: number; // multiplier e.g. 2.0
+  hoursPerDay: number; // e.g. 7.5 or 8
   dailyRateFormula: "basic/26" | "basic/22" | string;
   unpaidLeaveDays: number;
   annualLeaveDays: number;
@@ -27,6 +28,7 @@ export type SalaryInputs = {
   replacementDays: number;
   otHours: number;
   doublePayHours: number;
+
   // Pay period: 26th of prevMonth → 25th of current month
   // We derive periodDays from month/year
   month: number; // 1-12
@@ -46,8 +48,11 @@ export type SalaryBreakdown = {
   unpaidLeaveDeduction: number;
   otEarnings: number;
   doublePayEarnings: number;
-  grossSalary: number;        // includes reimbursements (for display)
-  statutoryBase: number;      // grossSalary minus reimbursements (for EPF/SOCSO/EIS)
+  grossSalary: number; // includes reimbursements (for display)
+
+  // FIX: separate bases exposed for transparency
+  epfBase: number;      // basic only (after unpaid leave deduction)
+  socsoEisBase: number; // basic + taxable allowances + OT (excl. reimbursements)
 
   // Deductions
   epfAmount: number;
@@ -61,12 +66,13 @@ export type SalaryBreakdown = {
 };
 
 // ─────────────────────────────────────────
-//  Pay period days: 26th prev month → 25th current month
+// Pay period days: 26th prev month → 25th current month
 // ─────────────────────────────────────────
+
 export function calcPeriodDays(month: number, year: number): number {
   // Start: 26th of previous month
   const prevMonth = month === 1 ? 12 : month - 1;
-  const prevYear  = month === 1 ? year - 1 : year;
+  const prevYear = month === 1 ? year - 1 : year;
   const start = new Date(prevYear, prevMonth - 1, 26); // month is 0-indexed
 
   // End: 25th of current month
@@ -77,27 +83,26 @@ export function calcPeriodDays(month: number, year: number): number {
 }
 
 // ─────────────────────────────────────────
-//  Daily rate
+// Daily rate
 // ─────────────────────────────────────────
+
 export function calcDailyRate(basic: number, formula: string): number {
   if (formula === "basic/22") return basic / 22;
   return basic / 26; // default
 }
 
 // ─────────────────────────────────────────
-//  EPF — Third Schedule table lookup
-//  Employee rate: 11% (age < 60, Malaysian)
-//  Table uses wage brackets; contributions in whole RM (no cents)
-//  For wages ≤ RM20,000 must use table, not exact percentage
+// EPF — Third Schedule table lookup
+// Employee rate: 11% (age < 60, Malaysian)
+// Base = BASIC SALARY ONLY (after unpaid leave deduction)
+// OT and allowances are excluded from EPF base
 // ─────────────────────────────────────────
+
 export function calcEPF(wages: number): number {
   // Above RM20,000 — use exact percentage
   if (wages > 20000) return Math.ceil(wages * 0.11);
 
   // Third Schedule — employee 11% rounded to next RM per bracket
-  // Bracket: [maxWage, employeeContribution]
-  // Generated from official KWSP table (standard brackets every RM10/RM20/RM100)
-  // Key brackets relevant to typical salaries (up to RM20,000)
   const table: [number, number][] = [
     [10, 1], [20, 2], [30, 3], [40, 4], [50, 6],
     [60, 7], [70, 8], [80, 9], [90, 10], [100, 11],
@@ -150,13 +155,14 @@ export function calcEPF(wages: number): number {
 }
 
 // ─────────────────────────────────────────
-//  SOCSO — First Category (Employment Injury + Invalidity)
-//  Employee rate: ~0.5%, table-based, capped at RM6,000 (since Oct 2024)
+// SOCSO — First Category (Employment Injury + Invalidity)
+// Employee rate: ~0.5%, table-based, capped at RM6,000 (since Oct 2024)
+// Base = basic + taxable allowances + OT (exclude reimbursements)
 // ─────────────────────────────────────────
+
 export function calcSOCSO(wages: number): number {
   const cappedWages = Math.min(wages, 6000);
 
-  // [maxWage, employeeContribution]
   const table: [number, number][] = [
     [30, 0.10], [50, 0.20], [70, 0.30], [100, 0.40],
     [140, 0.60], [200, 0.80], [300, 1.20], [400, 1.75],
@@ -183,40 +189,28 @@ export function calcSOCSO(wages: number): number {
 }
 
 // ─────────────────────────────────────────
-//  EIS — 0.2% employee, table-based, capped at RM6,000 (since Oct 2024)
+// EIS — 0.2% employee, RM50 brackets per PERKESO (post Oct 2024)
+// Capped at RM6,000
+// FIX: replaced old RM100/RM10 bracket table with correct RM50 brackets
 // ─────────────────────────────────────────
+
 export function calcEIS(wages: number): number {
-  const cappedWages = Math.min(wages, 6000);
+  const capped = Math.min(wages, 6000);
 
-  // [maxWage, employeeContribution]
-  const table: [number, number][] = [
-    [30, 0.10], [50, 0.10], [70, 0.10], [100, 0.10],
-    [140, 0.10], [200, 0.10], [300, 0.20], [400, 0.40],
-    [500, 0.50], [600, 0.60], [700, 0.70], [800, 0.80],
-    [900, 0.90], [1000, 1.00], [1100, 1.10], [1200, 1.20],
-    [1300, 1.30], [1400, 1.40], [1500, 1.50], [1600, 1.60],
-    [1700, 1.70], [1800, 1.80], [1900, 1.90], [2000, 2.00],
-    [2100, 2.10], [2200, 2.20], [2300, 2.30], [2400, 2.40],
-    [2500, 2.50], [2600, 2.60], [2700, 2.70], [2800, 2.80],
-    [2900, 2.90], [3000, 3.00], [3100, 3.10], [3200, 3.20],
-    [3300, 3.30], [3400, 3.40], [3500, 3.50], [3600, 3.60],
-    [3700, 3.70], [3800, 3.80], [3900, 3.90], [4000, 4.00],
-    [4100, 4.10], [4200, 4.20], [4300, 4.30], [4400, 4.40],
-    [4500, 4.50], [4600, 4.60], [4700, 4.70], [4800, 4.80],
-    [4900, 4.90], [5000, 5.00], [5100, 5.10], [5200, 5.20],
-    [5300, 5.30], [5400, 5.40], [5500, 5.50], [5600, 5.60],
-    [5700, 5.70], [5800, 5.80], [5900, 5.90], [6000, 6.00],
-  ];
-
-  for (const [max, contribution] of table) {
-    if (cappedWages <= max) return contribution;
+  // RM50 brackets, 0.2% rate, rounded to nearest 10 sen
+  // e.g. bracket RM2,950 → RM2,950 × 0.002 = RM5.90
+  for (let bracket = 50; bracket <= 6000; bracket += 50) {
+    if (capped <= bracket) {
+      return Math.round(bracket * 0.002 * 10) / 10;
+    }
   }
-  return 6.00; // max at RM6,000 → but actual cap per QNE table is RM11.90 for >RM6000
+  return 12.00; // above RM6,000 (capped)
 }
 
 // ─────────────────────────────────────────
-//  Main calc function
+// Main calc function
 // ─────────────────────────────────────────
+
 export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
   const {
     basicSalary,
@@ -237,7 +231,7 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
   const periodDays = calcPeriodDays(month, year);
 
   // ── Rates ──
-  const dailyRate  = calcDailyRate(basicSalary, dailyRateFormula);
+  const dailyRate = calcDailyRate(basicSalary, dailyRateFormula);
   const hourlyRate = dailyRate / hoursPerDay;
 
   // ── Unpaid leave deduction (uses periodDays as divisor) ──
@@ -245,25 +239,25 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
   const basicPay = basicSalary - unpaidLeaveDeduction;
 
   // ── Allowances ──
-  let allowanceTotal     = 0;
-  let allowanceCut       = 0;
+  let allowanceTotal = 0;
+  let allowanceCut = 0;
   let reimbursementTotal = 0;
 
   for (const a of allowances) {
     if (a.isReimbursement) {
-      // Reimbursements: cut proportionally on unpaid leave, excluded from statutory base
+      // Reimbursements: excluded from statutory base
       if (a.cutOnAbsent && unpaidLeaveDays > 0) {
         const cut = (a.amount / periodDays) * unpaidLeaveDays;
-        allowanceCut       += cut;
+        allowanceCut += cut;
         reimbursementTotal += a.amount - cut;
       } else {
         reimbursementTotal += a.amount;
       }
     } else {
-      // Taxable allowances: cut proportionally on unpaid leave, included in statutory base
+      // Taxable allowances: included in SOCSO/EIS base (but NOT EPF)
       if (a.cutOnAbsent && unpaidLeaveDays > 0) {
         const cut = (a.amount / periodDays) * unpaidLeaveDays;
-        allowanceCut   += cut;
+        allowanceCut += cut;
         allowanceTotal += a.amount - cut;
       } else {
         allowanceTotal += a.amount;
@@ -272,23 +266,32 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
   }
 
   // ── OT & Double Pay ──
-  const otEarnings        = hourlyRate * otRate * otHours;
+  const otEarnings = hourlyRate * otRate * otHours;
   const doublePayEarnings = hourlyRate * doublePayRate * doublePayHours;
 
   // ── Gross (includes reimbursements for display/net pay purposes) ──
-  const grossSalary = basicPay + allowanceTotal + reimbursementTotal + otEarnings + doublePayEarnings;
+  const grossSalary =
+    basicPay + allowanceTotal + reimbursementTotal + otEarnings + doublePayEarnings;
 
-  // ── Statutory base (excludes reimbursements) ──
-  const statutoryBase = basicPay + allowanceTotal + otEarnings + doublePayEarnings;
+  // ── FIX: Separate statutory bases ──
+  // EPF base = basic salary ONLY (after unpaid leave deduction)
+  // OT and allowances are excluded per KWSP rules
+  const epfBase = basicPay;
+
+  // SOCSO/EIS base = basic + taxable allowances + OT (exclude reimbursements)
+  const socsoEisBase =
+    basicPay + allowanceTotal + otEarnings + doublePayEarnings;
 
   // ── Statutory deductions via table lookup ──
-  const epfAmount   = calcEPF(statutoryBase);
-  const socsoAmount = calcSOCSO(statutoryBase);
-  const eisAmount   = calcEIS(statutoryBase);
+  const epfAmount   = calcEPF(epfBase);        // basic only → e.g. RM 209 ✅
+  const socsoAmount = calcSOCSO(socsoEisBase);  // basic + OT → e.g. RM 14.75 ✅
+  const eisAmount   = calcEIS(socsoEisBase);    // basic + OT → e.g. RM 5.90 ✅
 
   const customDeductTotal = customDeductions.reduce((s, d) => s + d.amount, 0);
-  const totalDeductions   = epfAmount + socsoAmount + eisAmount + customDeductTotal;
-  const expectedNet       = grossSalary - totalDeductions;
+  const totalDeductions =
+    epfAmount + socsoAmount + eisAmount + customDeductTotal;
+
+  const expectedNet = grossSalary - totalDeductions;
 
   return {
     dailyRate,
@@ -302,7 +305,8 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
     otEarnings,
     doublePayEarnings,
     grossSalary,
-    statutoryBase,
+    epfBase,
+    socsoEisBase,
     epfAmount,
     socsoAmount,
     eisAmount,
