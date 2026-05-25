@@ -34,7 +34,7 @@ type Category = {
   icon: string;
   type: string;
   isDefault: boolean;
-  userId?: string | null; // 👈 ADD THIS
+  userId?: string | null;
 };
 
 type AddTransactionFormProps = {
@@ -77,7 +77,6 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
-// ✅ FIX: Use TransactionType (uppercase) for the type field
 const emptyForm: {
   title: string;
   category: string;
@@ -207,9 +206,8 @@ export default function AddTransactionForm({
   const [form, setForm] = useState(emptyForm);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
 
-  
-const { data: session } = useSession();
-const currentUserId = session?.user?.id;
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id;
 
   /* Categories from DB */
   const [categories, setCategories] = useState<Category[]>([]);
@@ -225,9 +223,7 @@ const currentUserId = session?.user?.id;
   const [editingIconForId, setEditingIconForId] = useState<string | null>(null);
 
   /* Filtered by current type */
-  const currentCats = categories.filter(
-    (c) => c.type === form.type
-  );
+  const currentCats = categories.filter((c) => c.type === form.type);
 
   /* ── Load categories from API ── */
   async function fetchCategories() {
@@ -300,9 +296,10 @@ const currentUserId = session?.user?.id;
       setForm({
         title: editingTransaction.title,
         category: editingTransaction.category,
+        // ✅ FIX: strip to date-only "YYYY-MM-DD" for the date input
         date: editingTransaction.date.split("T")[0],
         amount: String(editingTransaction.amount),
-        type: editingTransaction.type, // ✅ already TransactionType
+        type: editingTransaction.type,
         status: editingTransaction.status,
         savingsGoalId: editingTransaction.savingsGoalId ?? "",
       });
@@ -324,7 +321,6 @@ const currentUserId = session?.user?.id;
     const { name, value } = e.target;
 
     if (name === "savingsGoalId" && value) {
-      // ✅ FIX: type is now "EXPENSE" (matches TransactionType)
       setForm((p) => ({
         ...p,
         savingsGoalId: value,
@@ -335,7 +331,6 @@ const currentUserId = session?.user?.id;
     }
 
     if (name === "type") {
-      // ✅ FIX: cast to TransactionType (matches form state)
       setForm((p) => ({
         ...p,
         type: value as TransactionType,
@@ -353,6 +348,7 @@ const currentUserId = session?.user?.id;
     onCancelEdit?.();
   };
 
+  /* ── ✅ FIXED: convert date-only string to full ISO datetime ── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isEditing = Boolean(editingTransaction);
@@ -363,6 +359,10 @@ const currentUserId = session?.user?.id;
         ...form,
         id: editingTransaction?.id,
         amount: form.amount ? parseFloat(form.amount) : 0,
+        // ✅ FIX: <input type="date"> gives "YYYY-MM-DD" which fails Zod's
+        // .datetime() validator. Append time + UTC offset to make it a valid
+        // ISO 8601 datetime string before sending to the API.
+        date: new Date(form.date + "T00:00:00.000Z").toISOString(),
         savingsGoalId: form.savingsGoalId || null,
       }),
     });
@@ -725,7 +725,6 @@ const currentUserId = session?.user?.id;
         >
           <div>
             <label style={labelStyle}>Type</label>
-            {/* ✅ FIX: option values use uppercase to match TransactionType */}
             <select
               name="type"
               value={form.type}
@@ -836,7 +835,6 @@ const currentUserId = session?.user?.id;
         <div
           style={{
             display: "grid",
-            // ✅ FIX: condition updated to uppercase "EXPENSE"
             gridTemplateColumns:
               form.type === "EXPENSE" ? "1fr 1fr" : "1fr",
             gap: 12,
@@ -854,7 +852,6 @@ const currentUserId = session?.user?.id;
               style={inputStyle}
             />
           </div>
-          {/* ✅ FIX: condition updated to uppercase "EXPENSE" */}
           {form.type === "EXPENSE" && (
             <div>
               <label style={labelStyle}>Savings Goal (optional)</label>
