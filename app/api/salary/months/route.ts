@@ -47,6 +47,10 @@ export async function POST(request: Request) {
     doublePayHours:   parseFloat(body.doublePayHours) || 0,
     month:            parseInt(body.month),
     year:             parseInt(body.year),
+    salaryBasis:      body.salaryBasis ?? "monthly",
+    deductEPF:        body.deductEPF ?? true,
+    deductSOCSO:      body.deductSOCSO ?? true,
+    deductEIS:        body.deductEIS ?? true,
   });
 
   const record = await prisma.salaryMonth.create({
