@@ -33,6 +33,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       doublePayHours:   parseFloat(body.doublePayHours) || 0,
       month:            record.month,
       year:             record.year,
+      salaryBasis:      body.salaryBasis ?? "monthly",
+      deductEPF:        body.deductEPF ?? true,
+      deductSOCSO:      body.deductSOCSO ?? true,
+      deductEIS:        body.deductEIS ?? true,
     });
 
     const updated = await prisma.salaryMonth.update({
