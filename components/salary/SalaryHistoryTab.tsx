@@ -117,6 +117,10 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
               medicalLeaveDays: m.medicalLeaveDays, replacementDays: m.replacementDays,
               otHours: m.otHours, doublePayHours: m.doublePayHours,
               month: m.month, year: m.year,
+              salaryBasis: "monthly" as const,
+              deductEPF: true,
+              deductSOCSO: true,
+              deductEIS: true,
             },
           }));
           setEditingMonth(m.id);

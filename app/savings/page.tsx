@@ -84,6 +84,10 @@ const defaultProfile: SalaryInputs = {
   doublePayHours: 0,
   month: new Date().getMonth() + 1,
   year: new Date().getFullYear(),
+  salaryBasis: "monthly",
+  deductEPF: true,
+  deductSOCSO: true,
+  deductEIS: true,
 };
 
 // ─────────────────────────────────────────
@@ -153,7 +157,7 @@ export default function SalaryPage() {
       .then((r) => r.json())
       .then((data) => {
         if (data) {
-          const p = {
+          const p: SalaryInputs = {
             basicSalary:      data.basicSalary,
             allowances:       data.allowances       ?? [],
             customDeductions: data.customDeductions ?? [],
@@ -166,6 +170,10 @@ export default function SalaryPage() {
             otHours: 0, doublePayHours: 0,
             month: new Date().getMonth() + 1,
             year: new Date().getFullYear(),
+            salaryBasis: data.salaryBasis ?? defaultProfile.salaryBasis,
+            deductEPF:   data.deductEPF   ?? defaultProfile.deductEPF,
+            deductSOCSO: data.deductSOCSO ?? defaultProfile.deductSOCSO,
+            deductEIS:   data.deductEIS   ?? defaultProfile.deductEIS,
           };
           setProfile(p);
           setInputs(p);
