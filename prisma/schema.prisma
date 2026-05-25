@@ -162,6 +162,8 @@ model SalaryProfile {
   dailyRateFormula String @default("basic/26") // "basic/26" or "basic/22" or custom
 
   updatedAt DateTime @updatedAt
+
+  salaryDay  Int  @default(2)  // day of month salary received, default 2hb
 }
 
 /// One record per calendar month
