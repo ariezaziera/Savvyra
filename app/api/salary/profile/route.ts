@@ -1,4 +1,3 @@
-// app/api/salary/profile/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
@@ -18,15 +17,22 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   const data = {
-    basicSalary:      parseFloat(body.basicSalary),
-    allowances:       body.allowances       ?? [],
-    epfRate:          parseFloat(body.epfRate)      || 11,
-    socsoRate:        parseFloat(body.socsoRate)     || 0.5,
-    eisRate:          parseFloat(body.eisRate)       || 0.2,
-    customDeductions: body.customDeductions  ?? [],
-    otRate:           parseFloat(body.otRate)        || 1.5,
-    doublePayRate:    parseFloat(body.doublePayRate) || 2.0,
-    dailyRateFormula: body.dailyRateFormula  ?? "basic/26",
+    basicSalary:      parseFloat(body.basicSalary)      || 0,
+    allowances:       body.allowances                   ?? [],
+    epfRate:          parseFloat(body.epfRate)           || 11,
+    socsoRate:        parseFloat(body.socsoRate)         || 0.5,
+    eisRate:          parseFloat(body.eisRate)           || 0.2,
+    customDeductions: body.customDeductions              ?? [],
+    otRate:           parseFloat(body.otRate)            || 1.5,
+    doublePayRate:    parseFloat(body.doublePayRate)     || 2.0,
+    dailyRateFormula: body.dailyRateFormula              ?? "basic/26",
+    // ── New fields ──
+    salaryDay:        parseInt(body.salaryDay)           || 2,
+    hoursPerDay:      parseFloat(body.hoursPerDay)       || 7.5,
+    salaryBasis:      body.salaryBasis                   ?? "monthly",
+    deductEPF:        body.deductEPF  !== undefined ? Boolean(body.deductEPF)    : true,
+    deductSOCSO:      body.deductSOCSO !== undefined ? Boolean(body.deductSOCSO) : true,
+    deductEIS:        body.deductEIS  !== undefined ? Boolean(body.deductEIS)    : true,
   };
 
   const profile = await prisma.salaryProfile.upsert({

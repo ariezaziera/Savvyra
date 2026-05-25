@@ -38,6 +38,7 @@
     "react-chartjs-2": "^5.3.1",
     "react-dom": "18.2.0",
     "recharts": "^2.12.7",
+    "resend": "^6.12.3",
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
     "zod": "^4.4.3"

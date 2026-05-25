@@ -28,11 +28,13 @@ export type SalaryInputs = {
   replacementDays: number;
   otHours: number;
   doublePayHours: number;
-
-  // Pay period: 26th of prevMonth → 25th of current month
-  // We derive periodDays from month/year
   month: number; // 1-12
   year: number;
+  salaryBasis: "monthly" | "daily";   // monthly = fixed, daily = rate × days worked
+  daysWorked?: number;                 // only used when salaryBasis = "daily"
+  deductEPF: boolean;                  // false = exempt
+  deductSOCSO: boolean;
+  deductEIS: boolean;
 };
 
 export type SalaryBreakdown = {
@@ -225,27 +227,37 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
     doublePayHours,
     month,
     year,
+    salaryBasis = "monthly",
+    daysWorked = 0,
+    deductEPF = true,
+    deductSOCSO = true,
+    deductEIS = true,
   } = inputs;
 
-  // ── Pay period days (26th prev → 25th current) ──
   const periodDays = calcPeriodDays(month, year);
-
-  // ── Rates ──
-  const dailyRate = calcDailyRate(basicSalary, dailyRateFormula);
+  const dailyRate  = calcDailyRate(basicSalary, dailyRateFormula);
   const hourlyRate = dailyRate / hoursPerDay;
 
-  // ── Unpaid leave deduction (uses periodDays as divisor) ──
-  const unpaidLeaveDeduction = (basicSalary / periodDays) * unpaidLeaveDays;
-  const basicPay = basicSalary - unpaidLeaveDeduction;
+  // ── Basic Pay — monthly vs daily basis ──
+  let basicPay: number;
+  let unpaidLeaveDeduction = 0;
+
+  if (salaryBasis === "daily") {
+    // Daily workers: paid per day worked only
+    basicPay = dailyRate * daysWorked;
+  } else {
+    // Monthly: deduct unpaid leave
+    unpaidLeaveDeduction = (basicSalary / periodDays) * unpaidLeaveDays;
+    basicPay = basicSalary - unpaidLeaveDeduction;
+  }
 
   // ── Allowances ──
-  let allowanceTotal = 0;
-  let allowanceCut = 0;
+  let allowanceTotal    = 0;
+  let allowanceCut      = 0;
   let reimbursementTotal = 0;
 
   for (const a of allowances) {
     if (a.isReimbursement) {
-      // Reimbursements: excluded from statutory base
       if (a.cutOnAbsent && unpaidLeaveDays > 0) {
         const cut = (a.amount / periodDays) * unpaidLeaveDays;
         allowanceCut += cut;
@@ -254,7 +266,6 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
         reimbursementTotal += a.amount;
       }
     } else {
-      // Taxable allowances: included in SOCSO/EIS base (but NOT EPF)
       if (a.cutOnAbsent && unpaidLeaveDays > 0) {
         const cut = (a.amount / periodDays) * unpaidLeaveDays;
         allowanceCut += cut;
@@ -265,53 +276,33 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
     }
   }
 
-  // ── OT & Double Pay ──
-  const otEarnings = hourlyRate * otRate * otHours;
-  const doublePayEarnings = hourlyRate * doublePayRate * doublePayHours;
+  // ── OT ──
+  const otEarnings         = hourlyRate * otRate * otHours;
+  const doublePayEarnings  = hourlyRate * doublePayRate * doublePayHours;
 
-  // ── Gross (includes reimbursements for display/net pay purposes) ──
   const grossSalary =
     basicPay + allowanceTotal + reimbursementTotal + otEarnings + doublePayEarnings;
 
-  // ── FIX: Separate statutory bases ──
-  // EPF base = basic salary ONLY (after unpaid leave deduction)
-  // OT and allowances are excluded per KWSP rules
-  const epfBase = basicPay;
+  const epfBase      = basicPay;
+  const socsoEisBase = basicPay + allowanceTotal + otEarnings + doublePayEarnings;
 
-  // SOCSO/EIS base = basic + taxable allowances + OT (exclude reimbursements)
-  const socsoEisBase =
-    basicPay + allowanceTotal + otEarnings + doublePayEarnings;
-
-  // ── Statutory deductions via table lookup ──
-  const epfAmount   = calcEPF(epfBase);        // basic only → e.g. RM 209 ✅
-  const socsoAmount = calcSOCSO(socsoEisBase);  // basic + OT → e.g. RM 14.75 ✅
-  const eisAmount   = calcEIS(socsoEisBase);    // basic + OT → e.g. RM 5.90 ✅
+  // ── Statutory — respect toggles ──
+  const epfAmount    = deductEPF    ? calcEPF(epfBase)         : 0;
+  const socsoAmount  = deductSOCSO  ? calcSOCSO(socsoEisBase)  : 0;
+  const eisAmount    = deductEIS    ? calcEIS(socsoEisBase)     : 0;
 
   const customDeductTotal = customDeductions.reduce((s, d) => s + d.amount, 0);
-  const totalDeductions =
-    epfAmount + socsoAmount + eisAmount + customDeductTotal;
-
-  const expectedNet = grossSalary - totalDeductions;
+  const totalDeductions   = epfAmount + socsoAmount + eisAmount + customDeductTotal;
+  const expectedNet       = grossSalary - totalDeductions;
 
   return {
-    dailyRate,
-    hourlyRate,
-    periodDays,
-    basicPay,
-    allowanceTotal,
-    allowanceCut,
-    reimbursementTotal,
-    unpaidLeaveDeduction,
-    otEarnings,
-    doublePayEarnings,
-    grossSalary,
-    epfBase,
-    socsoEisBase,
-    epfAmount,
-    socsoAmount,
-    eisAmount,
-    customDeductTotal,
-    totalDeductions,
+    dailyRate, hourlyRate, periodDays,
+    basicPay, allowanceTotal, allowanceCut,
+    reimbursementTotal, unpaidLeaveDeduction,
+    otEarnings, doublePayEarnings, grossSalary,
+    epfBase, socsoEisBase,
+    epfAmount, socsoAmount, eisAmount,
+    customDeductTotal, totalDeductions,
     expectedNet,
   };
 }

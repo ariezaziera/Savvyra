@@ -164,6 +164,12 @@ model SalaryProfile {
   updatedAt DateTime @updatedAt
 
   salaryDay  Int  @default(2)  // day of month salary received, default 2hb
+  
+  hoursPerDay      Float   @default(7.5)
+  salaryBasis      String  @default("monthly")
+  deductEPF        Boolean @default(true)
+  deductSOCSO      Boolean @default(true)
+  deductEIS        Boolean @default(true)
 }
 
 /// One record per calendar month

@@ -1,100 +1,106 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSalaryReminderEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  // Security — Vercel passes this header automatically
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const today = new Date();
-  const todayDay = today.getDate();
-  const todayMonth = today.getMonth() + 1;
-  const todayYear = today.getFullYear();
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
-  // Get all salary profiles
   const profiles = await prisma.salaryProfile.findMany({
     include: { user: true },
   });
 
-  const notifications = [];
+  let sent = 0;
 
   for (const profile of profiles) {
     const salaryDay = profile.salaryDay ?? 2;
-    const userId = profile.userId;
+    const userId    = profile.userId;
+    const userEmail = profile.user.email;
+    const userName  = profile.user.name ?? "there";
 
-    // Calculate salary date this month
-    const salaryDate = new Date(todayYear, todayMonth - 1, salaryDay);
+    if (!userEmail) continue;
 
-    // If salary day already passed this month, look at next month
-    const targetDate = salaryDate < today
-      ? new Date(todayYear, todayMonth, salaryDay)
-      : salaryDate;
+    // Build salary date — if passed this month, look at next month
+    let salaryDate = new Date(now.getFullYear(), now.getMonth(), salaryDay);
+    if (salaryDate < now) {
+      salaryDate = new Date(now.getFullYear(), now.getMonth() + 1, salaryDay);
+    }
 
-    const diffMs = targetDate.getTime() - today.setHours(0, 0, 0, 0);
-    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(
+      (salaryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
 
-    let notifData = null;
-
-    if (diffDays === 7) {
-      notifData = {
+    const notifMap: Record<number, { title: string; body: string }> = {
+      7: {
         title: "Gaji dalam 7 hari lagi 📅",
-        body: `Gaji korang akan masuk pada ${targetDate.toLocaleDateString("ms-MY")}. Mula plan perbelanjaan bulan ni!`,
-      };
-    } else if (diffDays === 3) {
-      notifData = {
+        body:  `Gaji akan masuk ${salaryDate.toLocaleDateString("ms-MY")}. Mula plan bulan ni!`,
+      },
+      3: {
         title: "Gaji dalam 3 hari lagi 💸",
-        body: `Lagi 3 hari je! Pastikan semua commitment bulan ni dah ready.`,
-      };
-    } else if (diffDays === 1) {
-      notifData = {
+        body:  "Lagi 3 hari! Pastikan semua commitment dah ready.",
+      },
+      1: {
         title: "Gaji esok! 🎉",
-        body: `Gaji korang masuk esok. Jangan lupa check payslip dan settle commitments.`,
-      };
-    } else if (diffDays === 0) {
-      notifData = {
+        body:  "Gaji masuk esok. Jangan lupa check payslip dan settle commitments.",
+      },
+      0: {
         title: "Gaji hari ni masuk! 💰",
-        body: `Selamat! Jangan lupa settle semua commitments dan update savings goal korang.`,
-      };
-    }
+        body:  "Selamat! Jangan lupa settle commitments dan update savings goal.",
+      },
+    };
 
-    if (notifData) {
-      // Avoid duplicate — check if same notif already sent today
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+    const notifData = notifMap[diffDays];
+    if (!notifData) continue;
 
-      const existing = await prisma.notification.findFirst({
-        where: {
-          userId,
-          type: "SALARY_REMINDER",
-          title: notifData.title,
-          createdAt: { gte: startOfDay },
-        },
+    // Check duplicate
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const existing = await prisma.notification.findFirst({
+      where: {
+        userId,
+        type:  "SALARY_REMINDER",
+        title: notifData.title,
+        createdAt: { gte: startOfDay },
+      },
+    });
+
+    if (existing) continue;
+
+    // ── In-app notification ──
+    await prisma.notification.create({
+      data: {
+        userId,
+        type:   "SALARY_REMINDER",
+        title:  notifData.title,
+        body:   notifData.body,
+        isRead: false,
+      },
+    });
+
+    // ── Email notification ──
+    try {
+      await sendSalaryReminderEmail({
+        to:        userEmail,
+        name:      userName,
+        title:     notifData.title,
+        body:      notifData.body,
+        salaryDay,
       });
-
-      if (!existing) {
-        notifications.push(
-          prisma.notification.create({
-            data: {
-              userId,
-              type: "SALARY_REMINDER",
-              title: notifData.title,
-              body: notifData.body,
-              isRead: false,
-            },
-          })
-        );
-      }
+    } catch (err) {
+      // Email fail shouldn't break in-app notification
+      console.error(`Email failed for ${userEmail}:`, err);
     }
+
+    sent++;
   }
 
-  await Promise.all(notifications);
-
-  return NextResponse.json({
-    success: true,
-    sent: notifications.length,
-  });
+  return NextResponse.json({ success: true, sent });
 }
