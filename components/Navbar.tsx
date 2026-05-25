@@ -14,6 +14,8 @@ import {
   ChevronRight,
   LogOut,
   Wallet,
+  CreditCard, 
+  TrendingUp,
 } from "lucide-react";
 
 const topNavItems = [
@@ -21,6 +23,8 @@ const topNavItems = [
   { label: "Transactions", href: "/transactions",  icon: ArrowLeftRight  },
   { label: "Savings",      href: "/savings",       icon: PiggyBank       },
   { label: "Commitments",  href: "/commitments",   icon: HandCoins       },
+  { label: "Debts",        href: "/debts",         icon: CreditCard      },
+  { label: "Investments",  href: "/investments",   icon: TrendingUp      },
 ];
 
 const bottomNavItems = [
@@ -34,7 +38,8 @@ const mobileLeft = [
 
 const mobileRight = [
   { label: "Savings",      href: "/savings",      icon: PiggyBank       },
-  { label: "Settings",     href: "/settings",     icon: Settings        },
+  { label: "Debts",        href: "/debts",        icon: CreditCard      },
+  { label: "Investments",  href: "/investments",  icon: TrendingUp      },
 ];
 
 export default function Navbar() {

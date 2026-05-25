@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendSalaryReminderEmail } from "@/lib/email";
+import { sendReminderEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -13,46 +13,48 @@ export async function GET(request: Request) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const profiles = await prisma.salaryProfile.findMany({
+  // Get all savings goals with deadline
+  const goals = await prisma.savingsGoal.findMany({
+    where: {
+      deadline: { not: null },
+      // Skip fully achieved goals
+      NOT: {
+        currentAmount: { gte: prisma.savingsGoal.fields.targetAmount }
+      }
+    },
     include: { user: true },
   });
 
   let sent = 0;
 
-  for (const profile of profiles) {
-    const salaryDay = profile.salaryDay ?? 2;
-    const userId    = profile.userId;
-    const userEmail = profile.user.email;
-    const userName  = profile.user.name ?? "there";
+  for (const goal of goals) {
+    if (!goal.deadline) continue;
 
-    if (!userEmail) continue;
+    const deadline = new Date(goal.deadline);
+    deadline.setHours(0, 0, 0, 0);
 
-    // Build salary date — if passed this month, look at next month
-    let salaryDate = new Date(now.getFullYear(), now.getMonth(), salaryDay);
-    if (salaryDate < now) {
-      salaryDate = new Date(now.getFullYear(), now.getMonth() + 1, salaryDay);
-    }
+    const diffMs   = deadline.getTime() - now.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-    const diffDays = Math.round(
-      (salaryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const progress = goal.targetAmount > 0 ? goal.currentAmount / goal.targetAmount : 0;
+    if (progress >= 1) continue; // already achieved
 
     const notifMap: Record<number, { title: string; body: string }> = {
+      60: {
+        title: `2 bulan lagi — ${goal.name} 📅`,
+        body:  `Savings goal "${goal.name}" due dalam 2 bulan. Semak progress korang!`,
+      },
+      30: {
+        title: `1 bulan lagi — ${goal.name} ⏳`,
+        body:  `Lagi sebulan je! "${goal.name}" — korang dah save ${(progress * 100).toFixed(0)}% daripada RM${goal.targetAmount.toLocaleString()}.`,
+      },
       7: {
-        title: "Gaji dalam 7 hari lagi 📅",
-        body:  `Gaji akan masuk ${salaryDate.toLocaleDateString("ms-MY")}. Mula plan bulan ni!`,
-      },
-      3: {
-        title: "Gaji dalam 3 hari lagi 💸",
-        body:  "Lagi 3 hari! Pastikan semua commitment dah ready.",
-      },
-      1: {
-        title: "Gaji esok! 🎉",
-        body:  "Gaji masuk esok. Jangan lupa check payslip dan settle commitments.",
+        title: `1 minggu lagi — ${goal.name} 🔔`,
+        body:  `Tinggal 7 hari! "${goal.name}" — pastikan korang top up sebelum due date.`,
       },
       0: {
-        title: "Gaji hari ni masuk! 💰",
-        body:  "Selamat! Jangan lupa settle commitments dan update savings goal.",
+        title: `Due hari ni — ${goal.name} 🎯`,
+        body:  `"${goal.name}" due hari ni! Korang dah capai ${(progress * 100).toFixed(0)}% daripada target.`,
       },
     };
 
@@ -65,38 +67,44 @@ export async function GET(request: Request) {
 
     const existing = await prisma.notification.findFirst({
       where: {
-        userId,
-        type:  "SALARY_REMINDER",
-        title: notifData.title,
+        userId:    goal.userId,
+        type:      "SAVINGS_MILESTONE",
+        title:     notifData.title,
         createdAt: { gte: startOfDay },
       },
     });
 
     if (existing) continue;
 
-    // ── In-app notification ──
+    // In-app
     await prisma.notification.create({
       data: {
-        userId,
-        type:   "SALARY_REMINDER",
-        title:  notifData.title,
-        body:   notifData.body,
-        isRead: false,
+        userId:  goal.userId,
+        type:    "SAVINGS_MILESTONE",
+        title:   notifData.title,
+        body:    notifData.body,
+        isRead:  false,
+        data:    { goalId: goal.id, targetAmount: goal.targetAmount, currentAmount: goal.currentAmount },
       },
     });
 
-    // ── Email notification ──
+    // Email
     try {
-      await sendSalaryReminderEmail({
-        to:        userEmail,
-        name:      userName,
-        title:     notifData.title,
-        body:      notifData.body,
-        salaryDay,
+      await sendReminderEmail({
+        to:       goal.user.email!,
+        name:     goal.user.name ?? "there",
+        title:    notifData.title,
+        body:     notifData.body,
+        type:     "savings",
+        metadata: {
+          label:   goal.name,
+          current: goal.currentAmount,
+          target:  goal.targetAmount,
+          dueDate: deadline.toLocaleDateString("ms-MY"),
+        },
       });
     } catch (err) {
-      // Email fail shouldn't break in-app notification
-      console.error(`Email failed for ${userEmail}:`, err);
+      console.error(`Email failed for ${goal.user.email}:`, err);
     }
 
     sent++;

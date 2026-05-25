@@ -30,6 +30,8 @@ model User {
   webAuthnCredentials WebAuthnCredential[]
   notifications    Notification[]
   pushSubscriptions PushSubscription[]
+  debts        Debt[]
+  investments  Investment[]
 }
 
 model Account {
@@ -164,7 +166,7 @@ model SalaryProfile {
   updatedAt DateTime @updatedAt
 
   salaryDay  Int  @default(2)  // day of month salary received, default 2hb
-  
+
   hoursPerDay      Float   @default(7.5)
   salaryBasis      String  @default("monthly")
   deductEPF        Boolean @default(true)
@@ -279,4 +281,52 @@ enum TransactionType {
   COMMITMENT
   SAVINGS
   INVESTMENT
+}
+
+model Debt {
+  id              String    @id @default(cuid())
+  userId          String
+  name            String
+  creditor        String?
+  debtType        String    @default("FIXED")     // FIXED | REVOLVING
+  totalAmount     Float                            // original loan / credit limit
+  remainingAmount Float                            // outstanding balance
+  monthlyPayment  Float     @default(0)           // fixed installment (FIXED type)
+  minimumPayment  Float?    @default(0)           // minimum payment (REVOLVING type)
+  creditLimit     Float?                           // for BNPL / credit card
+  interestRate    Float?    @default(0)
+  dueDate         DateTime?                        // final settlement (FIXED) or monthly due (REVOLVING)
+  nextPaymentDate DateTime?
+  category        String    @default("General")
+  status          String    @default("ACTIVE")    // ACTIVE | SETTLED | PAUSED
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, debtType])
+}
+
+model Investment {
+  id                  String    @id @default(cuid())
+  userId              String
+  name                String                        // e.g. "ASNB", "Crypto", "EPF"
+  platform            String?                       // e.g. "Maybank2u", "Luno"
+  type                String    @default("General") // Stocks, Unit Trust, Crypto, Gold, Property, etc.
+  principalAmount     Float                         // total amount invested
+  currentValue        Float     @default(0)         // current market value
+  monthlyContribution Float?    @default(0)         // fixed monthly top-up
+  returnRate          Float?    @default(0)         // expected % return per annum
+  startDate           DateTime  @default(now())
+  maturityDate        DateTime?                     // for fixed deposits, bonds, etc.
+  status              String    @default("ACTIVE")  // ACTIVE, MATURED, WITHDRAWN
+  note                String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
 }
