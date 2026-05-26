@@ -7,6 +7,7 @@ import ScrollbarController from "@/components/ScrollbarController";
 import SessionTimeout from "@/components/SessionTimeout";
 import SplashScreen from "@/components/SplashScreen";
 import AuthProvider from "@/components/AuthProvider";
+import ServiceWorkerRegister from '@/components/ServiceWorkerRegister';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -66,6 +67,7 @@ export default function RootLayout({
       >
         {/* AuthProvider must wrap everything so useSession works anywhere */}
         <AuthProvider>
+          <ServiceWorkerRegister />
           <SplashScreen />
           <ScrollbarController />
           <SessionTimeout />
