@@ -61,6 +61,7 @@ export default function Home() {
   const [goals, setGoals] = useState<any[]>([]);
   const [goalName, setGoalName] = useState("");
   const [goalTarget, setGoalTarget] = useState("");
+  const [greeting, setGreeting] = useState("");
 
   const fetchDashboard = async () => {
     try {
@@ -94,6 +95,10 @@ export default function Home() {
       }
     });
   }, [goals]);
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
 
   const stats = [
     { label: "Balance",       value: dashboardData.balance,  color: "text-[#C4B5FD]" },
@@ -214,7 +219,7 @@ export default function Home() {
                 Personal Finance Overview
               </p>
               <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">
-                {getGreeting()}, {getFirstName(user?.name)} 👋
+                {greeting || "Hello"}, {getFirstName(user?.name)} 👋
               </h1>
               <p className="mt-1.5 text-sm text-white/50">
                 Monitor your balance, savings progress, and financial trends.
