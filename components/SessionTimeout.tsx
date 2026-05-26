@@ -97,13 +97,10 @@ export default function SessionTimeout() {
     }, 1000);
   }, []);
 
-  // ✅ Watches for countdown hitting 0 and triggers logout
   useEffect(() => {
-    console.log("countdown:", countdown, "showModal:", showModal);
-    if (countdown === 0 && showModal) {
-      console.log("→ calling handleLogout");
-      handleLogout();
-    }
+      if (countdown === 0 && showModal) {
+        handleLogout();
+      }
   }, [countdown, showModal, handleLogout]);
 
   /* ─────────────────────────────────────────────
