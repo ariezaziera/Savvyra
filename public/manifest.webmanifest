@@ -1,0 +1,17 @@
+{
+  "name": "Savvyra",
+  "short_name": "Savvyra",
+  "description": "Beautiful personal finance, built for Malaysians.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#453284",
+  "theme_color": "#563db5",
+  "icons": [
+    { "src": "/logo192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/desktop.png", "sizes": "1280x720", "form_factor": "wide" },
+    { "src": "/screenshots/mobile.png", "sizes": "390x844", "form_factor": "narrow" }
+  ]
+}
