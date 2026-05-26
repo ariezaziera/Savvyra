@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 export default function SplashScreen() {
-  const [show, setShow] = useState(true);
+  const [show, setShow] = useState(false);
   const [enter, setEnter] = useState(false);
   const [logoGlow, setLogoGlow] = useState(false);
 
   useEffect(() => {
+    setShow(true);
     const t1 = setTimeout(() => setEnter(true), 100);
     const t2 = setTimeout(() => setLogoGlow(true), 600);
     const t3 = setTimeout(() => setShow(false), 3600);
