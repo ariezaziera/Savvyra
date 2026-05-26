@@ -7,6 +7,9 @@ const withPWA = require("next-pwa")({
   fallbacks: {
     document: "/offline",
   },
+  cacheOnFrontEndNav: true,        // ← tambah
+  reloadOnOnline: true,            // ← tambah
+  buildExcludes: [/middleware-manifest\.json$/], // ← tambah
   runtimeCaching: [
     {
       urlPattern: /^https?.*/,
