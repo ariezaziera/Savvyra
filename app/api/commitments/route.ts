@@ -11,6 +11,11 @@ export async function GET(request: Request) {
     const commitments = await prisma.commitment.findMany({
       where: { userId },
       orderBy: { dueDate: "asc" },
+      select: {
+        id: true, name: true, amount: true, dueDate: true,
+        isPaid: true, category: true, frequency: true, note: true,
+        debtId: true,
+      },
     });
 
     return NextResponse.json(commitments);

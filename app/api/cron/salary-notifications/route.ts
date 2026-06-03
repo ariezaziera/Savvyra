@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendReminderEmail } from "@/lib/email";
+import { sendReminderEmail } from "@/lib/email"
 
 export const runtime = "nodejs";
 

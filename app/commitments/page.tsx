@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "@/lib/formatCurrency";
 import {
   Plus, Check, Trash2, Pencil, X,
-  HandCoins, CreditCard, RefreshCw, Repeat2, Zap,
+  HandCoins, CreditCard, RefreshCw, Repeat2, Zap, Link2,
 } from "lucide-react";
 
 type Commitment = {
@@ -18,6 +18,7 @@ type Commitment = {
   frequency: string;
   isPaid: boolean;
   note?: string | null;
+  debtId?: string | null;
 };
 
 const CATEGORIES = ["General","Loan","Subscription","PayLater","Repayment","Insurance","Rent","Utilities","Other"];
@@ -97,6 +98,11 @@ export default function CommitmentsPage() {
 
   const openAdd = () => { setForm(emptyForm); setEditId(null); setShowForm(true); };
   const openEdit = (c: Commitment) => {
+    // Block editing auto-linked commitments — manage from Debts page
+    if (c.debtId) {
+      showToast("Edit this repayment from the Debts page 🔗");
+      return;
+    }
     setForm({ name: c.name, category: c.category, amount: String(c.amount), dueDate: c.dueDate.split("T")[0], frequency: c.frequency, note: c.note ?? "" });
     setEditId(c.id); setShowForm(true);
   };
@@ -107,7 +113,7 @@ export default function CommitmentsPage() {
     try {
       if (editId) {
         const res = await fetch(`/api/commitments/${editId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-        if (res.ok) { setCommitments((p) => p.map((c) => c.id === editId ? res.json() as any : c)); await fetchCommitments(); showToast("Updated ✅"); }
+        if (res.ok) { await fetchCommitments(); showToast("Updated ✅"); }
       } else {
         const res = await fetch("/api/commitments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
         if (res.ok) { const created = await res.json(); setCommitments((p) => [...p, created]); showToast("Added ✅"); }
@@ -121,16 +127,21 @@ export default function CommitmentsPage() {
     if (res.ok) { const updated = await res.json(); setCommitments((p) => p.map((x) => x.id === c.id ? updated : x)); showToast(updated.isPaid ? "Marked paid ✅" : "Marked unpaid"); }
   };
 
-  const handleDelete = async (id: string) => {
-    const res = await fetch(`/api/commitments/${id}`, { method: "DELETE" });
-    if (res.ok) { setCommitments((p) => p.filter((c) => c.id !== id)); showToast("Deleted"); }
+  const handleDelete = async (c: Commitment) => {
+    // Block deleting auto-linked commitments
+    if (c.debtId) {
+      showToast("Remove this from the Debts page instead 🔗");
+      return;
+    }
+    const res = await fetch(`/api/commitments/${c.id}`, { method: "DELETE" });
+    if (res.ok) { setCommitments((p) => p.filter((x) => x.id !== c.id)); showToast("Deleted"); }
   };
 
-  const total = commitments.reduce((s, c) => s + c.amount, 0);
+  const total       = commitments.reduce((s, c) => s + c.amount, 0);
   const unpaidTotal = commitments.filter((c) => !c.isPaid).reduce((s, c) => s + c.amount, 0);
-  const upcoming = commitments.filter((c) => getStatus(c) === "Upcoming").length;
-  const overdue = commitments.filter((c) => getStatus(c) === "Overdue").length;
-  const filtered = commitments.filter((c) => filter === "All" || getStatus(c) === filter);
+  const upcoming    = commitments.filter((c) => getStatus(c) === "Upcoming").length;
+  const overdue     = commitments.filter((c) => getStatus(c) === "Overdue").length;
+  const filtered    = commitments.filter((c) => filter === "All" || getStatus(c) === filter);
   const f = (k: keyof typeof emptyForm, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   return (
@@ -177,7 +188,7 @@ export default function CommitmentsPage() {
                 <button onClick={() => { setShowForm(false); setEditId(null); setForm(emptyForm); }} className="p-1.5 rounded-xl text-white/40 hover:text-white hover:bg-white/10 transition"><X size={16}/></button>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5"><label className="text-xs text-white/45 uppercase tracking-wider">Name</label><Input value={form.name} onChange={(e:any) => f("name", e.target.value)} placeholder="e.g. Car Loan"/></div>
+                <div className="space-y-1.5"><label className="text-xs text-white/45 uppercase tracking-wider">Name</label><Input value={form.name} onChange={(e:any) => f("name", e.target.value)} placeholder="e.g. Netflix"/></div>
                 <div className="space-y-1.5"><label className="text-xs text-white/45 uppercase tracking-wider">Category</label><Select value={form.category} onChange={(e:any) => f("category", e.target.value)} options={CATEGORIES}/></div>
                 <div className="space-y-1.5"><label className="text-xs text-white/45 uppercase tracking-wider">Amount (RM)</label><Input value={form.amount} onChange={(e:any) => f("amount", e.target.value)} placeholder="0.00" type="number"/></div>
                 <div className="space-y-1.5"><label className="text-xs text-white/45 uppercase tracking-wider">Due Date</label><Input value={form.dueDate} onChange={(e:any) => f("dueDate", e.target.value)} type="date"/></div>
@@ -197,10 +208,10 @@ export default function CommitmentsPage() {
         </AnimatePresence>
 
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
-          {(["All","Upcoming","Overdue","Paid"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${filter === f ? "bg-[#6A49FA]/40 text-[#C4B5FD] border border-[#6A49FA]/40" : "border border-white/10 text-white/40 hover:text-white/70 hover:border-white/25"}`}>
-              {f}{f !== "All" && <span className="ml-1.5 opacity-60">({commitments.filter((c) => getStatus(c) === f).length})</span>}
+          {(["All","Upcoming","Overdue","Paid"] as const).map((tab) => (
+            <button key={tab} onClick={() => setFilter(tab)}
+              className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${filter === tab ? "bg-[#6A49FA]/40 text-[#C4B5FD] border border-[#6A49FA]/40" : "border border-white/10 text-white/40 hover:text-white/70 hover:border-white/25"}`}>
+              {tab}{tab !== "All" && <span className="ml-1.5 opacity-60">({commitments.filter((c) => getStatus(c) === tab).length})</span>}
             </button>
           ))}
         </div>
@@ -215,13 +226,14 @@ export default function CommitmentsPage() {
         ) : (
           <div className="space-y-3">
             {filtered.map((c) => {
-              const status = getStatus(c);
-              const Icon = CATEGORY_ICON[c.category] ?? HandCoins;
+              const status   = getStatus(c);
+              const Icon     = CATEGORY_ICON[c.category] ?? HandCoins;
               const iconColor = CATEGORY_COLOR[c.category] ?? CATEGORY_COLOR.General;
-              const days = getDaysUntil(c.dueDate);
+              const days     = getDaysUntil(c.dueDate);
+              const isLinked = !!c.debtId;
               return (
                 <motion.div key={c.id} initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
-                  className={`relative overflow-hidden rounded-3xl border backdrop-blur-2xl transition-all ${c.isPaid ? "border-white/5 bg-white/3 opacity-70" : "border-white/10 bg-white/5 hover:border-white/15"}`}>
+                  className={`relative overflow-hidden rounded-3xl border backdrop-blur-2xl transition-all ${c.isPaid ? "border-white/5 bg-white/3 opacity-70" : isLinked ? "border-[#6A49FA]/25 bg-[#6A49FA]/5 hover:border-[#6A49FA]/40" : "border-white/10 bg-white/5 hover:border-white/15"}`}>
                   <div className="absolute inset-x-0 top-0 h-px bg-white/10"/>
                   <div className="flex items-center gap-4 px-5 py-4">
                     <div className={`h-10 w-10 rounded-2xl flex items-center justify-center shrink-0 ${iconColor}`}><Icon size={18}/></div>
@@ -229,22 +241,31 @@ export default function CommitmentsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className={`text-sm font-semibold ${c.isPaid ? "line-through text-white/40" : "text-white"}`}>{c.name}</p>
                         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLE[status]}`}>{status}</span>
+                        {isLinked && (
+                          <span className="flex items-center gap-1 rounded-full border border-[#6A49FA]/40 bg-[#6A49FA]/15 px-2 py-0.5 text-[10px] font-semibold text-[#C4B5FD]">
+                            <Link2 size={9}/> Debt
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-white/40 mt-0.5">
                         {c.category} · {c.frequency}
                         {!c.isPaid && days >= 0 && days <= 7 && <span className="text-[#FBD38D] ml-1">· {days === 0 ? "Due today!" : `${days}d left`}</span>}
                         {!c.isPaid && days < 0 && <span className="text-[#FF8C8C] ml-1">· {Math.abs(days)}d overdue</span>}
                       </p>
-                      {c.note && <p className="text-xs text-white/25 mt-0.5 truncate">{c.note}</p>}
+                      {isLinked && <p className="text-[10px] text-[#6A49FA]/70 mt-0.5">Managed from Debts page</p>}
+                      {!isLinked && c.note && <p className="text-xs text-white/25 mt-0.5 truncate">{c.note}</p>}
                     </div>
                     <div className="text-right shrink-0">
                       <p className={`text-sm font-bold ${c.isPaid ? "text-white/30" : "text-white"}`}>{fmt(c.amount)}</p>
                       <p className="text-[10px] text-white/30 mt-0.5">{new Date(c.dueDate).toLocaleDateString("en-MY", { day:"numeric", month:"short" })}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Mark paid — always allowed */}
                       <button onClick={() => handleMarkPaid(c)} className={`h-9 w-9 rounded-xl flex items-center justify-center transition ${c.isPaid ? "bg-[#8EE3B5]/20 text-[#8EE3B5]" : "bg-white/5 text-white/30 hover:bg-[#8EE3B5]/20 hover:text-[#8EE3B5]"}`}><Check size={15}/></button>
-                      <button onClick={() => openEdit(c)} className="h-9 w-9 rounded-xl flex items-center justify-center bg-white/5 text-white/30 hover:bg-white/10 hover:text-white transition"><Pencil size={14}/></button>
-                      <button onClick={() => handleDelete(c.id)} className="h-9 w-9 rounded-xl flex items-center justify-center bg-white/5 text-white/30 hover:bg-[#FF8C8C]/20 hover:text-[#FF8C8C] transition"><Trash2 size={14}/></button>
+                      {/* Edit — disabled for linked, show tooltip via toast */}
+                      <button onClick={() => openEdit(c)} className={`h-9 w-9 rounded-xl flex items-center justify-center transition ${isLinked ? "bg-white/3 text-white/15 cursor-not-allowed" : "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white"}`}><Pencil size={14}/></button>
+                      {/* Delete — disabled for linked */}
+                      <button onClick={() => handleDelete(c)} className={`h-9 w-9 rounded-xl flex items-center justify-center transition ${isLinked ? "bg-white/3 text-white/15 cursor-not-allowed" : "bg-white/5 text-white/30 hover:bg-[#FF8C8C]/20 hover:text-[#FF8C8C]"}`}><Trash2 size={14}/></button>
                     </div>
                   </div>
                 </motion.div>

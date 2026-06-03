@@ -29,6 +29,7 @@ model User {
   salaryMonths        SalaryMonth[]
   salaryProfile       SalaryProfile?
   savingsGoals        SavingsGoal[]
+  savingsAccounts     SavingsAccount[]
   sessions            Session[]
   transactions        Transaction[]
   webAuthnCredentials WebAuthnCredential[]
@@ -114,6 +115,8 @@ model Commitment {
   frequency String   @default("Monthly")
   note      String?
   updatedAt DateTime @updatedAt
+  debtId    String?  @unique
+  debt      Debt?    @relation(fields: [debtId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -238,25 +241,26 @@ model PushSubscription {
 }
 
 model Debt {
-  id              String    @id @default(cuid())
+  id              String      @id @default(cuid())
   userId          String
   name            String
   creditor        String?
   totalAmount     Float
   remainingAmount Float
-  monthlyPayment  Float     @default(0)
-  interestRate    Float?    @default(0)
+  monthlyPayment  Float       @default(0)
+  interestRate    Float?      @default(0)
   dueDate         DateTime?
   nextPaymentDate DateTime?
-  category        String    @default("General")
-  status          String    @default("ACTIVE")
+  category        String      @default("General")
+  status          String      @default("ACTIVE")
   note            String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
   creditLimit     Float?
-  debtType        String    @default("FIXED")
-  minimumPayment  Float?    @default(0)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debtType        String      @default("FIXED")
+  minimumPayment  Float?      @default(0)
+  commitment      Commitment?
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, status])
@@ -264,25 +268,46 @@ model Debt {
 }
 
 model Investment {
-  id                  String    @id @default(cuid())
-  userId              String
-  name                String
-  platform            String?
-  type                String    @default("General")
-  principalAmount     Float
-  currentValue        Float     @default(0)
-  monthlyContribution Float?    @default(0)
-  returnRate          Float?    @default(0)
-  startDate           DateTime  @default(now())
-  maturityDate        DateTime?
-  status              String    @default("ACTIVE")
-  note                String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String    @id @default(cuid())
+  userId                String
+  name                  String
+  platform              String?
+  type                  String    @default("General")
+  subType               String?
+  principalAmount       Float
+  currentValue          Float     @default(0)
+  monthlyContribution   Float?    @default(0)
+  returnRate            Float?    @default(0)
+  startDate             DateTime  @default(now())
+  maturityDate          DateTime?
+  status                String    @default("ACTIVE")
+  note                  String?
+  // Gold-specific fields
+  goldGrams             Float?
+  goldBuyPricePerGram   Float?
+  goldCurrentPricePerGram Float?
+  goldSellingPricePerGram Float?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, status])
+  @@index([userId, type])
+}
+
+model SavingsAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  bank      String
+  balance   Float    @default(0)
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 enum NotificationType {
