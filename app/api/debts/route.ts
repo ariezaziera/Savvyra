@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
 
+const safeFloat = (val: any, fallback = 0): number => {
+  const n = parseFloat(val);
+  return isNaN(n) ? fallback : n;
+};
+
 export async function GET(request: Request) {
   try {
     const userId = await getUserIdFromRequest(request);
@@ -27,25 +32,25 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const isRevolving = body.debtType === "REVOLVING";
-    const monthlyPayment = isRevolving ? 0 : parseFloat(body.monthlyPayment ?? 0);
+    const monthlyPayment = isRevolving ? 0 : safeFloat(body.monthlyPayment);
 
     const debt = await prisma.debt.create({
       data: {
-        userId,
+        user:            { connect: { id: userId } },
         name:            body.name,
-        creditor:        body.creditor        ?? null,
+        creditor:        body.creditor || null,
         debtType:        body.debtType        ?? "FIXED",
-        totalAmount:     parseFloat(body.totalAmount),
-        remainingAmount: parseFloat(body.remainingAmount ?? body.totalAmount),
+        totalAmount:     safeFloat(body.totalAmount),
+        remainingAmount: safeFloat(body.remainingAmount ?? body.totalAmount),
         monthlyPayment,
-        minimumPayment:  isRevolving ? parseFloat(body.minimumPayment ?? 0) : null,
-        creditLimit:     body.creditLimit     ? parseFloat(body.creditLimit) : null,
-        interestRate:    parseFloat(body.interestRate ?? 0),
+        minimumPayment:  isRevolving ? safeFloat(body.minimumPayment) : null,
+        creditLimit:     body.creditLimit ? safeFloat(body.creditLimit) : null,
+        interestRate:    safeFloat(body.interestRate),
         dueDate:         body.dueDate         ? new Date(body.dueDate)         : null,
         nextPaymentDate: body.nextPaymentDate ? new Date(body.nextPaymentDate) : null,
         category:        body.category        ?? "General",
         status:          body.status          ?? "ACTIVE",
-        note:            body.note            ?? null,
+        note:            body.note            || null,
       },
     });
 
@@ -59,8 +64,8 @@ export async function POST(request: Request) {
 
       await prisma.commitment.create({
         data: {
-          userId,
-          debtId:    debt.id,
+          user:      { connect: { id: userId } },
+          debt:      { connect: { id: debt.id } },
           name:      debt.name,
           amount:    monthlyPayment,
           dueDate,
