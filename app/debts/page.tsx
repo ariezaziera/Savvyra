@@ -406,7 +406,7 @@ export default function DebtsPage() {
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
-                          width: `${isRevolving ? (utilization !== null ? utilization : Math.min((debt.remainingAmount / (debt.totalAmount || 1)) * 100, 100)) : progress}%`,
+                          width: `${isRevolving ? (utilization ?? 0) : progress}%`,
                           background: isRevolving
                             ? `linear-gradient(90deg, #8EE3B5, #FBD38D ${utilization ?? 0}%)`
                             : "linear-gradient(90deg, #FF8C8C, #FBD38D)",
@@ -427,7 +427,7 @@ export default function DebtsPage() {
                       {!isEditing ? (
                         <>
                           <div className="grid grid-cols-2 gap-3 text-sm">
-                            {isRevolving ? [
+                            {(isRevolving ? [
                               ["Total Amount",     fmt(debt.totalAmount)],
                               ["Outstanding",      fmt(debt.remainingAmount)],
                               ["Min Payment",      debt.minimumPayment ? fmt(debt.minimumPayment) : "—"],
@@ -442,7 +442,7 @@ export default function DebtsPage() {
                               ["Settlement Date",  debt.dueDate ? new Date(debt.dueDate).toLocaleDateString("ms-MY") : "—"],
                               ["Next Payment",     debt.nextPaymentDate ? new Date(debt.nextPaymentDate).toLocaleDateString("ms-MY") : "—"],
                               ["Months Left",      monthsLeft ? `~${monthsLeft} months` : "—"],
-                            ].map(([label, val]) => (
+                            ]).map(([label, val]) => (
                               <div key={label}>
                                 <p className="text-xs text-white/35">{label}</p>
                                 <p className="text-white font-medium">{val}</p>
