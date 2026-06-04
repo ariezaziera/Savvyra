@@ -283,24 +283,24 @@ export default function InvestmentsPage() {
       )}
 
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-white/35 font-medium">Finance</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">Investments</h1>
-          <p className="mt-1.5 text-sm text-white/50">Manage your accounts, gold, stocks and more.</p>
+      <div className="mb-5">
+        <p className="text-xs uppercase tracking-[0.25em] text-white/35 font-medium">Finance</p>
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-white">Investments</h1>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={() => { setAccForm(emptyAccForm); setShowAccForm(!showAccForm); setShowForm(false); }}
+              className="flex items-center gap-1.5 rounded-xl border border-[#C4B5FD]/30 bg-[#C4B5FD]/10 px-3 py-2 text-xs font-semibold text-[#C4B5FD] transition hover:bg-[#C4B5FD]/20 active:scale-[0.97]">
+              <Wallet size={13}/> Account
+            </button>
+            <button
+              onClick={() => { setForm(emptyForm); setShowForm(!showForm); setShowAccForm(false); }}
+              className="flex items-center gap-1.5 rounded-xl bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_14px_rgba(106,73,250,0.40)] transition hover:scale-[1.03] active:scale-[0.97]">
+              <Plus size={13}/> Add
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2 mt-2 shrink-0">
-          <button
-            onClick={() => { setAccForm(emptyAccForm); setShowAccForm(!showAccForm); setShowForm(false); }}
-            className="flex items-center gap-1.5 rounded-2xl border border-[#C4B5FD]/30 bg-[#C4B5FD]/10 px-3 py-2.5 text-sm font-semibold text-[#C4B5FD] transition hover:bg-[#C4B5FD]/20 active:scale-[0.97]">
-            <Wallet size={15}/> Account
-          </button>
-          <button
-            onClick={() => { setForm(emptyForm); setShowForm(!showForm); setShowAccForm(false); }}
-            className="flex items-center gap-1.5 rounded-2xl bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.03] active:scale-[0.97]">
-            <Plus size={15}/> Add
-          </button>
-        </div>
+        <p className="mt-1 text-xs text-white/40">Manage your accounts, gold, stocks and more.</p>
       </div>
 
       {/* Market gold price */}
@@ -315,28 +315,28 @@ export default function InvestmentsPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-6 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         {[
-          { label: "Total Invested",  value: fmt(totalPrincipal),    color: "text-[#C4B5FD]" },
-          { label: "Current Value",   value: fmt(totalCurrentValue), color: "text-white"     },
-          { label: "Gain / Loss",     value: `${totalGainLoss >= 0 ? "+" : ""}${fmt(totalGainLoss)}`, color: totalGainLoss >= 0 ? "text-[#8EE3B5]" : "text-[#FF8C8C]" },
-          { label: "Gold Holdings",   value: `${totalGoldGrams.toFixed(2)}g`, color: "text-[#FBD38D]" },
+          { label: "Invested",      value: fmt(totalPrincipal),    color: "text-[#C4B5FD]" },
+          { label: "Current Value", value: fmt(totalCurrentValue), color: "text-white"     },
+          { label: "Gain / Loss",   value: `${totalGainLoss >= 0 ? "+" : ""}${fmt(totalGainLoss)}`, color: totalGainLoss >= 0 ? "text-[#8EE3B5]" : "text-[#FF8C8C]" },
+          { label: "Gold",          value: `${totalGoldGrams.toFixed(2)}g`, color: "text-[#FBD38D]" },
         ].map(({ label, value, color }) => (
-          <div key={label} className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+          <div key={label} className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 px-3 py-3 backdrop-blur-xl">
             <div className="absolute inset-x-0 top-0 h-px bg-white/15"/>
-            <p className="text-xs text-white/40 uppercase tracking-wide">{label}</p>
-            <p className={`mt-1.5 text-base font-bold ${color}`}>{value}</p>
+            <p className="text-[10px] text-white/40 uppercase tracking-wide">{label}</p>
+            <p className={`mt-1 text-sm font-bold truncate ${color}`}>{value}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+      <div className="flex gap-2 mb-4 overflow-x-auto pb-1 scrollbar-none">
         {([
-          ["accounts", "Accounts 💼"],
-          ["all",      "All Holdings"],
+          ["accounts", "Accounts"],
+          ["all",      "All"],
           ["gold",     "Gold 🪙"],
-          ["other",    "Stocks & Others"],
+          ["other",    "Stocks & ASNB"],
         ] as const).map(([key, label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
