@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, ArrowLeftRight, PiggyBank, HandCoins,
   Settings, ChevronRight, LogOut, Wallet, CreditCard,
@@ -104,54 +105,84 @@ export default function Navbar() {
       </aside>
 
       {/* ── MOBILE: More tray backdrop ── */}
-      {moreOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={closeMore}
-        />
-      )}
+      <AnimatePresence>
+        {moreOpen && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+            onClick={closeMore}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── MOBILE: More tray ── */}
-      <div className={`fixed left-0 right-0 z-50 md:hidden transition-all duration-300 ease-out ${moreOpen ? "bottom-[72px] opacity-100" : "-bottom-96 opacity-0 pointer-events-none"}`}>
-        <div className="mx-3 mb-2 overflow-hidden rounded-3xl border border-white/12 bg-[#1E1445]/98 backdrop-blur-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)]">
-          <div className="absolute inset-x-0 top-0 h-px bg-white/15"/>
+      <AnimatePresence>
+        {moreOpen && (
+          <motion.div
+            key="tray"
+            initial={{ y: 40, opacity: 0, scale: 0.97 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 40, opacity: 0, scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.8 }}
+            className="fixed left-0 right-0 z-50 md:hidden bottom-[72px]"
+          >
+            <div className="mx-3 mb-2 overflow-hidden rounded-3xl border border-white/12 bg-[#1E1445]/98 backdrop-blur-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.5)]">
+              <div className="absolute inset-x-0 top-0 h-px bg-white/15"/>
 
-          {/* Tray header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
-            <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">More</p>
-            <button onClick={closeMore} className="h-7 w-7 rounded-xl bg-white/8 flex items-center justify-center text-white/40 hover:text-white transition">
-              <X size={14}/>
-            </button>
-          </div>
+              {/* Tray header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">More</p>
+                <button onClick={closeMore} className="h-7 w-7 rounded-xl bg-white/8 flex items-center justify-center text-white/40 hover:text-white transition">
+                  <X size={14}/>
+                </button>
+              </div>
 
-          {/* More items grid */}
-          <div className="grid grid-cols-4 gap-1 p-3">
-            {moreItems.map(({ label, href, icon: Icon }) => {
-              const isActive = pathname === href;
-              return (
-                <Link key={label} href={href} onClick={closeMore}
-                  className={`flex flex-col items-center gap-2 rounded-2xl px-2 py-3.5 transition-all active:scale-95 ${isActive ? "bg-[#6A49FA]/25" : "hover:bg-white/6"}`}>
-                  <div className={`h-10 w-10 rounded-2xl flex items-center justify-center ${isActive ? "bg-[#6A49FA]/40" : "bg-white/8"}`}>
-                    <Icon size={19} className={isActive ? "text-[#C4B5FD]" : "text-white/55"}/>
-                  </div>
-                  <span className={`text-[10px] font-medium text-center leading-tight ${isActive ? "text-[#C4B5FD]" : "text-white/45"}`}>{label}</span>
-                </Link>
-              );
-            })}
-          </div>
+              {/* More items grid — each item staggers in */}
+              <div className="grid grid-cols-4 gap-1 p-3">
+                {moreItems.map(({ label, href, icon: Icon }, idx) => {
+                  const isActive = pathname === href;
+                  return (
+                    <motion.div
+                      key={label}
+                      initial={{ opacity: 0, y: 16, scale: 0.88 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: idx * 0.055, type: "spring", stiffness: 400, damping: 28 }}
+                    >
+                      <Link href={href} onClick={closeMore}
+                        className={`flex flex-col items-center gap-2 rounded-2xl px-2 py-3.5 transition-all active:scale-95 ${isActive ? "bg-[#6A49FA]/25" : "hover:bg-white/6"}`}>
+                        <div className={`h-10 w-10 rounded-2xl flex items-center justify-center ${isActive ? "bg-[#6A49FA]/40" : "bg-white/8"}`}>
+                          <Icon size={19} className={isActive ? "text-[#C4B5FD]" : "text-white/55"}/>
+                        </div>
+                        <span className={`text-[10px] font-medium text-center leading-tight ${isActive ? "text-[#C4B5FD]" : "text-white/45"}`}>{label}</span>
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
 
-          {/* Logout */}
-          {isLoggedIn && (
-            <div className="px-3 pb-3">
-              <button onClick={() => signOut({ callbackUrl: "/login" })}
-                className="w-full flex items-center gap-3 rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-white/50 hover:text-white hover:bg-white/8 transition">
-                <LogOut size={16}/>
-                <span>Logout</span>
-              </button>
+              {/* Logout */}
+              {isLoggedIn && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: moreItems.length * 0.055, type: "spring", stiffness: 400, damping: 28 }}
+                  className="px-3 pb-3"
+                >
+                  <button onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="w-full flex items-center gap-3 rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-white/50 hover:text-white hover:bg-white/8 transition">
+                    <LogOut size={16}/>
+                    <span>Logout</span>
+                  </button>
+                </motion.div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── MOBILE BOTTOM NAV ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden items-end bg-[#1E1445]/95 backdrop-blur-2xl border-t border-white/10 shadow-[0_-4px_24px_rgba(0,0,0,0.4)] px-1 pb-safe">
@@ -196,10 +227,17 @@ export default function Navbar() {
         <button onClick={() => setMoreOpen(!moreOpen)} className="flex flex-1 flex-col items-center gap-1 py-3 transition-all active:scale-95 relative">
           {isMoreActive && !moreOpen && <span className="absolute top-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#C4B5FD]"/>}
           <div className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-all ${moreOpen || isMoreActive ? "bg-[#6A49FA]/25" : ""}`}>
-            {moreOpen
-              ? <X size={20} className="text-[#C4B5FD]"/>
-              : <MoreHorizontal size={20} className={isMoreActive ? "text-[#C4B5FD]" : "text-white/40"}/>
-            }
+            <AnimatePresence mode="wait" initial={false}>
+              {moreOpen ? (
+                <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.18 }}>
+                  <X size={20} className="text-[#C4B5FD]"/>
+                </motion.div>
+              ) : (
+                <motion.div key="more" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.18 }}>
+                  <MoreHorizontal size={20} className={isMoreActive ? "text-[#C4B5FD]" : "text-white/40"}/>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <span className={`text-[10px] font-medium leading-none ${moreOpen || isMoreActive ? "text-[#C4B5FD]" : "text-white/40"}`}>More</span>
         </button>
