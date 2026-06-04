@@ -406,7 +406,7 @@ export default function DebtsPage() {
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
-                          width: `${isRevolving ? (utilization ?? 0) : progress}%`,
+                          width: `${isRevolving ? (utilization !== null ? utilization : Math.min((debt.remainingAmount / (debt.totalAmount || 1)) * 100, 100)) : progress}%`,
                           background: isRevolving
                             ? `linear-gradient(90deg, #8EE3B5, #FBD38D ${utilization ?? 0}%)`
                             : "linear-gradient(90deg, #FF8C8C, #FBD38D)",
