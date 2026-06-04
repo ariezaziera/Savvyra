@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   const investment = await prisma.investment.create({
     data: {
-      userId,
+      user: { connect: { id: userId } },
       name:                   body.name,
       platform:               body.platform               ?? null,
       type:                   body.type                   ?? "General",
