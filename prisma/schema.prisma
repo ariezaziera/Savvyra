@@ -24,6 +24,7 @@ model User {
   commitments         Commitment[]
   debts               Debt[]
   investments         Investment[]
+  investmentAccounts  InvestmentAccount[]
   notifications       Notification[]
   pushSubscriptions   PushSubscription[]
   salaryMonths        SalaryMonth[]
@@ -267,33 +268,50 @@ model Debt {
   @@index([userId, debtType])
 }
 
+model InvestmentAccount {
+  id          String       @id @default(cuid())
+  userId      String
+  name        String
+  platform    String
+  type        String       @default("General")
+  note        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investments Investment[]
+
+  @@index([userId])
+}
+
 model Investment {
-  id                    String    @id @default(cuid())
-  userId                String
-  name                  String
-  platform              String?
-  type                  String    @default("General")
-  subType               String?
-  principalAmount       Float
-  currentValue          Float     @default(0)
-  monthlyContribution   Float?    @default(0)
-  returnRate            Float?    @default(0)
-  startDate             DateTime  @default(now())
-  maturityDate          DateTime?
-  status                String    @default("ACTIVE")
-  note                  String?
-  // Gold-specific fields
-  goldGrams             Float?
-  goldBuyPricePerGram   Float?
+  id                      String             @id @default(cuid())
+  userId                  String
+  investmentAccountId     String?
+  name                    String
+  platform                String?
+  type                    String             @default("General")
+  subType                 String?
+  principalAmount         Float
+  currentValue            Float              @default(0)
+  monthlyContribution     Float?             @default(0)
+  returnRate              Float?             @default(0)
+  startDate               DateTime           @default(now())
+  maturityDate            DateTime?
+  status                  String             @default("ACTIVE")
+  note                    String?
+  goldGrams               Float?
+  goldBuyPricePerGram     Float?
   goldCurrentPricePerGram Float?
   goldSellingPricePerGram Float?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  investmentAccount       InvestmentAccount? @relation(fields: [investmentAccountId], references: [id], onDelete: SetNull)
+  user                    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, status])
   @@index([userId, type])
+  @@index([investmentAccountId])
 }
 
 model SavingsAccount {
