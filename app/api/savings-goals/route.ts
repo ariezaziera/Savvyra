@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserIdFromRequest } from "@/lib/auth";
-import { savingsGoalSchema } from "@/lib/schemas"; // ✅
+import { savingsGoalSchema } from "@/lib/schemas";
 
 export async function GET(request: Request) {
   const userId = await getUserIdFromRequest(request);
@@ -11,22 +11,26 @@ export async function GET(request: Request) {
     where: { userId },
     include: {
       transactions: {
-        where: { status: "Completed" },
+        where: { type: "SAVINGS" },
         select: { amount: true },
       },
     },
   });
 
-  const goalsWithProgress = goals.map((goal) => ({
+  const result = goals.map((goal) => ({
     id: goal.id,
     name: goal.name,
     targetAmount: goal.targetAmount,
     currentAmount: goal.transactions.reduce((sum, t) => sum + t.amount, 0),
     deadline: goal.deadline,
     monthlyContribution: goal.monthlyContribution ?? null,
+    savingsAccountId: goal.savingsAccountId,
+    isArchived: goal.isArchived,
+    note: goal.note,
+    createdAt: goal.createdAt,
   }));
 
-  return NextResponse.json(goalsWithProgress);
+  return NextResponse.json(result);
 }
 
 export async function POST(request: Request) {
@@ -34,30 +38,24 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-
-  // ✅ Zod validation
   const parsed = savingsGoalSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0].message },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { name, targetAmount, currentAmount, deadline, monthlyContribution } = parsed.data;
+  const { name, targetAmount, deadline, monthlyContribution } = parsed.data;
 
   const goal = await prisma.savingsGoal.create({
     data: {
-      name,
-      targetAmount,
-      currentAmount: currentAmount ?? 0,
+      userId, name, targetAmount,
+      currentAmount: 0,
       deadline: deadline ? new Date(deadline) : null,
       monthlyContribution: monthlyContribution ?? null,
-      userId,
+      savingsAccountId: body.savingsAccountId ?? null,
     },
   });
 
-  return NextResponse.json(goal);
+  return NextResponse.json({ ...goal, currentAmount: 0 });
 }
 
 export async function PUT(request: Request) {
@@ -65,62 +63,53 @@ export async function PUT(request: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
+  const existing = await prisma.savingsGoal.findFirst({ where: { id: body.id, userId } });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const existing = await prisma.savingsGoal.findFirst({
-    where: { id: body.id, userId },
-  });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
-  }
-
-  // ── TOP UP flow ──────────────────────────────────────────────
+  // TOP UP flow — create a SAVINGS transaction, no direct currentAmount update
   if (body.topUpAmount !== undefined) {
     const topUpAmount = Number(body.topUpAmount);
     if (isNaN(topUpAmount) || topUpAmount <= 0) {
       return NextResponse.json({ error: "Invalid top up amount" }, { status: 400 });
     }
 
-    await prisma.transaction.create({
+    const transaction = await prisma.transaction.create({
       data: {
-        title: `Top Up — ${existing.name}`,
-        category: "Savings",
-        amount: topUpAmount,
-        type: "EXPENSE",
-        status: "Completed",
-        date: new Date(),
         userId,
+        title:        `Top Up — ${existing.name}`,
+        category:     "Savings",
+        amount:       topUpAmount,
+        type:         "SAVINGS",
+        date:         new Date(),
         savingsGoalId: existing.id,
       },
     });
 
-    const updated = await prisma.savingsGoal.update({
-      where: { id: body.id },
-      data: { currentAmount: existing.currentAmount + topUpAmount },
+    // Return updated goal with recomputed currentAmount
+    const allTx = await prisma.transaction.findMany({
+      where: { savingsGoalId: existing.id, type: "SAVINGS" },
+      select: { amount: true },
     });
+    const currentAmount = allTx.reduce((s, t) => s + t.amount, 0);
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ ...existing, currentAmount, lastTransaction: transaction });
   }
 
-  // ── EDIT flow ────────────────────────────────────────────────
-  // ✅ Zod validation untuk edit
+  // EDIT flow
   const parsed = savingsGoalSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0].message },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { name, targetAmount, currentAmount, deadline, monthlyContribution } = parsed.data;
+  const { name, targetAmount, deadline, monthlyContribution } = parsed.data;
 
   const goal = await prisma.savingsGoal.update({
     where: { id: body.id },
     data: {
-      name,
-      targetAmount,
-      currentAmount: currentAmount ?? existing.currentAmount,
+      name, targetAmount,
       deadline: deadline ? new Date(deadline) : null,
       monthlyContribution: monthlyContribution ?? null,
+      savingsAccountId: body.savingsAccountId ?? existing.savingsAccountId,
     },
   });
 
@@ -132,13 +121,9 @@ export async function DELETE(request: Request) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await request.json();
-
   const existing = await prisma.savingsGoal.findFirst({ where: { id, userId } });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
-  }
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.savingsGoal.delete({ where: { id } });
-
-  return NextResponse.json({ message: "Deleted" });
+  return NextResponse.json({ success: true });
 }
