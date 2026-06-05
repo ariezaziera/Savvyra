@@ -30,7 +30,7 @@ async function notify(
     data: { userId, type: type as any, title, body, isRead: false, data },
   });
   try {
-    await sendReminderEmail({ to: email, name, title, body, type: emailType, metadata });
+    await sendReminderEmail({ to: email, name, title, body, type: emailType as "salary" | "savings" | "commitment" | "debt" | "investment", metadata });
   } catch (err) {
     console.error(`Email failed for ${email}:`, err);
   }
