@@ -7,42 +7,73 @@ export async function GET(request: Request) {
     const userId = await getUserIdFromRequest(request);
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const now       = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const now        = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear  = now.getFullYear();
 
-    const [transactions, goals, debts, commitments, investments, salaryProfile] = await Promise.all([
+    const [transactions, goals, debts, commitmentInstances, investments, salaryProfile] = await Promise.all([
+      // All transactions for ledger calculations
       prisma.transaction.findMany({ where: { userId } }),
+
+      // Savings goals — current amount derived from transactions
       prisma.savingsGoal.findMany({
-        where: { userId },
-        include: { transactions: { where: { status: "Completed" }, select: { amount: true } } },
+        where: { userId, isArchived: false },
+        include: {
+          transactions: { where: { type: "SAVINGS" }, select: { amount: true } },
+        },
       }),
-      prisma.debt.findMany({ where: { userId, status: "ACTIVE" }, orderBy: { nextPaymentDate: "asc" } }),
-      prisma.commitment.findMany({
-        where: { userId, dueDate: { gte: monthStart, lte: monthEnd } },
+
+      // Active debts
+      prisma.debt.findMany({
+        where: { userId, status: "ACTIVE" },
+        include: {
+          schedules: {
+            where: { status: { in: ["PENDING", "OVERDUE"] } },
+            orderBy: { dueDate: "asc" },
+            take: 1,
+          },
+        },
+      }),
+
+      // Current month commitment instances
+      prisma.commitmentInstance.findMany({
+        where: { userId, month: currentMonth, year: currentYear },
+        include: { commitment: true },
         orderBy: { dueDate: "asc" },
       }),
-      prisma.investment.findMany({ where: { userId, status: "ACTIVE" } }),
+
+      // Active investments
+      prisma.investment.findMany({
+        where: { userId, status: "ACTIVE" },
+        include: {
+          transactions: { where: { type: "INVESTMENT" }, select: { amount: true } },
+        },
+      }),
+
       prisma.salaryProfile.findUnique({ where: { userId } }),
     ]);
 
     // ── Transactions ──────────────────────────────────────────────
-    const income   = transactions.filter((t) => t.type.toLowerCase() === "income").reduce((s, t) => s + t.amount, 0);
-    const expenses = transactions.filter((t) => t.type.toLowerCase() === "expense").reduce((s, t) => s + t.amount, 0);
+    const income   = transactions.filter((t) => t.type === "INCOME").reduce((s, t) => s + t.amount, 0);
+    const expenses = transactions
+      .filter((t) => ["EXPENSE", "COMMITMENT", "DEBT_PAYMENT", "SAVINGS", "INVESTMENT"].includes(t.type))
+      .reduce((s, t) => s + t.amount, 0);
     const balance  = income - expenses;
 
     const expenseByCategoryMap: Record<string, number> = {};
-    transactions.filter((t) => t.type.toLowerCase() === "expense").forEach((t) => {
-      const key = (t.category ?? "").trim() || "Uncategorized";
-      expenseByCategoryMap[key] = (expenseByCategoryMap[key] || 0) + t.amount;
-    });
+    transactions
+      .filter((t) => ["EXPENSE", "COMMITMENT", "DEBT_PAYMENT"].includes(t.type))
+      .forEach((t) => {
+        const key = (t.category ?? "").trim() || "Uncategorized";
+        expenseByCategoryMap[key] = (expenseByCategoryMap[key] || 0) + t.amount;
+      });
     const expenseByCategory = Object.entries(expenseByCategoryMap).map(([name, value]) => ({ name, value }));
 
     const monthlyMap: Record<string, { income: number; expenses: number }> = {};
     transactions.forEach((t) => {
       const month = new Date(t.date).toLocaleString("en-MY", { month: "short", year: "numeric" });
       if (!monthlyMap[month]) monthlyMap[month] = { income: 0, expenses: 0 };
-      if (t.type.toLowerCase() === "income") monthlyMap[month].income += t.amount;
+      if (t.type === "INCOME") monthlyMap[month].income += t.amount;
       else monthlyMap[month].expenses += t.amount;
     });
     const monthlyTrend = Object.entries(monthlyMap).map(([month, v]) => ({ month, ...v }));
@@ -55,26 +86,33 @@ export async function GET(request: Request) {
     const totalSavings = goalsWithProgress.reduce((s, g) => s + g.currentAmount, 0);
 
     // ── Debts ─────────────────────────────────────────────────────
-    const totalDebtRemaining  = debts.reduce((s, d) => s + d.remainingAmount, 0);
-    const totalDebtOriginal   = debts.reduce((s, d) => s + d.totalAmount, 0);
+    const totalDebtRemaining    = debts.reduce((s, d) => s + d.remainingAmount, 0);
+    const totalDebtOriginal     = debts.reduce((s, d) => s + d.totalAmount, 0);
     const totalMonthlyRepayment = debts.reduce((s, d) => s + (d.monthlyPayment || 0), 0);
-    const nextDebtPayment     = debts.find((d) => d.nextPaymentDate)
-      ? { name: debts.find((d) => d.nextPaymentDate)!.name, date: debts.find((d) => d.nextPaymentDate)!.nextPaymentDate, amount: debts.find((d) => d.nextPaymentDate)!.monthlyPayment }
-      : null;
-    const debtPaidPct = totalDebtOriginal > 0 ? Math.round(((totalDebtOriginal - totalDebtRemaining) / totalDebtOriginal) * 100) : 0;
+    const debtPaidPct = totalDebtOriginal > 0
+      ? Math.round(((totalDebtOriginal - totalDebtRemaining) / totalDebtOriginal) * 100)
+      : 0;
+
+    // Next upcoming debt schedule payment
+    const nextDebtPayment = debts
+      .flatMap((d) => d.schedules.map((s) => ({ name: d.name, date: s.dueDate, amount: s.amount })))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] ?? null;
 
     // ── Commitments this month ────────────────────────────────────
-    const paidCommitments   = commitments.filter((c) => c.isPaid);
-    const unpaidCommitments = commitments.filter((c) => !c.isPaid);
-    const overdueCommitments = unpaidCommitments.filter((c) => new Date(c.dueDate) < now);
-    const totalCommitmentsAmt = commitments.reduce((s, c) => s + c.amount, 0);
-    const paidCommitmentsAmt  = paidCommitments.reduce((s, c) => s + c.amount, 0);
-    const nextDueCommitment   = unpaidCommitments[0] ?? null;
+    const paidInstances   = commitmentInstances.filter((i) => i.status === "PAID");
+    const unpaidInstances = commitmentInstances.filter((i) => i.status !== "PAID");
+    const overdueInstances = unpaidInstances.filter((i) => new Date(i.dueDate) < now);
+    const totalCommitmentsAmt = commitmentInstances.reduce((s, i) => s + i.amount, 0);
+    const paidCommitmentsAmt  = paidInstances.reduce((s, i) => s + i.amount, 0);
+    const nextDueInstance     = unpaidInstances[0] ?? null;
 
-    // ── Investments ───────────────────────────────────────────────
-    const totalInvested      = investments.reduce((s, i) => s + i.principalAmount, 0);
-    const totalCurrentValue  = investments.reduce((s, i) => s + (i.currentValue || i.principalAmount), 0);
-    const investmentGainLoss = totalCurrentValue - totalInvested;
+    // ── Investments — balance derived from transactions ───────────
+    const investmentsWithValue = investments.map((inv) => {
+      const totalFunded = inv.transactions.reduce((s, t) => s + t.amount, 0);
+      return { ...inv, currentValue: totalFunded };
+    });
+    const totalInvested     = investmentsWithValue.reduce((s, i) => s + i.currentValue, 0);
+    const totalCurrentValue = totalInvested; // gain/loss tracking via returnRate handled per investment
 
     // ── Net Worth ─────────────────────────────────────────────────
     const netWorth = totalSavings + totalCurrentValue - totalDebtRemaining;
@@ -88,42 +126,45 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
-      // existing
-      balance, income, expenses,
+      balance,
+      income,
+      expenses,
       savings: totalSavings,
-      cashSavings: totalSavings,
-      goldSavings: 0,
       expenseByCategory,
       incomeExpenseSummary: [{ name: "Total", income, expenses }],
       monthlyTrend,
       goals: goalsWithProgress,
-
-      // new
       netWorth,
       debt: {
-        totalRemaining: totalDebtRemaining,
-        totalOriginal:  totalDebtOriginal,
-        paidPct:        debtPaidPct,
+        totalRemaining:   totalDebtRemaining,
+        totalOriginal:    totalDebtOriginal,
+        paidPct:          debtPaidPct,
         monthlyRepayment: totalMonthlyRepayment,
-        nextPayment:    nextDebtPayment,
-        count:          debts.length,
+        nextPayment:      nextDebtPayment,
+        count:            debts.length,
       },
       commitments: {
-        total:         commitments.length,
-        paid:          paidCommitments.length,
-        unpaid:        unpaidCommitments.length,
-        overdue:       overdueCommitments.length,
-        totalAmount:   totalCommitmentsAmt,
-        paidAmount:    paidCommitmentsAmt,
-        nextDue:       nextDueCommitment ? { name: nextDueCommitment.name, date: nextDueCommitment.dueDate, amount: nextDueCommitment.amount } : null,
-        overdueList:   overdueCommitments.map((c) => ({ name: c.name, amount: c.amount, dueDate: c.dueDate })),
+        total:       commitmentInstances.length,
+        paid:        paidInstances.length,
+        unpaid:      unpaidInstances.length,
+        overdue:     overdueInstances.length,
+        totalAmount: totalCommitmentsAmt,
+        paidAmount:  paidCommitmentsAmt,
+        nextDue:     nextDueInstance
+          ? { name: nextDueInstance.commitment.name, date: nextDueInstance.dueDate, amount: nextDueInstance.amount }
+          : null,
+        overdueList: overdueInstances.map((i) => ({
+          name:    i.commitment.name,
+          amount:  i.amount,
+          dueDate: i.dueDate,
+        })),
       },
       investments: {
         totalInvested,
         totalCurrentValue,
-        gainLoss:   investmentGainLoss,
-        gainLossPct: totalInvested > 0 ? Math.round((investmentGainLoss / totalInvested) * 100 * 10) / 10 : 0,
-        count:      investments.length,
+        gainLoss:    0,
+        gainLossPct: 0,
+        count:       investments.length,
       },
       salary: {
         basicSalary:    salaryProfile?.basicSalary ?? null,
