@@ -14,7 +14,6 @@ export async function POST(
   const { id: commitmentId } = await params;
   const body = await request.json();
 
-  // body.instanceId is required
   if (!body.instanceId) {
     return NextResponse.json({ error: "instanceId is required" }, { status: 400 });
   }
@@ -32,12 +31,12 @@ export async function POST(
 
   const now = new Date();
 
-  // Create transaction + mark instance paid in one go
+  // Create transaction + mark instance paid in one atomic operation
   const [transaction, updatedInstance] = await prisma.$transaction([
     prisma.transaction.create({
       data: {
         userId,
-        title: `${instance.commitment.name}`,
+        title: instance.commitment.name,
         description: `Commitment payment — ${instance.month}/${instance.year}`,
         amount: instance.amount,
         type: "COMMITMENT",
@@ -55,16 +54,6 @@ export async function POST(
       },
     }),
   ]);
-
-  // Link transaction back to instance
-  await prisma.commitmentInstance.update({
-    where: { id: instance.id },
-    data: { transactionId: transaction.id },
-  });
-
-  // Check if there were overdue/arrear instances and carry them forward
-  // If this month has arrears from previous months, they're already separate instances
-  // Nothing extra needed — the unique constraint prevents duplicate spawning
 
   return NextResponse.json({ transaction, instance: updatedInstance });
 }
