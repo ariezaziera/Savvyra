@@ -1,4 +1,6 @@
-// app/investments/page.tsx
+"use client"; // ✅ ensures React hooks like useRef work
+export const dynamic = "force-dynamic"; // ✅ allows headers/cookies without static prerender error
+
 import React from "react";
 import InvestmentSummary from "@/components/investments/InvestmentSummary";
 import InvestmentList from "@/components/investments/InvestmentList";
