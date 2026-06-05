@@ -13,21 +13,27 @@ export async function GET(request: Request) {
       include: {
         investments: {
           where: { status: "ACTIVE" },
-          select: { id: true, name: true, type: true, principalAmount: true, currentValue: true, goldGrams: true, goldCurrentPricePerGram: true, goldSellingPricePerGram: true },
+          select: {
+            id: true, name: true, type: true, purpose: true,
+            goldGrams: true, targetGoldGrams: true,
+            transactions: { select: { type: true, amount: true } },
+          },
         },
       },
     });
 
-    // Enrich with totals
     const enriched = accounts.map((acc) => {
-      const totalInvested = acc.investments.reduce((s, i) => s + i.principalAmount, 0);
-      const totalCurrentValue = acc.investments.reduce((s, i) => {
-        if (i.type === "Gold" && i.goldGrams && i.goldCurrentPricePerGram) {
-          return s + i.goldGrams * i.goldCurrentPricePerGram;
-        }
-        return s + i.currentValue;
-      }, 0);
-      return { ...acc, totalInvested, totalCurrentValue, gainLoss: totalCurrentValue - totalInvested };
+      const investments = acc.investments.map((inv) => {
+        const currentValue = inv.transactions.reduce((sum, t) => {
+          if (t.type === "INVESTMENT") return sum + t.amount;
+          if (t.type === "INCOME")     return sum - t.amount;
+          return sum;
+        }, 0);
+        return { ...inv, currentValue };
+      });
+
+      const totalCurrentValue = investments.reduce((s, i) => s + i.currentValue, 0);
+      return { ...acc, investments, totalCurrentValue };
     });
 
     return NextResponse.json(enriched);
@@ -43,13 +49,18 @@ export async function POST(request: Request) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
+    if (!body.name || !body.platform) {
+      return NextResponse.json({ error: "Name and platform are required" }, { status: 400 });
+    }
+
     const account = await prisma.investmentAccount.create({
       data: {
-        user:     { connect: { id: userId } },
+        userId,
         name:     body.name,
         platform: body.platform,
         type:     body.type ?? "General",
         note:     body.note || null,
+        isGold:   body.isGold ?? false,
       },
     });
     return NextResponse.json(account, { status: 201 });
@@ -58,4 +69,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to create investment account" }, { status: 500 });
   }
 }
-
