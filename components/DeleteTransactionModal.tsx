@@ -6,9 +6,19 @@ type Transaction = {
   category: string;
   date: string;
   amount: number;
-  type: "INCOME" | "EXPENSE" | "DEBT" | "COMMITMENT" | "SAVINGS" | "INVESTMENT";
-  status: "Completed" | "Pending";
+  type:
+    | "INCOME"
+    | "EXPENSE"
+    | "SAVINGS"
+    | "INVESTMENT"
+    | "DEBT_PAYMENT"
+    | "DEBT_ADDITION"
+    | "COMMITMENT";
   savingsGoalId?: string | null;
+  investmentId?: string | null;
+  debtId?: string | null;
+  debtScheduleId?: string | null;
+  commitmentInstanceId?: string | null;
 };
 
 type DeleteTransactionModalProps = {
@@ -16,6 +26,16 @@ type DeleteTransactionModalProps = {
   formatCurrency: (amount: number) => string;
   onCancel: () => void;
   onConfirm: () => void;
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  INCOME: "Income",
+  EXPENSE: "Expense",
+  DEBT_PAYMENT: "Debt Payment",
+  DEBT_ADDITION: "Debt Addition",
+  COMMITMENT: "Commitment",
+  SAVINGS: "Savings",
+  INVESTMENT: "Investment",
 };
 
 export default function DeleteTransactionModal({
@@ -27,7 +47,8 @@ export default function DeleteTransactionModal({
   if (!transaction) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
       style={{ background: "rgba(10,5,30,0.75)", backdropFilter: "blur(12px)" }}
     >
       <div
@@ -38,39 +59,26 @@ export default function DeleteTransactionModal({
           boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
         }}
       >
-        {/* Top shine */}
         <div className="absolute inset-x-0 top-0 h-px" style={{ background: "rgba(255,255,255,0.18)" }} />
-
-        {/* Glow orb */}
         <div
           className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full"
           style={{ background: "#E8A0A0", filter: "blur(60px)", opacity: 0.25 }}
         />
 
-        {/* Title */}
-        <h2 className="relative z-10 text-lg font-bold text-white">
-          Delete transaction?
-        </h2>
-
+        <h2 className="relative z-10 text-lg font-bold text-white">Delete transaction?</h2>
         <p className="relative z-10 mt-2 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
           This action cannot be undone. Please confirm the details before deleting.
         </p>
 
-        {/* Transaction detail card */}
         <div
           className="relative z-10 mt-5 rounded-2xl p-4"
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
+          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
         >
           <p className="font-semibold text-white">{transaction.title}</p>
-
           <div className="mt-3 space-y-2">
             {[
               { label: "Category", value: transaction.category },
-              { label: "Type",     value: transaction.type },
-              { label: "Status",   value: transaction.status },
+              { label: "Type",     value: TYPE_LABEL[transaction.type] ?? transaction.type },
               { label: "Amount",   value: formatCurrency(transaction.amount) },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between text-sm">
@@ -81,8 +89,6 @@ export default function DeleteTransactionModal({
                     color:
                       label === "Type"
                         ? transaction.type === "INCOME" ? "#E8C97A" : "#E8A0A0"
-                        : label === "Status"
-                        ? transaction.status === "Completed" ? "#8EE3B5" : "#FFD27D"
                         : label === "Amount"
                         ? "#E2D9FF"
                         : "rgba(255,255,255,0.8)",
@@ -95,7 +101,6 @@ export default function DeleteTransactionModal({
           </div>
         </div>
 
-        {/* Actions */}
         <div className="relative z-10 mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
@@ -109,7 +114,6 @@ export default function DeleteTransactionModal({
           >
             Cancel
           </button>
-
           <button
             type="button"
             onClick={onConfirm}
