@@ -2,15 +2,7 @@
   "regions": ["sin1"],
   "crons": [
     {
-      "path": "/api/cron/salary-notifications",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/savings-notifications",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/commitment-notifications",
+      "path": "/api/cron/notifications",
       "schedule": "0 1 * * *"
     }
   ]
