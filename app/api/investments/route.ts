@@ -7,11 +7,13 @@ const sf = (val: any, fallback = 0): number => {
   return isNaN(n) ? fallback : n;
 };
 
-function calcGoldCurrentValue(inv: any): number {
-  if (inv.type === "Gold" && inv.goldGrams && inv.goldCurrentPricePerGram) {
-    return inv.goldGrams * inv.goldCurrentPricePerGram;
-  }
-  return inv.currentValue ?? inv.principalAmount ?? 0;
+// Compute current value from linked transactions
+function computeValue(transactions: { type: string; amount: number }[]): number {
+  return transactions.reduce((sum, t) => {
+    if (t.type === "INVESTMENT")     return sum + t.amount;   // funding in
+    if (t.type === "INCOME")         return sum - t.amount;   // withdrawal out
+    return sum;
+  }, 0);
 }
 
 export async function GET(request: Request) {
@@ -21,17 +23,17 @@ export async function GET(request: Request) {
 
     const investments = await prisma.investment.findMany({
       where: { userId },
-      orderBy: [{ type: "asc" }, { createdAt: "desc" }],
-      include: { investmentAccount: true },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      include: {
+        investmentAccount: true,
+        transactions: { select: { type: true, amount: true } },
+      },
     });
 
-    const enriched = investments.map((inv) => ({
-      ...inv,
-      currentValue: calcGoldCurrentValue(inv),
-      goldSellingValue: inv.type === "Gold" && inv.goldGrams && inv.goldSellingPricePerGram
-        ? inv.goldGrams * inv.goldSellingPricePerGram
-        : null,
-    }));
+    const enriched = investments.map((inv) => {
+      const currentValue = computeValue(inv.transactions);
+      return { ...inv, currentValue };
+    });
 
     return NextResponse.json(enriched);
   } catch (error) {
@@ -46,51 +48,31 @@ export async function POST(request: Request) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const isGold = body.type === "Gold";
-
-    const goldGrams              = isGold ? sf(body.goldGrams) : null;
-    const goldBuyPricePerGram    = isGold ? sf(body.goldBuyPricePerGram) : null;
-    const goldCurrentPricePerGram= isGold ? sf(body.goldCurrentPricePerGram) : null;
-    const goldSellingPricePerGram= isGold ? sf(body.goldSellingPricePerGram) : null;
-
-    const principalAmount = isGold && goldGrams && goldBuyPricePerGram
-      ? goldGrams * goldBuyPricePerGram
-      : sf(body.principalAmount);
-
-    const currentValue = isGold && goldGrams && goldCurrentPricePerGram
-      ? goldGrams * goldCurrentPricePerGram
-      : sf(body.currentValue, principalAmount);
+    if (!body.name || !body.investmentAccountId) {
+      return NextResponse.json({ error: "Name and investment account are required" }, { status: 400 });
+    }
 
     const investment = await prisma.investment.create({
       data: {
-        user:               { connect: { id: userId } },
-        ...(body.investmentAccountId ? { investmentAccount: { connect: { id: body.investmentAccountId } } } : {}),
+        userId,
+        investmentAccountId: body.investmentAccountId,
         name:               body.name,
-        platform:           body.platform    || null,
-        type:               body.type        ?? "General",
-        subType:            body.subType     || null,
-        principalAmount,
-        currentValue,
+        purpose:            body.purpose             || null,
+        type:               body.type                ?? "General",
+        subType:            body.subType             || null,
         monthlyContribution: sf(body.monthlyContribution),
         returnRate:          sf(body.returnRate),
         startDate:           body.startDate    ? new Date(body.startDate)    : new Date(),
         maturityDate:        body.maturityDate ? new Date(body.maturityDate) : null,
         status:              body.status       ?? "ACTIVE",
+        goldGrams:           body.goldGrams    ? sf(body.goldGrams)          : null,
+        targetGoldGrams:     body.targetGoldGrams ? sf(body.targetGoldGrams) : null,
         note:                body.note         || null,
-        goldGrams,
-        goldBuyPricePerGram,
-        goldCurrentPricePerGram,
-        goldSellingPricePerGram,
       },
       include: { investmentAccount: true },
     });
 
-    return NextResponse.json({
-      ...investment,
-      goldSellingValue: isGold && investment.goldGrams && investment.goldSellingPricePerGram
-        ? investment.goldGrams * investment.goldSellingPricePerGram
-        : null,
-    }, { status: 201 });
+    return NextResponse.json({ ...investment, currentValue: 0 }, { status: 201 });
   } catch (error) {
     console.error("POST /api/investments error:", error);
     return NextResponse.json({ error: "Failed to create investment" }, { status: 500 });
