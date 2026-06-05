@@ -10,6 +10,12 @@ export async function GET(request: Request) {
     const accounts = await prisma.savingsAccount.findMany({
       where: { userId },
       orderBy: { createdAt: "asc" },
+      include: {
+        savingsGoals: {
+          where: { isArchived: false },
+          select: { id: true, name: true, targetAmount: true },
+        },
+      },
     });
     return NextResponse.json(accounts);
   } catch (error) {
@@ -24,15 +30,16 @@ export async function POST(request: Request) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const balance = parseFloat(body.balance);
+    if (!body.name || !body.bank) {
+      return NextResponse.json({ error: "Name and bank are required" }, { status: 400 });
+    }
 
     const account = await prisma.savingsAccount.create({
       data: {
-        user:    { connect: { id: userId } },
-        name:    body.name,
-        bank:    body.bank,
-        balance: isNaN(balance) ? 0 : balance,
-        note:    body.note || null,
+        userId,
+        name: body.name,
+        bank: body.bank,
+        note: body.note || null,
       },
     });
     return NextResponse.json(account, { status: 201 });
