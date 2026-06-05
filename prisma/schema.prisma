@@ -26,7 +26,6 @@ model User {
   accounts            Account[]
   sessions            Session[]
   webAuthnCredentials WebAuthnCredential[]
-  // App relations
   salaryProfile       SalaryProfile?
   salaryMonths        SalaryMonth[]
   savingsAccounts     SavingsAccount[]
@@ -292,7 +291,6 @@ model Transaction {
   category             String          @default("General")
   date                 DateTime        @default(now())
   note                 String?
-  // Module links
   savingsGoalId        String?
   investmentId         String?
   debtId               String?
@@ -354,6 +352,9 @@ model SalaryMonth {
   doublePayHours     Float           @default(0)
   doublePayRate      Float           @default(2.0)
   unpaidLeaveDays    Float           @default(0)
+  annualLeaveDays    Float           @default(0)
+  medicalLeaveDays   Float           @default(0)
+  replacementDays    Float           @default(0)
   dailyRateFormula   String          @default("basic/26")
   hoursPerDay        Float           @default(7.5)
   epfRate            Float
@@ -388,7 +389,7 @@ model SalaryPlanItem {
   userId        String
   label         String
   amount        Float
-  sourceType    String?     // DEBT | COMMITMENT | SAVINGS | INVESTMENT | CUSTOM
+  sourceType    String?
   sourceId      String?
   isIncluded    Boolean     @default(true)
   sortOrder     Int         @default(0)
