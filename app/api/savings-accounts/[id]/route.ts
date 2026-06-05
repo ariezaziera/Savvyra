@@ -13,15 +13,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await request.json();
-    const balance = parseFloat(body.balance);
 
     const updated = await prisma.savingsAccount.update({
       where: { id },
       data: {
-        name:    body.name    ?? account.name,
-        bank:    body.bank    ?? account.bank,
-        balance: body.balance !== undefined ? (isNaN(balance) ? account.balance : balance) : account.balance,
-        note:    body.note    ?? account.note,
+        name: body.name ?? account.name,
+        bank: body.bank ?? account.bank,
+        note: body.note ?? account.note,
       },
     });
     return NextResponse.json(updated);
