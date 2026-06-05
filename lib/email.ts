@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-type ReminderType = "salary" | "savings" | "commitment";
+type ReminderType = "salary" | "savings" | "commitment" | "debt" | "investment";
 
 type ReminderMetadata = {
   label?: string;
@@ -16,6 +16,8 @@ const TYPE_CONFIG: Record<ReminderType, { icon: string; color: string; accentCol
   salary:     { icon: "💰", color: "#C4B5FD", accentColor: "#6A49FA" },
   savings:    { icon: "🐷", color: "#8EE3B5", accentColor: "#38A169" },
   commitment: { icon: "💸", color: "#FF8C8C", accentColor: "#E53E3E" },
+  debt:       { icon: "🏦", color: "#FBB040", accentColor: "#D97706" },
+  investment: { icon: "📈", color: "#67E8F9", accentColor: "#0891B2" },
 };
 
 export async function sendReminderEmail({
@@ -55,7 +57,7 @@ export async function sendReminderEmail({
   // Metadata card
   const metaCard = metadata?.dueDate || metadata?.amount
     ? `
-      <div style="background:rgba(${type === "commitment" ? "255,140,140" : type === "savings" ? "142,227,181" : "106,73,250"},0.12);border:1px solid rgba(${type === "commitment" ? "255,140,140" : type === "savings" ? "142,227,181" : "196,181,253"},0.25);border-radius:16px;padding:14px 16px;margin-top:16px;">
+      <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:14px 16px;margin-top:16px;">
         ${metadata.label ? `<p style="color:rgba(255,255,255,0.45);font-size:11px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.5px;">${metadata.label}</p>` : ""}
         ${metadata.amount !== undefined ? `<p style="color:${config.color};font-size:18px;font-weight:700;margin:0 0 4px;">RM${metadata.amount.toLocaleString("en-MY", { minimumFractionDigits: 2 })}</p>` : ""}
         ${metadata.dueDate ? `<p style="color:rgba(255,255,255,0.40);font-size:12px;margin:0;">Due: ${metadata.dueDate}</p>` : ""}
