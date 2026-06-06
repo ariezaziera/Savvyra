@@ -159,7 +159,11 @@ export default function Home() {
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.45, ease:"easeOut" }} className="space-y-5">
 
             {/* Quick Actions */}
-            <QuickActions />
+            <QuickActions onDataChanged={async () => {
+              const [dashRes, goalsRes] = await Promise.all([fetch("/api/dashboard"), fetch("/api/savings-goals")]);
+              setData(await dashRes.json());
+              setGoals(await goalsRes.json());
+            }} />
 
             {/* Net Worth + Stats */}
             <DashboardStats stats={stats} formatCurrency={formatCurrency} netWorth={data?.netWorth ?? 0} />
