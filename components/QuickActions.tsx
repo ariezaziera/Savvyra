@@ -27,11 +27,13 @@ function Modal({ title, subtitle, icon: Icon, iconColor, onClose, children }: {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.97 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-3xl border border-white/12 bg-[#16102e]/95 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden"
+      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-3xl border border-white/12 bg-[#16102e]/95 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col"
+      style={{ maxHeight: "88vh" }}
     >
-      <div className="absolute inset-x-0 top-0 h-px bg-white/15" />
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-4">
+      <div className="absolute inset-x-0 top-0 h-px bg-white/15 z-10" />
+
+      {/* Header — fixed, never scrolls */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className={`flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/8 ${iconColor}`}>
             <Icon size={18} />
@@ -41,12 +43,16 @@ function Modal({ title, subtitle, icon: Icon, iconColor, onClose, children }: {
             <h3 className="text-base font-bold text-white leading-tight">{title}</h3>
           </div>
         </div>
-        <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/50 hover:text-white transition-colors">
+        <button
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/6 text-white/50 hover:text-white transition-colors"
+        >
           <X size={15} />
         </button>
       </div>
-      {/* Body */}
-      <div className="px-5 pb-5 space-y-3">
+
+      {/* Body — scrollable */}
+      <div className="px-5 pb-6 overflow-y-auto flex-1">
         {children}
       </div>
     </motion.div>
@@ -70,7 +76,7 @@ function SubmitBtn({ label, loading, disabled }: { label: string; loading: boole
     <button
       type="submit"
       disabled={disabled || loading}
-      className="w-full rounded-2xl bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(106,73,250,0.4)] transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full rounded-2xl bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(106,73,250,0.4)] transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mt-1"
     >
       {loading ? "Saving…" : label}
     </button>
