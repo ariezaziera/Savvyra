@@ -75,6 +75,13 @@ export default function SalaryCalculatorTab({
     setInputs((p) => ({ ...p, customDeductions: p.customDeductions.filter((_, idx) => idx !== i) }));
   };
 
+  const hasAnyDeduction =
+    breakdown.unpaidLeaveDeduction > 0 ||
+    deductEPF ||
+    deductSOCSO ||
+    deductEIS ||
+    inputs.customDeductions.length > 0;
+
   return (
     <div className="space-y-5">
       {/* Pay Period */}
@@ -363,28 +370,51 @@ export default function SalaryCalculatorTab({
       <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-linear-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl shadow-[0_8px_40px_rgba(106,73,250,0.25)]">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
         <h3 className="mb-5 text-sm font-semibold text-white/60 uppercase tracking-wider">Expected Breakdown</h3>
+
+        {/* Earnings */}
         <div className="space-y-3 text-sm">
           {[
-            { label: "Basic Pay",           value: breakdown.basicPay,           color: "text-white"     },
-            { label: "Allowances",          value: breakdown.allowanceTotal,     color: "text-[#8EE3B5]" },
-            breakdown.reimbursementTotal > 0 ? { label: "Reimbursements", value: breakdown.reimbursementTotal, color: "text-[#8EE3B5]" } : null,
-            breakdown.allowanceCut > 0       ? { label: "Allowance Cut (absent)", value: -breakdown.allowanceCut, color: "text-[#FF8C8C]" } : null,
-            breakdown.unpaidLeaveDeduction > 0 ? { label: "Unpaid Leave Deduction", value: -breakdown.unpaidLeaveDeduction, color: "text-[#FF8C8C]" } : null,
-            breakdown.otEarnings > 0         ? { label: `OT (${inputs.otHours}h × ${inputs.otRate}×)`, value: breakdown.otEarnings, color: "text-[#FBD38D]" } : null,
-            breakdown.doublePayEarnings > 0  ? { label: `Double Pay (${inputs.doublePayHours}h × ${inputs.doublePayRate}×)`, value: breakdown.doublePayEarnings, color: "text-[#FBD38D]" } : null,
+            { label: "Basic Pay",       value: breakdown.basicPay,           color: "text-white"     },
+            { label: "Allowances",      value: breakdown.allowanceTotal,     color: "text-[#8EE3B5]" },
+            breakdown.reimbursementTotal > 0
+              ? { label: "Reimbursements", value: breakdown.reimbursementTotal, color: "text-[#8EE3B5]" }
+              : null,
+            breakdown.allowanceCut > 0
+              ? { label: "Allowance Cut (absent)", value: -breakdown.allowanceCut, color: "text-[#FF8C8C]" }
+              : null,
+            breakdown.otEarnings > 0
+              ? { label: `OT (${inputs.otHours}h × ${inputs.otRate}×)`, value: breakdown.otEarnings, color: "text-[#FBD38D]" }
+              : null,
+            breakdown.doublePayEarnings > 0
+              ? { label: `Double Pay (${inputs.doublePayHours}h × ${inputs.doublePayRate}×)`, value: breakdown.doublePayEarnings, color: "text-[#FBD38D]" }
+              : null,
           ].filter(Boolean).map((row: any) => (
             <div key={row.label} className="flex justify-between">
               <span className="text-white/55">{row.label}</span>
-              <span className={row.color}>{fmt(Math.abs(row.value))}{row.value < 0 ? " (−)" : ""}</span>
+              <span className={row.color}>
+                {row.value < 0 ? `− ${fmt(Math.abs(row.value))}` : fmt(row.value)}
+              </span>
             </div>
           ))}
         </div>
+
+        {/* Gross */}
         <div className="my-4 border-t border-white/10" />
         <div className="flex justify-between text-sm">
           <span className="text-white/55">Gross Salary</span>
           <span className="font-semibold text-white">{fmt(breakdown.grossSalary)}</span>
         </div>
+
+        {/* Deductions — unpaid leave first, then statutory, then custom */}
         <div className="mt-3 space-y-2 text-sm">
+          {breakdown.unpaidLeaveDeduction > 0 && (
+            <div className="flex justify-between">
+              <span className="text-white/45">
+                Unpaid Leave ({inputs.unpaidLeaveDays}d)
+              </span>
+              <span className="text-[#FF8C8C]">− {fmt(breakdown.unpaidLeaveDeduction)}</span>
+            </div>
+          )}
           {deductEPF && (
             <div className="flex justify-between">
               <span className="text-white/45">EPF (Third Schedule, 11%)</span>
@@ -403,16 +433,26 @@ export default function SalaryCalculatorTab({
               <span className="text-[#FF8C8C]">− {fmt(breakdown.eisAmount)}</span>
             </div>
           )}
-          {!deductEPF && !deductSOCSO && !deductEIS && (
-            <p className="text-xs text-white/30 italic">No statutory deductions applied.</p>
-          )}
           {inputs.customDeductions.map((d, i) => (
             <div key={i} className="flex justify-between">
               <span className="text-white/45">{d.name || "Custom"}</span>
               <span className="text-[#FF8C8C]">− {fmt(d.amount)}</span>
             </div>
           ))}
+          {!hasAnyDeduction && (
+            <p className="text-xs text-white/30 italic">No deductions applied.</p>
+          )}
         </div>
+
+        {/* Total Deductions subtotal */}
+        {breakdown.totalDeductions > 0 && (
+          <div className="mt-3 flex justify-between text-sm border-t border-white/10 pt-3">
+            <span className="text-white/55">Total Deductions</span>
+            <span className="font-semibold text-[#FF8C8C]">− {fmt(breakdown.totalDeductions)}</span>
+          </div>
+        )}
+
+        {/* Net */}
         <div className="my-4 border-t border-white/10" />
         <div className="flex justify-between items-center">
           <span className="text-base font-bold text-white">Expected Net</span>
@@ -422,10 +462,17 @@ export default function SalaryCalculatorTab({
 
       {/* Save buttons */}
       <div className="flex gap-3">
-        <button onClick={saveProfile} disabled={saving} className="flex-1 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white">
+        <button
+          onClick={saveProfile}
+          disabled={saving}
+          className="flex-1 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
+        >
           Save as Default Profile
         </button>
-        <button onClick={onPlanClick} className="flex-1 rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98]">
+        <button
+          onClick={onPlanClick}
+          className="flex-1 rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(106,73,250,0.55)] active:scale-[0.98]"
+        >
           Plan This Month →
         </button>
       </div>
