@@ -27,8 +27,7 @@ function Modal({ title, subtitle, icon: Icon, iconColor, onClose, children }: {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.97 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-3xl border border-white/12 bg-[#16102e]/95 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden flex flex-col"
-      style={{ maxHeight: "88vh" }}
+      className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-50 mx-auto max-w-md rounded-3xl border border-white/12 bg-[#16102e]/95 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.6)] overflow-hidden"
     >
       <div className="absolute inset-x-0 top-0 h-px bg-white/15 z-10" />
 
