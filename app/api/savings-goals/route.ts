@@ -47,8 +47,9 @@ export async function POST(request: Request) {
 
   const goal = await prisma.savingsGoal.create({
     data: {
-      userId, name, targetAmount,
-      currentAmount: 0,
+      userId,
+      name,
+      targetAmount,
       deadline: deadline ? new Date(deadline) : null,
       monthlyContribution: monthlyContribution ?? null,
       savingsAccountId: body.savingsAccountId ?? null,
@@ -66,7 +67,7 @@ export async function PUT(request: Request) {
   const existing = await prisma.savingsGoal.findFirst({ where: { id: body.id, userId } });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // TOP UP flow — create a SAVINGS transaction, no direct currentAmount update
+  // TOP UP flow — create a SAVINGS transaction
   if (body.topUpAmount !== undefined) {
     const topUpAmount = Number(body.topUpAmount);
     if (isNaN(topUpAmount) || topUpAmount <= 0) {
@@ -85,7 +86,6 @@ export async function PUT(request: Request) {
       },
     });
 
-    // Return updated goal with recomputed currentAmount
     const allTx = await prisma.transaction.findMany({
       where: { savingsGoalId: existing.id, type: "SAVINGS" },
       select: { amount: true },
@@ -106,7 +106,8 @@ export async function PUT(request: Request) {
   const goal = await prisma.savingsGoal.update({
     where: { id: body.id },
     data: {
-      name, targetAmount,
+      name,
+      targetAmount,
       deadline: deadline ? new Date(deadline) : null,
       monthlyContribution: monthlyContribution ?? null,
       savingsAccountId: body.savingsAccountId ?? existing.savingsAccountId,
