@@ -13,7 +13,7 @@ type Props = {
     totalAmount: number;
     paidAmount: number;
     nextDue: { name: string; date: string; amount: number } | null;
-    overdueList: { name: string; amount: number; dueDate: string }[];
+    overdueList: { name: string; amount: number; date: string }[];
   };
 };
 
