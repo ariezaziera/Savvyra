@@ -5,7 +5,7 @@ import PageContainer from "@/components/PageContainer";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calculator, CalendarDays, History } from "lucide-react";
 import { calcSalary, type SalaryInputs } from "@/lib/salaryCalc";
-import { type AllocationItem, type SalaryMonth } from "@/components/salary/SalaryShared";
+import { type PlanItem, type SalaryMonth } from "@/components/salary/SalaryShared";
 import SalaryCalculatorTab from "@/components/salary/SalaryCalculatorTab";
 import SalaryPlanTab from "@/components/salary/SalaryPlanTab";
 import SalaryHistoryTab from "@/components/salary/SalaryHistoryTab";
@@ -36,24 +36,21 @@ const defaultProfile: SalaryInputs = {
 };
 
 export default function SalaryPage() {
-  const [tab, setTab] = useState<"calculator" | "plan" | "history">("calculator");
+  const [tab, setTab]       = useState<"calculator" | "plan" | "history">("calculator");
   const [months, setMonths] = useState<SalaryMonth[]>([]);
-  const [toast, setToast] = useState("");
+  const [toast, setToast]   = useState("");
   const [saving, setSaving] = useState(false);
   const [calcMonth, setCalcMonth] = useState(now.getMonth() + 1);
   const [calcYear, setCalcYear]   = useState(now.getFullYear());
   const [inputs, setInputs]       = useState<SalaryInputs>(defaultProfile);
-  const [allocations, setAllocations]     = useState<AllocationItem[]>([]);
-  const [newAllocCat, setNewAllocCat]     = useState<AllocationItem["category"]>("savings");
-  const [newAllocLabel, setNewAllocLabel] = useState("");
-  const [newAllocAmt, setNewAllocAmt]     = useState("");
+  const [planItems, setPlanItems] = useState<PlanItem[]>([]);
 
   const [salaryBasis, setSalaryBasis] = useState<"monthly" | "daily">("monthly");
   const [daysWorked, setDaysWorked]   = useState(0);
   const [deductEPF, setDeductEPF]     = useState(true);
   const [deductSOCSO, setDeductSOCSO] = useState(true);
   const [deductEIS, setDeductEIS]     = useState(true);
-  const [salaryDay, setSalaryDay]     = useState(2);
+  const [salaryDay, setSalaryDay]     = useState(25);
 
   useEffect(() => {
     setInputs((p) => ({ ...p, month: calcMonth, year: calcYear }));
@@ -90,7 +87,7 @@ export default function SalaryPage() {
           setDeductEPF(data.deductEPF ?? true);
           setDeductSOCSO(data.deductSOCSO ?? true);
           setDeductEIS(data.deductEIS ?? true);
-          setSalaryDay(data.salaryDay ?? 2);
+          setSalaryDay(data.salaryDay ?? 25);
         }
       })
       .catch(() => {});
@@ -122,14 +119,7 @@ export default function SalaryPage() {
     await fetch("/api/salary/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...inputs,
-        salaryBasis,
-        deductEPF,
-        deductSOCSO,
-        deductEIS,
-        salaryDay,
-      }),
+      body: JSON.stringify({ ...inputs, salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay }),
     });
     setSaving(false);
     showToast("Profile saved ✨");
@@ -139,21 +129,20 @@ export default function SalaryPage() {
     const existing = months.find((m) => m.month === calcMonth && m.year === calcYear);
     if (existing) { showToast("Month already saved! Go to History to view."); return; }
     setSaving(true);
-    const payload = {
-      ...inputs,
-      month: calcMonth,
-      year: calcYear,
-      salaryBasis,
-      daysWorked,
-      deductEPF,
-      deductSOCSO,
-      deductEIS,
-      allocations,
-    };
     const res = await fetch("/api/salary/months", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...inputs,
+        month: calcMonth,
+        year: calcYear,
+        salaryBasis,
+        daysWorked,
+        deductEPF,
+        deductSOCSO,
+        deductEIS,
+        planItems,
+      }),
     });
     if (res.ok) {
       const record = await res.json();
@@ -164,6 +153,7 @@ export default function SalaryPage() {
         body: JSON.stringify({ ...inputs, salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay }),
       });
       showToast("Salary plan saved! ✅");
+      setPlanItems([]);
     }
     setSaving(false);
   };
@@ -198,12 +188,9 @@ export default function SalaryPage() {
             { key: "plan",       label: "Monthly Plan", Icon: CalendarDays },
             { key: "history",    label: "History",      Icon: History      },
           ] as const).map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
+            <button key={key} onClick={() => setTab(key)}
               className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
-                ${tab === key ? "bg-[#6A49FA]/30 text-[#C4B5FD] shadow-[inset_0_0_0_1px_rgba(196,181,253,0.3)]" : "text-white/45 hover:text-white"}`}
-            >
+                ${tab === key ? "bg-[#6A49FA]/30 text-[#C4B5FD] shadow-[inset_0_0_0_1px_rgba(196,181,253,0.3)]" : "text-white/45 hover:text-white"}`}>
               <Icon size={15} />
               <span className="hidden sm:inline">{label}</span>
             </button>
@@ -234,10 +221,7 @@ export default function SalaryPage() {
               <SalaryPlanTab
                 calcMonth={calcMonth} calcYear={calcYear}
                 breakdown={breakdown}
-                allocations={allocations} setAllocations={setAllocations}
-                newAllocCat={newAllocCat} setNewAllocCat={setNewAllocCat}
-                newAllocLabel={newAllocLabel} setNewAllocLabel={setNewAllocLabel}
-                newAllocAmt={newAllocAmt} setNewAllocAmt={setNewAllocAmt}
+                planItems={planItems} setPlanItems={setPlanItems}
                 saving={saving} saveMonth={saveMonth}
               />
             </motion.div>
