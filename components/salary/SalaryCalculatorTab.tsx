@@ -399,7 +399,7 @@ export default function SalaryCalculatorTab({
         </div>
 
         {/* Gross */}
-        <div className="border-t border-white/10" />
+        <div className="mt-5 border-t border-white/10" />
         <div className="flex justify-between text-sm py-3 border-b border-white/10">
           <span className="text-white/55">Gross Salary</span>
           <span className="font-semibold text-white">{fmt(breakdown.grossSalary)}</span>
