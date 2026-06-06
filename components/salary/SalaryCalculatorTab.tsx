@@ -359,70 +359,31 @@ export default function SalaryCalculatorTab({
         </div>
       </SectionCard>
 
-            {/* Live Breakdown */}
+      {/* Live Breakdown */}
       <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-linear-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl shadow-[0_8px_40px_rgba(106,73,250,0.25)]">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
         <h3 className="mb-5 text-sm font-semibold text-white/60 uppercase tracking-wider">Expected Breakdown</h3>
         <div className="space-y-3 text-sm">
-          {/* Basic pay — already net of unpaid leave, shown with context */}
-          <div className="flex justify-between">
-            <div>
-              <span className="text-white/55">Basic Pay</span>
-              {breakdown.unpaidLeaveDeduction > 0 && (
-                <span className="ml-2 text-xs text-[#FF8C8C]/70">
-                  (after {inputs.unpaidLeaveDays}d unpaid leave)
-                </span>
-              )}
+          {[
+            { label: "Basic Pay",           value: breakdown.basicPay,           color: "text-white"     },
+            { label: "Allowances",          value: breakdown.allowanceTotal,     color: "text-[#8EE3B5]" },
+            breakdown.reimbursementTotal > 0 ? { label: "Reimbursements", value: breakdown.reimbursementTotal, color: "text-[#8EE3B5]" } : null,
+            breakdown.allowanceCut > 0       ? { label: "Allowance Cut (absent)", value: -breakdown.allowanceCut, color: "text-[#FF8C8C]" } : null,
+            breakdown.unpaidLeaveDeduction > 0 ? { label: "Unpaid Leave Deduction", value: -breakdown.unpaidLeaveDeduction, color: "text-[#FF8C8C]" } : null,
+            breakdown.otEarnings > 0         ? { label: `OT (${inputs.otHours}h × ${inputs.otRate}×)`, value: breakdown.otEarnings, color: "text-[#FBD38D]" } : null,
+            breakdown.doublePayEarnings > 0  ? { label: `Double Pay (${inputs.doublePayHours}h × ${inputs.doublePayRate}×)`, value: breakdown.doublePayEarnings, color: "text-[#FBD38D]" } : null,
+          ].filter(Boolean).map((row: any) => (
+            <div key={row.label} className="flex justify-between">
+              <span className="text-white/55">{row.label}</span>
+              <span className={row.color}>{fmt(Math.abs(row.value))}{row.value < 0 ? " (−)" : ""}</span>
             </div>
-            <span className="text-white">{fmt(breakdown.basicPay)}</span>
-          </div>
-
-          {/* Allowances — only if any */}
-          {breakdown.allowanceTotal > 0 && (
-            <div className="flex justify-between">
-              <div>
-                <span className="text-white/55">Allowances</span>
-                {breakdown.allowanceCut > 0 && (
-                  <span className="ml-2 text-xs text-[#FF8C8C]/70">
-                    (− {fmt(breakdown.allowanceCut)} cut)
-                  </span>
-                )}
-              </div>
-              <span className="text-[#8EE3B5]">{fmt(breakdown.allowanceTotal)}</span>
-            </div>
-          )}
-
-          {/* Reimbursements — only if any */}
-          {breakdown.reimbursementTotal > 0 && (
-            <div className="flex justify-between">
-              <span className="text-white/55">Reimbursements</span>
-              <span className="text-[#8EE3B5]">{fmt(breakdown.reimbursementTotal)}</span>
-            </div>
-          )}
-
-          {/* OT — only if any */}
-          {breakdown.otEarnings > 0 && (
-            <div className="flex justify-between">
-              <span className="text-white/55">OT ({inputs.otHours}h × {inputs.otRate}×)</span>
-              <span className="text-[#FBD38D]">{fmt(breakdown.otEarnings)}</span>
-            </div>
-          )}
-
-          {/* Double pay — only if any */}
-          {breakdown.doublePayEarnings > 0 && (
-            <div className="flex justify-between">
-              <span className="text-white/55">Double Pay ({inputs.doublePayHours}h × {inputs.doublePayRate}×)</span>
-              <span className="text-[#FBD38D]">{fmt(breakdown.doublePayEarnings)}</span>
-            </div>
-          )}
+          ))}
         </div>
-
         <div className="my-4 border-t border-white/10" />
         <div className="flex justify-between text-sm">
           <span className="text-white/55">Gross Salary</span>
           <span className="font-semibold text-white">{fmt(breakdown.grossSalary)}</span>
         </div>
-
         <div className="mt-3 space-y-2 text-sm">
           {deductEPF && (
             <div className="flex justify-between">
@@ -452,14 +413,12 @@ export default function SalaryCalculatorTab({
             </div>
           ))}
         </div>
-
         <div className="my-4 border-t border-white/10" />
         <div className="flex justify-between items-center">
           <span className="text-base font-bold text-white">Expected Net</span>
           <span className="text-2xl font-bold text-[#C4B5FD]">{fmt(breakdown.expectedNet)}</span>
         </div>
       </div>
-
 
       {/* Save buttons */}
       <div className="flex gap-3">
