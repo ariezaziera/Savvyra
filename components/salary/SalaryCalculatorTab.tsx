@@ -399,7 +399,7 @@ export default function SalaryCalculatorTab({
         </div>
 
         {/* Gross */}
-        <div className="my-4 border-t border-white/10" />
+        <div className="border-t border-white/10" />
         <div className="flex justify-between text-sm py-3 border-b border-white/10">
           <span className="text-white/55">Gross Salary</span>
           <span className="font-semibold text-white">{fmt(breakdown.grossSalary)}</span>
@@ -446,7 +446,7 @@ export default function SalaryCalculatorTab({
 
         {/* Total Deductions subtotal */}
         {breakdown.totalDeductions > 0 && (
-          <div className="mt-3 flex justify-between text-sm border-t border-b border-white/10 py-3">
+          <div className="mt-3 flex justify-between text-sm border-t border-white/10 py-3">
             <span className="text-white/55">Total Deductions</span>
             <span className="font-semibold text-[#FF8C8C]">− {fmt(breakdown.totalDeductions)}</span>
           </div>
