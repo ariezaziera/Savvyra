@@ -138,16 +138,22 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
   const dailyRate  = calcDailyRate(basicSalary, dailyRateFormula);
   const hourlyRate = dailyRate / hoursPerDay;
 
+  // ── Basic Pay ──
+  // For monthly: gross uses FULL basic salary.
+  // Unpaid leave deduction moves to deductions section (not subtracted from gross).
+  // For daily basis: paid per day worked, no unpaid leave concept.
   let basicPay: number;
   let unpaidLeaveDeduction = 0;
 
   if (salaryBasis === "daily") {
     basicPay = dailyRate * daysWorked;
   } else {
+    basicPay = basicSalary; // full basic — unpaid leave handled separately below
     unpaidLeaveDeduction = (basicSalary / periodDays) * unpaidLeaveDays;
-    basicPay = basicSalary - unpaidLeaveDeduction;
   }
 
+  // ── Allowances ──
+  // cutOnAbsent allowances are still cut from the gross (per payslip convention)
   let allowanceTotal     = 0;
   let allowanceCut       = 0;
   let reimbursementTotal = 0;
@@ -174,15 +180,21 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
 
   const otEarnings        = hourlyRate * otRate * otHours;
   const doublePayEarnings = hourlyRate * doublePayRate * doublePayHours;
-  const grossSalary       = basicPay + allowanceTotal + reimbursementTotal + otEarnings + doublePayEarnings;
-  const epfBase           = basicPay;
-  const socsoEisBase      = basicPay + allowanceTotal + otEarnings + doublePayEarnings;
+
+  // Gross = full basic + allowances (after cut) + reimbursements + OT
+  // Unpaid leave is NOT subtracted here — it goes into deductions
+  const grossSalary = basicPay + allowanceTotal + reimbursementTotal + otEarnings + doublePayEarnings;
+
+  // EPF base = basic after unpaid leave deduction (statutory basis)
+  // SOCSO/EIS base = same (basic after leave + taxable allowances + OT)
+  const epfBase      = basicPay - unpaidLeaveDeduction;
+  const socsoEisBase = basicPay - unpaidLeaveDeduction + allowanceTotal + otEarnings + doublePayEarnings;
 
   const epfAmount         = deductEPF    ? calcEPF(epfBase)        : 0;
   const socsoAmount       = deductSOCSO  ? calcSOCSO(socsoEisBase) : 0;
   const eisAmount         = deductEIS    ? calcEIS(socsoEisBase)   : 0;
   const customDeductTotal = customDeductions.reduce((s, d) => s + d.amount, 0);
-  const totalDeductions   = epfAmount + socsoAmount + eisAmount + customDeductTotal;
+  const totalDeductions   = unpaidLeaveDeduction + epfAmount + socsoAmount + eisAmount + customDeductTotal;
   const expectedNet       = grossSalary - totalDeductions;
 
   return {
