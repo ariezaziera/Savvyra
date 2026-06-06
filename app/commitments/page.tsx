@@ -106,7 +106,10 @@ export default function CommitmentsPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/commitments");
-      if (res.ok) setCommitments(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setCommitments(Array.isArray(data) ? data : data.commitments ?? data.data ?? []);
+      }
     } finally { setLoading(false); }
   };
 
