@@ -1,22 +1,27 @@
 export const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-export const ALLOCATION_CATEGORIES = ["savings","commitments","spends","debts","investment"] as const;
-export const CATEGORY_COLORS: Record<string, string> = {
-  savings:     "text-[#8EE3B5] bg-[#8EE3B5]/15",
-  commitments: "text-[#C4B5FD] bg-[#C4B5FD]/15",
-  spends:      "text-[#FBD38D] bg-[#FBD38D]/15",
-  debts:       "text-[#FF8C8C] bg-[#FF8C8C]/15",
-  investment:  "text-[#93C5FD] bg-[#93C5FD]/15",
+
+export const SOURCE_TYPES = ["DEBT","COMMITMENT","SAVINGS","INVESTMENT","CUSTOM"] as const;
+export type SourceType = typeof SOURCE_TYPES[number];
+
+export const SOURCE_COLORS: Record<string, string> = {
+  DEBT:       "text-[#FF8C8C] bg-[#FF8C8C]/15",
+  COMMITMENT: "text-[#C4B5FD] bg-[#C4B5FD]/15",
+  SAVINGS:    "text-[#8EE3B5] bg-[#8EE3B5]/15",
+  INVESTMENT: "text-[#93C5FD] bg-[#93C5FD]/15",
+  CUSTOM:     "text-[#FBD38D] bg-[#FBD38D]/15",
 };
 
 export const fmt = (n: number) =>
   "RM " + n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export type AllocationItem = {
-  category: "savings" | "commitments" | "spends" | "debts" | "investment";
+export type PlanItem = {
+  id?: string;
   label: string;
   amount: number;
-  isFulfilled: boolean;
-  transactionId?: string;
+  sourceType: SourceType;
+  sourceId?: string | null;
+  isIncluded: boolean;
+  sortOrder?: number;
 };
 
 export type SalaryMonth = {
@@ -37,13 +42,22 @@ export type SalaryMonth = {
   otHours: number;
   doublePayHours: number;
   grossSalary: number;
+  epfRate: number;
+  socsoRate: number;
+  eisRate: number;
   epfAmount: number;
   socsoAmount: number;
   eisAmount: number;
   customDeductTotal: number;
   expectedNet: number;
   actualNet: number | null;
-  allocations: AllocationItem[];
+  bankBalance: number | null;
+  fixedReserve: number | null;
+  usableBalance: number | null;
+  planItems: PlanItem[];
+  isPlanFinalized: boolean;
+  isMarkedReceived: boolean;
+  salaryPlanItems?: PlanItem[];
 };
 
 export function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
