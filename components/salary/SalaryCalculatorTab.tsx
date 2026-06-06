@@ -399,19 +399,16 @@ export default function SalaryCalculatorTab({
         </div>
 
         {/* Gross */}
-        <div className="mt-5 border-t border-white/10" />
-        <div className="flex justify-between text-sm py-3 border-b border-white/10">
+        <div className="flex justify-between text-sm mt-4 py-4 border-t border-b border-white/10">
           <span className="text-white/55">Gross Salary</span>
           <span className="font-semibold text-white">{fmt(breakdown.grossSalary)}</span>
         </div>
 
         {/* Deductions — unpaid leave first, then statutory, then custom */}
-        <div className="mt-3 space-y-2 text-sm">
+        <div className="mt-4 space-y-2 text-sm">
           {breakdown.unpaidLeaveDeduction > 0 && (
             <div className="flex justify-between">
-              <span className="text-white/45">
-                Unpaid Leave ({inputs.unpaidLeaveDays}d)
-              </span>
+              <span className="text-white/45">Unpaid Leave ({inputs.unpaidLeaveDays}d)</span>
               <span className="text-[#FF8C8C]">− {fmt(breakdown.unpaidLeaveDeduction)}</span>
             </div>
           )}
@@ -446,15 +443,14 @@ export default function SalaryCalculatorTab({
 
         {/* Total Deductions subtotal */}
         {breakdown.totalDeductions > 0 && (
-          <div className="mt-3 flex justify-between text-sm border-t border-white/10 py-3">
+          <div className="flex justify-between text-sm mt-4 py-4 border-t border-b border-white/10">
             <span className="text-white/55">Total Deductions</span>
             <span className="font-semibold text-[#FF8C8C]">− {fmt(breakdown.totalDeductions)}</span>
           </div>
         )}
 
         {/* Net */}
-        <div className="my-4 border-t border-white/10" />
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-4">
           <span className="text-base font-bold text-white">Expected Net</span>
           <span className="text-2xl font-bold text-[#C4B5FD]">{fmt(breakdown.expectedNet)}</span>
         </div>
