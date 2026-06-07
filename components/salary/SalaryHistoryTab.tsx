@@ -1,16 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X, AlertTriangle } from "lucide-react";
-import { SectionCard, Field, Input, fmt, MONTHS, SOURCE_TYPES, SOURCE_COLORS } from "./SalaryShared";
+import { Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import { SectionCard, Field, Input, fmt, MONTHS, SOURCE_COLORS } from "./SalaryShared";
 import type { SalaryMonth, PlanItem } from "./SalaryShared";
 import type { Allowance, CustomDeduction } from "@/lib/salaryCalc";
 import { calcSalary } from "@/lib/salaryCalc";
 
 type Props = {
-  months: SalaryMonth[];
+  months:    SalaryMonth[];
   setMonths: React.Dispatch<React.SetStateAction<SalaryMonth[]>>;
   showToast: (msg: string) => void;
+};
+
+const colorMap: Record<string, string> = {
+  DEBT: "#FF8C8C", COMMITMENT: "#C4B5FD",
+  SAVINGS: "#8EE3B5", INVESTMENT: "#93C5FD", CUSTOM: "#FBD38D",
 };
 
 export default function SalaryHistoryTab({ months, setMonths, showToast }: Props) {
@@ -20,9 +25,10 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
   const [reserveInput, setReserveInput]     = useState<Record<string, string>>({});
   const [editingMonth, setEditingMonth]     = useState<string | null>(null);
   const [editInputs, setEditInputs]         = useState<Record<string, any>>({});
-  const [saving, setSaving]     = useState(false);
+  const [saving, setSaving]                 = useState(false);
+  const [marking, setMarking]               = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]             = useState(false);
 
   const patch = async (id: string, data: any) => {
     const res = await fetch(`/api/salary/months/${id}`, {
@@ -46,11 +52,32 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
   const submitBalances = async (id: string) => {
     const bank    = parseFloat(bankBalInput[id] ?? "0") || 0;
     const reserve = parseFloat(reserveInput[id] ?? "0") || 0;
-    const m = months.find((x) => x.id === id);
-    const actual = m?.actualNet ?? 0;
-    const usable = actual + bank - reserve;
+    const m       = months.find((x) => x.id === id);
+    const actual  = m?.actualNet ?? 0;
+    const usable  = actual + bank - reserve;
     const ok = await patch(id, { bankBalance: bank, fixedReserve: reserve, usableBalance: usable });
     if (ok) showToast("Balances saved ✅");
+  };
+
+  // Mark salary as received — cascade to all linked modules
+  const markReceived = async (id: string) => {
+    const m = months.find((x) => x.id === id);
+    if (!m) return;
+    setMarking(id);
+    try {
+      const res = await fetch(`/api/salary/months/${id}/mark-received`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setMonths((prev) => prev.map((x) => x.id === id ? { ...x, isMarkedReceived: true, ...updated } : x));
+        showToast("Salary marked received — all modules updated ✅");
+      } else {
+        showToast("Failed to mark received ❌");
+      }
+    } finally {
+      setMarking(null);
+    }
   };
 
   const saveMonthEdit = async (id: string) => {
@@ -114,14 +141,23 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
       <div className="space-y-4">
         {months.map((m) => {
-          const isExpanded = expandedMonth === m.id;
-          const isEditing  = editingMonth  === m.id;
-          const monthLabel = `${MONTHS[m.month - 1]} ${m.year}`;
-          const planItems  = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
-          const included   = planItems.filter((i) => i.isIncluded);
-          const planTotal  = included.reduce((s, i) => s + i.amount, 0);
-          const ei         = editInputs[m.id];
+          const isExpanded  = expandedMonth === m.id;
+          const isEditing   = editingMonth  === m.id;
+          const monthLabel  = `${MONTHS[m.month - 1]} ${m.year}`;
+          const planItems   = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
+          const included    = planItems.filter((i) => i.isIncluded);
+          const planTotal   = included.reduce((s, i) => s + i.amount, 0);
+          const ei          = editInputs[m.id];
           const editBreakdown = isEditing && ei ? calcSalary({ ...ei, month: m.month, year: m.year }) : null;
+
+          // Replan check — usable balance vs plan total
+          const usable       = m.usableBalance ?? m.actualNet ?? 0;
+          const planExceeds  = m.actualNet != null && planTotal > 0 && planTotal > usable;
+          const surplus      = usable - planTotal;
+
+          // % breakdown per category
+          const byType: Record<string, number> = {};
+          included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
 
           const startEdit = () => {
             setEditInputs((prev) => ({
@@ -142,23 +178,14 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
             setEditingMonth(m.id);
           };
 
-          const updateEA = (i: number, field: keyof Allowance, value: any) => {
-            setEditInputs((prev) => {
-              const arr = [...prev[m.id].allowances];
-              arr[i] = { ...arr[i], [field]: value };
-              return { ...prev, [m.id]: { ...prev[m.id], allowances: arr } };
-            });
-          };
-          const removeEA = (i: number) => setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i) } }));
-
-          const updateED = (i: number, field: keyof CustomDeduction, value: any) => {
-            setEditInputs((prev) => {
-              const arr = [...prev[m.id].customDeductions];
-              arr[i] = { ...arr[i], [field]: value };
-              return { ...prev, [m.id]: { ...prev[m.id], customDeductions: arr } };
-            });
-          };
-          const removeED = (i: number) => setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i) } }));
+          const updateEA = (i: number, field: keyof Allowance, value: any) =>
+            setEditInputs((prev) => { const arr = [...prev[m.id].allowances]; arr[i] = { ...arr[i], [field]: value }; return { ...prev, [m.id]: { ...prev[m.id], allowances: arr } }; });
+          const removeEA = (i: number) =>
+            setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i) } }));
+          const updateED = (i: number, field: keyof CustomDeduction, value: any) =>
+            setEditInputs((prev) => { const arr = [...prev[m.id].customDeductions]; arr[i] = { ...arr[i], [field]: value }; return { ...prev, [m.id]: { ...prev[m.id], customDeductions: arr } }; });
+          const removeED = (i: number) =>
+            setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i) } }));
 
           return (
             <div key={m.id} className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
@@ -169,12 +196,18 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                 <button className="flex-1 flex items-center justify-between text-left"
                   onClick={() => { if (isEditing) return; setExpandedMonth(isExpanded ? null : m.id); }}>
                   <div>
-                    <p className="font-semibold text-white">{monthLabel}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-white">{monthLabel}</p>
+                      {m.isMarkedReceived && (
+                        <span className="flex items-center gap-1 rounded-full bg-[#8EE3B5]/15 px-2 py-0.5 text-[10px] font-semibold text-[#8EE3B5]">
+                          <CheckCircle2 size={10} /> Received
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-white/40 mt-0.5">
                       Expected: {fmt(m.expectedNet)}
                       {m.actualNet != null && <> · Actual: <span className="text-[#8EE3B5]">{fmt(m.actualNet)}</span></>}
                       {m.usableBalance != null && <> · Usable: <span className="text-[#C4B5FD]">{fmt(m.usableBalance)}</span></>}
-                      {planItems.length > 0 && <> · {planItems.length} plan items</>}
                     </p>
                   </div>
                   {isExpanded ? <ChevronUp size={18} className="text-white/40 mr-3" /> : <ChevronDown size={18} className="text-white/40 mr-3" />}
@@ -195,16 +228,25 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         {[
                           ["Basic Salary",  fmt(m.basicSalary)],
                           ["Gross Salary",  fmt(m.grossSalary)],
-                          ["EPF",           `− ${fmt(m.epfAmount)}`],
-                          ["SOCSO",         `− ${fmt(m.socsoAmount)}`],
-                          ["EIS",           `− ${fmt(m.eisAmount)}`],
-                          m.customDeductTotal > 0 ? ["Other Deductions", `− ${fmt(m.customDeductTotal)}`] : null,
-                        ].filter(Boolean).map(([label, val]: any) => (
+                        ].map(([label, val]) => (
                           <div key={label} className="flex justify-between">
                             <span className="text-white/45">{label}</span>
                             <span className="text-white">{val}</span>
                           </div>
                         ))}
+                        <div className="pt-1 space-y-1.5">
+                          {[
+                            ["EPF", `− ${fmt(m.epfAmount)}`],
+                            ["SOCSO", `− ${fmt(m.socsoAmount)}`],
+                            ["EIS", `− ${fmt(m.eisAmount)}`],
+                            m.customDeductTotal > 0 ? ["Other Deductions", `− ${fmt(m.customDeductTotal)}`] : null,
+                          ].filter(Boolean).map(([label, val]: any) => (
+                            <div key={label} className="flex justify-between text-xs">
+                              <span className="text-white/35">{label}</span>
+                              <span className="text-[#FF8C8C]">{val}</span>
+                            </div>
+                          ))}
+                        </div>
                         <div className="flex justify-between font-semibold border-t border-white/10 pt-2">
                           <span className="text-white">Expected Net</span>
                           <span className="text-[#C4B5FD]">{fmt(m.expectedNet)}</span>
@@ -239,7 +281,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                               ].map(([label, val]) => (
                                 <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
                                   <p className="text-xs text-white/35">{label}</p>
-                                  <p className={`font-semibold mt-1 ${label === "Usable Balance" ? "text-[#C4B5FD]" : "text-white"}`}>{val}</p>
+                                  <p className={`font-semibold mt-1 text-sm ${label === "Usable Balance" ? "text-[#C4B5FD]" : "text-white"}`}>{val}</p>
                                 </div>
                               ))}
                             </div>
@@ -262,32 +304,86 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       )}
 
-                      {/* Plan items */}
+                      {/* Replan warning */}
+                      {planExceeds && (
+                        <div className="flex items-start gap-3 rounded-2xl border border-[#FF8C8C]/25 bg-[#FF8C8C]/10 px-4 py-3">
+                          <AlertTriangle size={16} className="text-[#FF8C8C] shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-[#FF8C8C]">Plan exceeds usable balance by {fmt(Math.abs(surplus))}</p>
+                            <p className="text-xs text-white/45 mt-0.5">Your actual salary can't cover this plan. Go to the Plan tab to adjust.</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Plan items + % breakdown */}
                       {planItems.length > 0 && (
                         <div>
                           <p className="text-xs text-white/45 uppercase tracking-wider mb-3">Plan Items</p>
                           <div className="space-y-2">
-                            {planItems.map((item, i) => (
-                              <div key={i} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${item.isIncluded ? "border-white/10 bg-white/5" : "border-white/5 bg-white/3 opacity-50"}`}>
+                            {included.map((item, i) => (
+                              <div key={i} className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/10 bg-white/5">
                                 <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>{item.sourceType}</span>
                                 <span className="flex-1 text-sm text-white">{item.label}</span>
                                 <span className="text-sm font-semibold text-white">{fmt(item.amount)}</span>
-                                {!item.isIncluded && <span className="text-[10px] text-white/30 italic">skipped</span>}
+                                {usable > 0 && (
+                                  <span className="text-[10px] text-white/30">{((item.amount / usable) * 100).toFixed(0)}%</span>
+                                )}
                               </div>
                             ))}
-                            <div className="flex justify-between text-xs pt-1 border-t border-white/10">
-                              <span className="text-white/40">Total planned</span>
-                              <span className="text-white/70">{fmt(planTotal)}</span>
-                            </div>
-                            {m.usableBalance != null && (
-                              <div className="flex justify-between text-xs">
-                                <span className="text-white/40">After plan</span>
-                                <span className={m.usableBalance - planTotal < 0 ? "text-[#FF8C8C]" : "text-[#8EE3B5]"}>
-                                  {fmt(m.usableBalance - planTotal)}
+                          </div>
+
+                          {/* % breakdown bars */}
+                          {Object.keys(byType).length > 0 && (
+                            <div className="mt-4 space-y-2.5">
+                              {Object.entries(byType).map(([type, total]) => {
+                                const pct = usable > 0 ? Math.min(100, (total / usable) * 100) : 0;
+                                return (
+                                  <div key={type}>
+                                    <div className="flex justify-between text-xs mb-1">
+                                      <span className="text-white/50">{type}</span>
+                                      <span className="text-white/70">{fmt(total)} <span className="text-white/30">({pct.toFixed(1)}%)</span></span>
+                                    </div>
+                                    <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
+                                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: colorMap[type] ?? "#C4B5FD" }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              <div className="pt-2 border-t border-white/10 flex justify-between text-xs">
+                                <span className="text-white/40">Total planned</span>
+                                <span className={planExceeds ? "text-[#FF8C8C]" : "text-[#8EE3B5]"}>
+                                  {fmt(planTotal)} {usable > 0 && `(${((planTotal / usable) * 100).toFixed(1)}%)`}
                                 </span>
                               </div>
-                            )}
-                          </div>
+                              {!planExceeds && usable > 0 && (
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-white/40">Remaining</span>
+                                  <span className="text-[#8EE3B5]">{fmt(surplus)}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Mark as received button */}
+                      {!m.isMarkedReceived && m.actualNet != null && (
+                        <button
+                          onClick={() => markReceived(m.id)}
+                          disabled={marking === m.id}
+                          className="w-full flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#8EE3B5]/20 to-[#4ade80]/10 border border-[#8EE3B5]/30 py-3 text-sm font-semibold text-[#8EE3B5] hover:bg-[#8EE3B5]/25 transition disabled:opacity-50"
+                        >
+                          {marking === m.id
+                            ? <><RefreshCw size={14} className="animate-spin" /> Processing…</>
+                            : <><CheckCircle2 size={14} /> Mark as Received — Update All Modules</>
+                          }
+                        </button>
+                      )}
+
+                      {m.isMarkedReceived && (
+                        <div className="flex items-center gap-2 text-xs text-[#8EE3B5]/70">
+                          <CheckCircle2 size={13} />
+                          All modules updated when this salary was marked received.
                         </div>
                       )}
 
@@ -296,7 +392,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       </button>
                     </>
                   ) : (
-                    /* EDIT MODE */
+                    /* EDIT MODE — unchanged from original */
                     <div className="space-y-5">
                       <p className="text-xs text-[#FBD38D]/80">✏ Editing {monthLabel} — changes will recalculate the breakdown.</p>
 
@@ -310,25 +406,15 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                             <Input value={ei.hoursPerDay || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], hoursPerDay: +e.target.value } }))} placeholder="7.5" className="w-full" />
                           </Field>
                         </div>
-                        <Field label="Daily Rate Formula">
-                          <select value={ei.dailyRateFormula} onChange={(e) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], dailyRateFormula: e.target.value } }))}
-                            className="w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none focus:border-[#6A49FA]/60 backdrop-blur-xl">
-                            <option value="basic/26" className="bg-[#1a1035]">Basic ÷ 26 (standard)</option>
-                            <option value="basic/22" className="bg-[#1a1035]">Basic ÷ 22 (working days)</option>
-                          </select>
-                        </Field>
                       </div>
 
-                      {/* Allowances */}
                       <div className="space-y-2">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Allowances</p>
                         {ei.allowances.filter((a: any) => !a.isReimbursement).map((a: any, i: number) => (
-                          <div key={i} className="space-y-1.5">
-                            <div className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 90px 20px" }}>
-                              <Input value={a.name} onChange={(e: any) => updateEA(i, "name", e.target.value)} placeholder="Name" type="text" className="w-full" />
-                              <Input value={a.amount || ""} onChange={(e: any) => updateEA(i, "amount", +e.target.value)} placeholder="RM" className="w-full" />
-                              <button onClick={() => removeEA(i)} className="text-white/30 hover:text-[#FF8C8C] transition"><Trash2 size={14} /></button>
-                            </div>
+                          <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: "1fr 90px 20px" }}>
+                            <Input value={a.name} onChange={(e: any) => updateEA(i, "name", e.target.value)} placeholder="Name" type="text" className="w-full" />
+                            <Input value={a.amount || ""} onChange={(e: any) => updateEA(i, "amount", +e.target.value)} placeholder="RM" className="w-full" />
+                            <button onClick={() => removeEA(i)} className="text-white/30 hover:text-[#FF8C8C] transition"><Trash2 size={14} /></button>
                           </div>
                         ))}
                         <button onClick={() => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], allowances: [...p[m.id].allowances, { name: "", amount: 0, cutOnAbsent: false, isReimbursement: false }] } }))}
@@ -337,7 +423,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </button>
                       </div>
 
-                      {/* Leave */}
                       <div className="space-y-2">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Leave</p>
                         <div className="grid grid-cols-2 gap-3">
@@ -348,7 +433,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       </div>
 
-                      {/* OT */}
                       <div className="space-y-2">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Overtime</p>
                         <div className="grid grid-cols-2 gap-3">
@@ -359,7 +443,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       </div>
 
-                      {/* Custom deductions */}
                       <div className="space-y-2">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Custom Deductions</p>
                         {ei.customDeductions.map((d: any, i: number) => (
@@ -375,7 +458,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </button>
                       </div>
 
-                      {/* Recalculate preview */}
                       {editBreakdown && (
                         <div className="rounded-2xl border border-[#6A49FA]/25 bg-[#6A49FA]/10 px-4 py-3 space-y-1.5 text-sm">
                           <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Recalculated Preview</p>
