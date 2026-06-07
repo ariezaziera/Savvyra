@@ -84,17 +84,13 @@ export const EPF_TABLE_MAX_WAGES = 20000;
 /**
  * SOCSO wage ceiling (RM) — contributions capped at this amount.
  * Raised from RM4,000 to RM6,000 in Oct 2024.
- *
- * ⚠️ UPDATE HERE when new ceiling is announced (expected ~July 2026).
  */
 export const SOCSO_WAGE_CEILING = 6000;
 
 /**
- * SOCSO First Category contribution table (employee portion only).
+ * SOCSO First Category — existing employee contribution table (~0.5%).
  * Format: [wages ceiling (RM), employee contribution (RM)]
- *
- * ⚠️ UPDATE TABLE HERE when new SOCSO rates are gazetted.
- * Current rates: effective Oct 2024 (post RM6,000 ceiling revision).
+ * Effective Oct 2024 (RM6,000 ceiling). Unchanged in 2026.
  */
 export const SOCSO_TABLE: [number, number][] = [
   [30, 0.10], [50, 0.20], [70, 0.30], [100, 0.40],
@@ -115,8 +111,41 @@ export const SOCSO_TABLE: [number, number][] = [
   [5700, 28.25], [5800, 28.75], [5900, 29.25], [6000, 29.75],
 ];
 
-/** Max SOCSO contribution at RM6,000 ceiling */
+/** Max existing SOCSO employee contribution at RM6,000 ceiling */
 export const SOCSO_MAX_CONTRIBUTION = 29.75;
+
+/**
+ * SKBBK — Skim Lindung 24 Jam (New 24-Hour Protection Scheme)
+ * Effective 1 June 2026. Fully borne by employee.
+ * Same RM6,000 wage ceiling as existing SOCSO.
+ *
+ * ⚠️ UPDATE SKBBK_CURRENT_PHASE when phase changes:
+ *   Phase 1: June 2026 – May 2028  → 0.75%
+ *   Phase 2: June 2028 – May 2030  → 1.00%
+ *   Phase 3: June 2031 onwards     → 1.25%
+ *
+ * Reference: PERKESO Employer Circular No. 2 of 2026
+ */
+export const SKBBK_PHASES = {
+  1: 0.75,   // June 2026 – May 2028
+  2: 1.00,   // June 2028 – May 2030
+  3: 1.25,   // June 2031 onwards
+} as const;
+
+/** ⚠️ UPDATE THIS when phase changes */
+export const SKBBK_CURRENT_PHASE: keyof typeof SKBBK_PHASES = 1;
+
+/** Active SKBBK rate (%) based on current phase */
+export const SKBBK_RATE = SKBBK_PHASES[SKBBK_CURRENT_PHASE];
+
+/** Max SKBBK contribution at RM6,000 ceiling */
+export const SKBBK_MAX_CONTRIBUTION = Math.round(SOCSO_WAGE_CEILING * (SKBBK_RATE / 100) * 100) / 100;
+
+/**
+ * SKBBK effective date — contributions apply from this month/year onwards.
+ * ⚠️ UPDATE if phase rollout date changes.
+ */
+export const SKBBK_EFFECTIVE = { month: 6, year: 2026 };
 
 
 // ─────────────────────────────────────────────────────────────────
