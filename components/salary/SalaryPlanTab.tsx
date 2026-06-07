@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle, Pencil } from "lucide-react";
+import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle, Info } from "lucide-react";
 import { SectionCard, Input, fmt, MONTHS, SOURCE_TYPES, SOURCE_COLORS } from "./SalaryShared";
 import type { PlanItem, SourceType } from "./SalaryShared";
 
@@ -42,8 +42,8 @@ export default function SalaryPlanTab({
   const [newLabel, setNewLabel]                     = useState("");
   const [newAmount, setNewAmount]                   = useState("");
   const [newSourceType, setNewSourceType]           = useState<SourceType>("CUSTOM");
-  // editable amount before adding from suggestions
   const [editAmounts, setEditAmounts]               = useState<Record<string, string>>({});
+  const [showIncludeInfo, setShowIncludeInfo]       = useState(false);
 
   const included    = planItems.filter((i) => i.isIncluded);
   const planTotal   = included.reduce((s, i) => s + i.amount, 0);
@@ -193,7 +193,6 @@ export default function SalaryPlanTab({
                           <div className="flex items-center gap-3 px-4 py-3">
                             <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[s.sourceType]}`}>{s.sourceType}</span>
                             <span className="flex-1 text-sm text-white truncate">{s.label}</span>
-                            {/* Editable amount */}
                             {!isAdded && (
                               <input
                                 type="number"
@@ -223,6 +222,16 @@ export default function SalaryPlanTab({
       {/* Plan items list */}
       {planItems.length > 0 && (
         <SectionCard title="Monthly Plan">
+          {/* Include/exclude explainer */}
+          <div className="mb-3 flex items-start gap-2 rounded-2xl border border-white/8 bg-white/4 px-3 py-2.5">
+            <Info size={13} className="text-white/35 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              <span className="text-white/60 font-medium">✓ Include</span> — item is counted in your planned total.{" "}
+              <span className="text-white/60 font-medium">Skip</span> — kept in the list but excluded from total (e.g. optional spending).
+              Hit <span className="text-white/60 font-medium">Save Plan</span> below when done.
+            </p>
+          </div>
+
           <div className="space-y-2">
             {planItems.map((item, i) => (
               <div key={i} className={`flex items-center gap-3 rounded-2xl px-3 py-3 border transition-all ${item.isIncluded ? "border-white/10 bg-white/5" : "border-white/5 bg-white/3 opacity-50"}`}>
@@ -236,9 +245,12 @@ export default function SalaryPlanTab({
                   onChange={(e) => updateAmount(i, e.target.value)}
                   className="w-24 rounded-xl border border-white/10 bg-white/8 px-2 py-1 text-xs text-white text-right outline-none focus:border-[#6A49FA]/50"
                 />
-                <button onClick={() => toggleIncluded(i)}
-                  className={`shrink-0 rounded-xl px-2 py-1 text-xs font-medium transition ${item.isIncluded ? "bg-[#8EE3B5]/15 text-[#8EE3B5]" : "bg-white/5 text-white/30"}`}>
-                  {item.isIncluded ? "✓" : "skip"}
+                {/* Include / Skip toggle — clearly labelled */}
+                <button
+                  onClick={() => toggleIncluded(i)}
+                  title={item.isIncluded ? "Click to skip this item (exclude from total)" : "Click to include this item in total"}
+                  className={`shrink-0 rounded-xl px-2.5 py-1 text-xs font-medium transition ${item.isIncluded ? "bg-[#8EE3B5]/15 text-[#8EE3B5] border border-[#8EE3B5]/20" : "bg-white/5 text-white/30 border border-white/10"}`}>
+                  {item.isIncluded ? "✓ Include" : "Skip"}
                 </button>
                 <button onClick={() => remove(i)} className="text-white/25 hover:text-[#FF8C8C] transition shrink-0">
                   <Trash2 size={14} />
@@ -249,7 +261,7 @@ export default function SalaryPlanTab({
 
           {/* Total */}
           <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-sm">
-            <span className="text-white/50">Total planned</span>
+            <span className="text-white/50">Total planned ({included.length}/{planItems.length} items)</span>
             <span className={`font-semibold ${isOverBudget ? "text-[#FF8C8C]" : "text-white"}`}>{fmt(planTotal)}</span>
           </div>
         </SectionCard>
@@ -306,10 +318,17 @@ export default function SalaryPlanTab({
         </SectionCard>
       )}
 
+      {/* Save button — always visible at bottom, labelled clearly */}
       <button onClick={saveMonth} disabled={saving}
         className="w-full rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
-        {saving ? "Saving…" : `Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
+        {saving ? "Saving…" : `💾 Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
       </button>
+
+      {planItems.length === 0 && (
+        <p className="text-center text-xs text-white/30 -mt-2">
+          Add items above, then tap Save to record your plan.
+        </p>
+      )}
     </div>
   );
 }
