@@ -81,5 +81,28 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json(record, { status: 201 });
+  // Persist plan items as SalaryPlanItem records so History tab can read them
+  const planItems: any[] = body.planItems ?? [];
+  if (planItems.length > 0) {
+    await prisma.salaryPlanItem.createMany({
+      data: planItems.map((item: any, idx: number) => ({
+        salaryMonthId: record.id,
+        userId,
+        label:      item.label      ?? "",
+        amount:     parseFloat(item.amount) || 0,
+        sourceType: item.sourceType ?? "CUSTOM",
+        sourceId:   item.sourceId   ?? null,
+        isIncluded: item.isIncluded ?? true,
+        sortOrder:  item.sortOrder  ?? idx,
+      })),
+    });
+  }
+
+  // Return record with plan items included
+  const full = await prisma.salaryMonth.findUnique({
+    where: { id: record.id },
+    include: { salaryPlanItems: { orderBy: { sortOrder: "asc" } } },
+  });
+
+  return NextResponse.json(full, { status: 201 });
 }
