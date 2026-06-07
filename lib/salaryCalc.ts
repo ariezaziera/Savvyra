@@ -7,6 +7,7 @@
 import {
   EPF_TABLE, EPF_TABLE_MAX_WAGES, EPF_EMPLOYEE_RATE,
   SOCSO_TABLE, SOCSO_WAGE_CEILING, SOCSO_MAX_CONTRIBUTION,
+  SKBBK_RATE, SKBBK_MAX_CONTRIBUTION, SKBBK_EFFECTIVE,
   EIS_WAGE_CEILING, EIS_EMPLOYEE_RATE, EIS_BRACKET_SIZE, EIS_MAX_CONTRIBUTION,
 } from "@/lib/statutoryRates";
 
@@ -98,14 +99,27 @@ export function calcEPF(wages: number): number {
 }
 
 // ─────────────────────────────────────────
-// SOCSO — from statutoryRates table
+// SOCSO — First Category + SKBBK (June 2026+)
 // ─────────────────────────────────────────
-export function calcSOCSO(wages: number): number {
+export function calcSOCSO(wages: number, month: number, year: number): number {
   const capped = Math.min(wages, SOCSO_WAGE_CEILING);
+
+  // Existing First Category employee contribution
+  let existing = SOCSO_MAX_CONTRIBUTION;
   for (const [max, contribution] of SOCSO_TABLE) {
-    if (capped <= max) return contribution;
+    if (capped <= max) { existing = contribution; break; }
   }
-  return SOCSO_MAX_CONTRIBUTION;
+
+  // SKBBK — applies from June 2026 onwards (fully borne by employee)
+  const skbbkApplies =
+    year > SKBBK_EFFECTIVE.year ||
+    (year === SKBBK_EFFECTIVE.year && month >= SKBBK_EFFECTIVE.month);
+
+  const skbbk = skbbkApplies
+    ? Math.min(Math.round(capped * (SKBBK_RATE / 100) * 100) / 100, SKBBK_MAX_CONTRIBUTION)
+    : 0;
+
+  return Math.round((existing + skbbk) * 100) / 100;
 }
 
 // ─────────────────────────────────────────
@@ -191,7 +205,7 @@ export function calcSalary(inputs: SalaryInputs): SalaryBreakdown {
   const socsoEisBase = basicPay - unpaidLeaveDeduction + allowanceTotal + otEarnings + doublePayEarnings;
 
   const epfAmount         = deductEPF    ? calcEPF(epfBase)        : 0;
-  const socsoAmount       = deductSOCSO  ? calcSOCSO(socsoEisBase) : 0;
+  const socsoAmount       = deductSOCSO  ? calcSOCSO(socsoEisBase, month, year) : 0;
   const eisAmount         = deductEIS    ? calcEIS(socsoEisBase)   : 0;
   const customDeductTotal = customDeductions.reduce((s, d) => s + d.amount, 0);
   const totalDeductions   = unpaidLeaveDeduction + epfAmount + socsoAmount + eisAmount + customDeductTotal;
