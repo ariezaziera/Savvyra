@@ -58,13 +58,11 @@ export default function SalaryPage() {
   }, [calcMonth, calcYear]);
 
   useEffect(() => {
-    // Load saved profile — runs once on mount. We capture month/year via functional
-    // updater so the profile load never races with the calcMonth/calcYear effect.
+    // Load saved profile — runs once on mount
     fetch("/api/salary/profile")
       .then((r) => r.json())
       .then((profile) => {
         if (profile && profile.basicSalary !== undefined) {
-          // Functional updater reads latest calcMonth/calcYear without stale closure
           setCalcMonth((cm) => {
             setCalcYear((cy) => {
               setInputs({
@@ -75,14 +73,12 @@ export default function SalaryPage() {
                 doublePayRate:    profile.doublePayRate     ?? 2.0,
                 hoursPerDay:      profile.hoursPerDay       ?? 7.5,
                 dailyRateFormula: profile.dailyRateFormula  ?? "basic/26",
-                // Variable fields always reset to 0 on load
                 unpaidLeaveDays:  0,
                 annualLeaveDays:  0,
                 medicalLeaveDays: 0,
                 replacementDays:  0,
                 otHours:          0,
                 doublePayHours:   0,
-                // Preserve whatever month/year the selectors are at
                 month:            cm,
                 year:             cy,
                 salaryBasis:      profile.salaryBasis  ?? "monthly",
@@ -123,18 +119,28 @@ export default function SalaryPage() {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(""), 3000);
+    setTimeout(() => setToast(""), 3500);
   };
 
+  // FIX: check res.ok before toasting success
   const saveProfile = async () => {
     setSaving(true);
-    await fetch("/api/salary/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...inputs, salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay }),
-    });
-    setSaving(false);
-    showToast("Profile saved ✨");
+    try {
+      const res = await fetch("/api/salary/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...inputs, salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay }),
+      });
+      if (res.ok) {
+        showToast("Default profile saved ✨");
+      } else {
+        showToast("Failed to save profile ❌");
+      }
+    } catch {
+      showToast("Failed to save profile ❌");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveMonth = async () => {
@@ -142,7 +148,7 @@ export default function SalaryPage() {
     const existing = months.find((m) => m.month === calcMonth && m.year === calcYear);
 
     if (existing) {
-      // Month already exists — update plan items only via PATCH
+      // Month already exists — update plan items only via PUT
       const res = await fetch(`/api/salary/months/${existing.id}/plan-items`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
