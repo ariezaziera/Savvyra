@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X, AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
+import {
+  Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X,
+  AlertTriangle, CheckCircle2, RefreshCw, Lock,
+} from "lucide-react";
 import { SectionCard, Field, Input, fmt, MONTHS, SOURCE_COLORS } from "./SalaryShared";
 import type { SalaryMonth, PlanItem } from "./SalaryShared";
 import type { Allowance, CustomDeduction } from "@/lib/salaryCalc";
@@ -27,6 +30,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
   const [editInputs, setEditInputs]         = useState<Record<string, any>>({});
   const [saving, setSaving]                 = useState(false);
   const [marking, setMarking]               = useState<string | null>(null);
+  const [payingItem, setPayingItem]         = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting]             = useState(false);
 
@@ -59,24 +63,52 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     if (ok) showToast("Balances saved ✅");
   };
 
-  // Mark salary as received — cascade to all linked modules
+  // Mark salary as received — just confirms receipt, does NOT cascade
+  // Per-item cascading is done by individual "Mark Paid" buttons on each plan item
   const markReceived = async (id: string) => {
-    const m = months.find((x) => x.id === id);
-    if (!m) return;
     setMarking(id);
     try {
-      const res = await fetch(`/api/salary/months/${id}/mark-received`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+      const res = await fetch(`/api/salary/months/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isMarkedReceived: true }),
       });
       if (res.ok) {
-        const updated = await res.json();
-        setMonths((prev) => prev.map((x) => x.id === id ? { ...x, isMarkedReceived: true, ...updated } : x));
-        showToast("Salary marked received — all modules updated ✅");
+        setMonths((prev) => prev.map((x) => x.id === id ? { ...x, isMarkedReceived: true } : x));
+        showToast("Salary confirmed received ✅ — you can now mark each planned item as paid.");
       } else {
-        showToast("Failed to mark received ❌");
+        showToast("Failed ❌");
       }
     } finally {
       setMarking(null);
+    }
+  };
+
+  // Per-item mark as paid — creates transaction + updates linked module
+  const markItemPaid = async (monthId: string, itemId: string, itemLabel: string) => {
+    setPayingItem(itemId);
+    try {
+      const res = await fetch(`/api/salary/months/${monthId}/plan-items/${itemId}/mark-paid`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        // Mark item as paid in local state: sortOrder = -1 convention
+        setMonths((prev) => prev.map((m) => {
+          if (m.id !== monthId) return m;
+          const items = (m.salaryPlanItems ?? []) as PlanItem[];
+          return {
+            ...m,
+            salaryPlanItems: items.map((i) =>
+              i.id === itemId ? { ...i, sortOrder: -1 } : i
+            ),
+          };
+        }));
+        showToast(`${itemLabel} marked paid ✅`);
+      } else {
+        const e = await res.json().catch(() => ({}));
+        showToast(e.error ?? "Failed ❌");
+      }
+    } finally {
+      setPayingItem(null);
     }
   };
 
@@ -141,21 +173,20 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
       <div className="space-y-4">
         {months.map((m) => {
-          const isExpanded  = expandedMonth === m.id;
-          const isEditing   = editingMonth  === m.id;
-          const monthLabel  = `${MONTHS[m.month - 1]} ${m.year}`;
-          const planItems   = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
-          const included    = planItems.filter((i) => i.isIncluded);
-          const planTotal   = included.reduce((s, i) => s + i.amount, 0);
-          const ei          = editInputs[m.id];
+          const isExpanded = expandedMonth === m.id;
+          const isEditing  = editingMonth  === m.id;
+          const monthLabel = `${MONTHS[m.month - 1]} ${m.year}`;
+          const allPlanItems = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
+          const included   = allPlanItems.filter((i) => i.isIncluded && i.sortOrder !== -1);
+          const paidItems  = allPlanItems.filter((i) => i.sortOrder === -1);
+          const planTotal  = included.reduce((s, i) => s + i.amount, 0);
+          const ei         = editInputs[m.id];
           const editBreakdown = isEditing && ei ? calcSalary({ ...ei, month: m.month, year: m.year }) : null;
 
-          // Replan check — usable balance vs plan total
-          const usable       = m.usableBalance ?? m.actualNet ?? 0;
-          const planExceeds  = m.actualNet != null && planTotal > 0 && planTotal > usable;
-          const surplus      = usable - planTotal;
+          const usable      = m.usableBalance ?? m.actualNet ?? 0;
+          const planExceeds = m.actualNet != null && planTotal > 0 && planTotal > usable;
+          const surplus     = usable - planTotal;
 
-          // % breakdown per category
           const byType: Record<string, number> = {};
           included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
 
@@ -183,7 +214,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
           const removeEA = (i: number) =>
             setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i) } }));
           const updateED = (i: number, field: keyof CustomDeduction, value: any) =>
-            setEditInputs((prev) => { const arr = [...prev[m.id].customDeductions]; arr[i] = { ...arr[i], [field]: value }; return { ...prev, [m.id]: { ...prev[m.id], customDeductions: arr } }; });
+            setEditInputs((prev) => { const arr = [...prev[m.id].customDeductions]; arr[i] = { ...arr[i], [field]: value }; return { ...prev, [m.id]: { ...prev[m.id], customDeductTotal: arr } }; });
           const removeED = (i: number) =>
             setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i) } }));
 
@@ -196,11 +227,16 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                 <button className="flex-1 flex items-center justify-between text-left"
                   onClick={() => { if (isEditing) return; setExpandedMonth(isExpanded ? null : m.id); }}>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-white">{monthLabel}</p>
                       {m.isMarkedReceived && (
                         <span className="flex items-center gap-1 rounded-full bg-[#8EE3B5]/15 px-2 py-0.5 text-[10px] font-semibold text-[#8EE3B5]">
                           <CheckCircle2 size={10} /> Received
+                        </span>
+                      )}
+                      {paidItems.length > 0 && (
+                        <span className="rounded-full bg-[#C4B5FD]/15 px-2 py-0.5 text-[10px] font-semibold text-[#C4B5FD]">
+                          {paidItems.length} paid
                         </span>
                       )}
                     </div>
@@ -253,7 +289,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       </div>
 
-                      {/* Actual Net */}
+                      {/* Actual Net input */}
                       <div>
                         <p className="text-xs text-white/45 uppercase tracking-wider mb-2">Actual Salary Received</p>
                         {m.actualNet != null ? (
@@ -315,21 +351,71 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       )}
 
-                      {/* Plan items + % breakdown */}
-                      {planItems.length > 0 && (
+                      {/* ── PLAN ITEMS with per-item Mark as Paid ── */}
+                      {allPlanItems.length > 0 && (
                         <div>
-                          <p className="text-xs text-white/45 uppercase tracking-wider mb-3">Plan Items</p>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs text-white/45 uppercase tracking-wider">Plan Items</p>
+                            {!m.isMarkedReceived && (
+                              <p className="text-[10px] text-white/30 flex items-center gap-1">
+                                <Lock size={10} /> Confirm receipt first to unlock
+                              </p>
+                            )}
+                          </div>
+
                           <div className="space-y-2">
-                            {included.map((item, i) => (
-                              <div key={i} className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/10 bg-white/5">
-                                <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>{item.sourceType}</span>
-                                <span className="flex-1 text-sm text-white">{item.label}</span>
-                                <span className="text-sm font-semibold text-white">{fmt(item.amount)}</span>
-                                {usable > 0 && (
-                                  <span className="text-[10px] text-white/30">{((item.amount / usable) * 100).toFixed(0)}%</span>
-                                )}
-                              </div>
-                            ))}
+                            {/* Unpaid items */}
+                            {included.map((item) => {
+                              const isPaying = payingItem === item.id;
+                              const canPay   = m.isMarkedReceived;
+                              return (
+                                <div key={item.id ?? item.label}
+                                  className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/10 bg-white/5">
+                                  <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>
+                                    {item.sourceType}
+                                  </span>
+                                  <span className="flex-1 text-sm text-white">{item.label}</span>
+                                  <span className="text-sm font-semibold text-white shrink-0">{fmt(item.amount)}</span>
+                                  {usable > 0 && (
+                                    <span className="text-[10px] text-white/30 shrink-0">{((item.amount / usable) * 100).toFixed(0)}%</span>
+                                  )}
+                                  {/* Mark as Paid button */}
+                                  <button
+                                    onClick={() => item.id && canPay && markItemPaid(m.id, item.id, item.label)}
+                                    disabled={!canPay || isPaying}
+                                    title={canPay ? "Mark as paid" : "Confirm salary received first"}
+                                    className={`shrink-0 h-8 w-8 rounded-xl border flex items-center justify-center transition ${
+                                      canPay
+                                        ? "border-[#8EE3B5]/30 bg-[#8EE3B5]/10 text-[#8EE3B5] hover:bg-[#8EE3B5]/25"
+                                        : "border-white/10 bg-white/5 text-white/20 cursor-not-allowed"
+                                    }`}
+                                  >
+                                    {isPaying
+                                      ? <RefreshCw size={12} className="animate-spin" />
+                                      : canPay ? <Check size={13} /> : <Lock size={11} />
+                                    }
+                                  </button>
+                                </div>
+                              );
+                            })}
+
+                            {/* Paid items */}
+                            {paidItems.length > 0 && (
+                              <>
+                                <p className="text-[10px] text-white/30 uppercase tracking-wider pt-2">Paid</p>
+                                {paidItems.map((item) => (
+                                  <div key={item.id ?? item.label}
+                                    className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-[#8EE3B5]/15 bg-[#8EE3B5]/5 opacity-70">
+                                    <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>
+                                      {item.sourceType}
+                                    </span>
+                                    <span className="flex-1 text-sm text-white/60 line-through">{item.label}</span>
+                                    <span className="text-sm text-white/40 shrink-0">{fmt(item.amount)}</span>
+                                    <CheckCircle2 size={16} className="text-[#8EE3B5] shrink-0" />
+                                  </div>
+                                ))}
+                              </>
+                            )}
                           </div>
 
                           {/* % breakdown bars */}
@@ -357,7 +443,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                               </div>
                               {!planExceeds && usable > 0 && (
                                 <div className="flex justify-between text-xs">
-                                  <span className="text-white/40">Remaining</span>
+                                  <span className="text-white/40">Remaining after plan</span>
                                   <span className="text-[#8EE3B5]">{fmt(surplus)}</span>
                                 </div>
                               )}
@@ -366,7 +452,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       )}
 
-                      {/* Mark as received button */}
+                      {/* Confirm Salary Received button */}
                       {!m.isMarkedReceived && m.actualNet != null && (
                         <button
                           onClick={() => markReceived(m.id)}
@@ -375,15 +461,15 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         >
                           {marking === m.id
                             ? <><RefreshCw size={14} className="animate-spin" /> Processing…</>
-                            : <><CheckCircle2 size={14} /> Mark as Received — Update All Modules</>
+                            : <><CheckCircle2 size={14} /> Confirm Salary Received</>
                           }
                         </button>
                       )}
 
                       {m.isMarkedReceived && (
-                        <div className="flex items-center gap-2 text-xs text-[#8EE3B5]/70">
+                        <div className="flex items-center gap-2 text-xs text-[#8EE3B5]/70 pt-1">
                           <CheckCircle2 size={13} />
-                          All modules updated when this salary was marked received.
+                          Salary confirmed received. Mark each plan item as paid individually above.
                         </div>
                       )}
 
@@ -392,7 +478,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       </button>
                     </>
                   ) : (
-                    /* EDIT MODE — unchanged from original */
+                    /* EDIT MODE */
                     <div className="space-y-5">
                       <p className="text-xs text-[#FBD38D]/80">✏ Editing {monthLabel} — changes will recalculate the breakdown.</p>
 
