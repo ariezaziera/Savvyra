@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical } from "lucide-react";
+import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle, Pencil } from "lucide-react";
 import { SectionCard, Input, fmt, MONTHS, SOURCE_TYPES, SOURCE_COLORS } from "./SalaryShared";
 import type { PlanItem, SourceType } from "./SalaryShared";
 
@@ -22,11 +22,11 @@ type Suggestions = {
 
 type Props = {
   calcMonth: number;
-  calcYear: number;
+  calcYear:  number;
   breakdown: any;
   planItems: PlanItem[];
   setPlanItems: React.Dispatch<React.SetStateAction<PlanItem[]>>;
-  saving: boolean;
+  saving:    boolean;
   saveMonth: () => void;
 };
 
@@ -35,17 +35,20 @@ export default function SalaryPlanTab({
   planItems, setPlanItems,
   saving, saveMonth,
 }: Props) {
-  const [suggestions, setSuggestions]         = useState<Suggestions | null>(null);
+  const [suggestions, setSuggestions]               = useState<Suggestions | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(true);
-  const [addedIds, setAddedIds]               = useState<Set<string>>(new Set());
-  const [newLabel, setNewLabel]               = useState("");
-  const [newAmount, setNewAmount]             = useState("");
-  const [newSourceType, setNewSourceType]     = useState<SourceType>("CUSTOM");
+  const [showSuggestions, setShowSuggestions]       = useState(true);
+  const [addedIds, setAddedIds]                     = useState<Set<string>>(new Set());
+  const [newLabel, setNewLabel]                     = useState("");
+  const [newAmount, setNewAmount]                   = useState("");
+  const [newSourceType, setNewSourceType]           = useState<SourceType>("CUSTOM");
+  // editable amount before adding from suggestions
+  const [editAmounts, setEditAmounts]               = useState<Record<string, string>>({});
 
-  const included = planItems.filter((i) => i.isIncluded);
+  const included    = planItems.filter((i) => i.isIncluded);
   const planTotal   = included.reduce((s, i) => s + i.amount, 0);
   const unallocated = breakdown.expectedNet - planTotal;
+  const isOverBudget = unallocated < 0;
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -59,8 +62,9 @@ export default function SalaryPlanTab({
 
   const addSuggestion = (s: Suggestion) => {
     if (planItems.some((i) => i.sourceId === s.sourceId && i.sourceType === s.sourceType)) return;
+    const customAmount = editAmounts[s.id] ? parseFloat(editAmounts[s.id]) : s.amount;
     setPlanItems((prev) => [...prev, {
-      label: s.label, amount: s.amount,
+      label: s.label, amount: customAmount,
       sourceType: s.sourceType, sourceId: s.sourceId,
       isIncluded: true, sortOrder: prev.length,
     }]);
@@ -82,13 +86,14 @@ export default function SalaryPlanTab({
     setNewLabel(""); setNewAmount("");
   };
 
-  const toggleIncluded = (i: number) => {
+  const toggleIncluded = (i: number) =>
     setPlanItems((prev) => prev.map((item, idx) => idx === i ? { ...item, isIncluded: !item.isIncluded } : item));
-  };
 
-  const remove = (i: number) => {
+  const updateAmount = (i: number, val: string) =>
+    setPlanItems((prev) => prev.map((item, idx) => idx === i ? { ...item, amount: parseFloat(val) || 0 } : item));
+
+  const remove = (i: number) =>
     setPlanItems((prev) => prev.filter((_, idx) => idx !== i));
-  };
 
   const allSuggestions = suggestions
     ? [...suggestions.commitments, ...suggestions.savings, ...suggestions.debts, ...suggestions.investments]
@@ -99,20 +104,36 @@ export default function SalaryPlanTab({
   const byType: Record<string, number> = {};
   included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
 
+  const colorMap: Record<string, string> = {
+    DEBT: "#FF8C8C", COMMITMENT: "#C4B5FD",
+    SAVINGS: "#8EE3B5", INVESTMENT: "#93C5FD", CUSTOM: "#FBD38D",
+  };
+
   return (
     <div className="space-y-5">
 
       {/* Summary card */}
-      <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-linear-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl">
+      <div className="relative overflow-hidden rounded-3xl border border-[#6A49FA]/30 bg-gradient-to-br from-[#6A49FA]/20 to-[#C4B5FD]/10 p-6 backdrop-blur-2xl">
         <div className="absolute inset-x-0 top-0 h-px bg-white/20" />
         <p className="text-sm text-white/50">{MONTHS[calcMonth - 1]} {calcYear} — Expected Net</p>
         <p className="mt-1 text-3xl font-bold text-[#C4B5FD]">{fmt(breakdown.expectedNet)}</p>
         <div className="mt-3 flex flex-wrap gap-4 text-sm">
           <span className="text-white/45">Planned: <span className="text-white">{fmt(planTotal)}</span></span>
-          <span className={unallocated < 0 ? "text-[#FF8C8C]" : "text-[#8EE3B5]"}>
-            Remaining: {fmt(unallocated)}
+          <span className={isOverBudget ? "text-[#FF8C8C] font-semibold" : "text-[#8EE3B5]"}>
+            {isOverBudget ? "Over budget: " : "Remaining: "}{fmt(Math.abs(unallocated))}
           </span>
         </div>
+
+        {/* Over budget warning */}
+        {isOverBudget && (
+          <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[#FF8C8C]/25 bg-[#FF8C8C]/10 px-4 py-3">
+            <AlertTriangle size={16} className="text-[#FF8C8C] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-[#FF8C8C]">Plan exceeds expected salary by {fmt(Math.abs(unallocated))}</p>
+              <p className="text-xs text-white/45 mt-0.5">Remove or reduce some items below to balance your plan.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Auto-populate */}
@@ -165,16 +186,29 @@ export default function SalaryPlanTab({
                     </div>
                     {group.items.map((s) => {
                       const isAdded = addedIds.has(s.id) || planItems.some((i) => i.sourceId === s.sourceId);
+                      const customAmt = editAmounts[s.id] ?? "";
                       return (
                         <div key={s.id}
-                          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border transition-all ${isAdded ? "border-white/5 bg-white/3 opacity-50" : "border-white/10 bg-white/5 hover:bg-white/8"}`}>
-                          <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[s.sourceType]}`}>{s.sourceType}</span>
-                          <span className="flex-1 text-sm text-white truncate">{s.label}</span>
-                          <span className="text-sm font-semibold text-white shrink-0">{fmt(s.amount)}</span>
-                          <button onClick={() => addSuggestion(s)} disabled={isAdded}
-                            className={`shrink-0 rounded-xl px-3 py-1 text-xs font-medium transition ${isAdded ? "text-[#8EE3B5] bg-[#8EE3B5]/10 cursor-default" : "text-[#C4B5FD] bg-[#6A49FA]/20 hover:bg-[#6A49FA]/40"}`}>
-                            {isAdded ? <Check size={12} /> : "+ Add"}
-                          </button>
+                          className={`rounded-2xl border transition-all ${isAdded ? "border-white/5 bg-white/3 opacity-50" : "border-white/10 bg-white/5"}`}>
+                          <div className="flex items-center gap-3 px-4 py-3">
+                            <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[s.sourceType]}`}>{s.sourceType}</span>
+                            <span className="flex-1 text-sm text-white truncate">{s.label}</span>
+                            {/* Editable amount */}
+                            {!isAdded && (
+                              <input
+                                type="number"
+                                value={customAmt || s.amount}
+                                onChange={(e) => setEditAmounts((p) => ({ ...p, [s.id]: e.target.value }))}
+                                className="w-24 rounded-xl border border-white/10 bg-white/8 px-3 py-1.5 text-xs text-white outline-none text-right focus:border-[#6A49FA]/60"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                            {isAdded && <span className="text-sm font-semibold text-white shrink-0">{fmt(s.amount)}</span>}
+                            <button onClick={() => addSuggestion(s)} disabled={isAdded}
+                              className={`shrink-0 rounded-xl px-3 py-1 text-xs font-medium transition ${isAdded ? "text-[#8EE3B5] bg-[#8EE3B5]/10 cursor-default" : "text-[#C4B5FD] bg-[#6A49FA]/20 hover:bg-[#6A49FA]/40"}`}>
+                              {isAdded ? <Check size={12} /> : "+ Add"}
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
@@ -191,11 +225,17 @@ export default function SalaryPlanTab({
         <SectionCard title="Monthly Plan">
           <div className="space-y-2">
             {planItems.map((item, i) => (
-              <div key={i} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border transition-all ${item.isIncluded ? "border-white/10 bg-white/5" : "border-white/5 bg-white/3 opacity-50"}`}>
+              <div key={i} className={`flex items-center gap-3 rounded-2xl px-3 py-3 border transition-all ${item.isIncluded ? "border-white/10 bg-white/5" : "border-white/5 bg-white/3 opacity-50"}`}>
                 <GripVertical size={14} className="text-white/20 shrink-0" />
                 <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>{item.sourceType}</span>
                 <span className="flex-1 text-sm text-white truncate">{item.label}</span>
-                <span className="text-sm font-semibold text-white shrink-0">{fmt(item.amount)}</span>
+                {/* Inline editable amount */}
+                <input
+                  type="number"
+                  value={item.amount}
+                  onChange={(e) => updateAmount(i, e.target.value)}
+                  className="w-24 rounded-xl border border-white/10 bg-white/8 px-2 py-1 text-xs text-white text-right outline-none focus:border-[#6A49FA]/50"
+                />
                 <button onClick={() => toggleIncluded(i)}
                   className={`shrink-0 rounded-xl px-2 py-1 text-xs font-medium transition ${item.isIncluded ? "bg-[#8EE3B5]/15 text-[#8EE3B5]" : "bg-white/5 text-white/30"}`}>
                   {item.isIncluded ? "✓" : "skip"}
@@ -206,11 +246,17 @@ export default function SalaryPlanTab({
               </div>
             ))}
           </div>
+
+          {/* Total */}
+          <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-sm">
+            <span className="text-white/50">Total planned</span>
+            <span className={`font-semibold ${isOverBudget ? "text-[#FF8C8C]" : "text-white"}`}>{fmt(planTotal)}</span>
+          </div>
         </SectionCard>
       )}
 
       {/* Add manual */}
-      <SectionCard title="Add Manual Item">
+      <SectionCard title="Add Custom Item">
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {SOURCE_TYPES.map((type) => (
@@ -233,21 +279,17 @@ export default function SalaryPlanTab({
         </div>
       </SectionCard>
 
-      {/* Breakdown by type */}
+      {/* Breakdown by type with % bars */}
       {Object.keys(byType).length > 0 && (
-        <SectionCard title="By Category">
-          <div className="space-y-2">
+        <SectionCard title="Breakdown by Category">
+          <div className="space-y-3">
             {Object.entries(byType).map(([type, total]) => {
               const pct = breakdown.expectedNet > 0 ? Math.min(100, (total / breakdown.expectedNet) * 100) : 0;
-              const colorMap: Record<string, string> = {
-                DEBT: "#FF8C8C", COMMITMENT: "#C4B5FD",
-                SAVINGS: "#8EE3B5", INVESTMENT: "#93C5FD", CUSTOM: "#FBD38D",
-              };
               return (
                 <div key={type}>
-                  <div className="flex justify-between text-xs mb-1">
+                  <div className="flex justify-between text-xs mb-1.5">
                     <span className="text-white/60">{type}</span>
-                    <span className="text-white">{fmt(total)} ({pct.toFixed(1)}%)</span>
+                    <span className="text-white">{fmt(total)} <span className="text-white/35">({pct.toFixed(1)}%)</span></span>
                   </div>
                   <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-500"
@@ -256,12 +298,16 @@ export default function SalaryPlanTab({
                 </div>
               );
             })}
+            <div className="pt-2 border-t border-white/10 flex justify-between text-xs">
+              <span className="text-white/40">Total allocated</span>
+              <span className="text-white/70">{breakdown.expectedNet > 0 ? ((planTotal / breakdown.expectedNet) * 100).toFixed(1) : 0}% of expected net</span>
+            </div>
           </div>
         </SectionCard>
       )}
 
       <button onClick={saveMonth} disabled={saving}
-        className="w-full rounded-full bg-linear-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
+        className="w-full rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
         {saving ? "Saving…" : `Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
       </button>
     </div>
