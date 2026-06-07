@@ -60,6 +60,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         customDeductTotal: breakdown.customDeductTotal,
         expectedNet:       breakdown.expectedNet,
       },
+      include: { salaryPlanItems: { orderBy: { sortOrder: "asc" } } },
     });
 
     return NextResponse.json(updated);
@@ -77,6 +78,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       ...(body.isMarkedReceived !== undefined && { isMarkedReceived: body.isMarkedReceived }),
       ...(body.planItems        !== undefined && { planItems:        body.planItems }),
     },
+    include: { salaryPlanItems: { orderBy: { sortOrder: "asc" } } },
   });
 
   return NextResponse.json(updated);
