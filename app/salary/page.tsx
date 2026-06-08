@@ -12,29 +12,6 @@ import SalaryHistoryTab from "@/components/salary/SalaryHistoryTab";
 
 const now = new Date();
 
-const defaultProfile: SalaryInputs = {
-  basicSalary: 0,
-  allowances: [],
-  customDeductions: [],
-  otRate: 1.5,
-  doublePayRate: 2.0,
-  hoursPerDay: 7.5,
-  dailyRateFormula: "basic/26",
-  unpaidLeaveDays: 0,
-  annualLeaveDays: 0,
-  medicalLeaveDays: 0,
-  replacementDays: 0,
-  otHours: 0,
-  doublePayHours: 0,
-  month: now.getMonth() + 1,
-  year: now.getFullYear(),
-  salaryBasis: "monthly",
-  daysWorked: 0,
-  deductEPF: true,
-  deductSOCSO: true,
-  deductEIS: true,
-};
-
 export default function SalaryPage() {
   const [tab, setTab]       = useState<"calculator" | "plan" | "history">("calculator");
   const [months, setMonths] = useState<SalaryMonth[]>([]);
@@ -42,100 +19,109 @@ export default function SalaryPage() {
   const [saving, setSaving] = useState(false);
   const [calcMonth, setCalcMonth] = useState(now.getMonth() + 1);
   const [calcYear, setCalcYear]   = useState(now.getFullYear());
-  const [inputs, setInputs]       = useState<SalaryInputs>(defaultProfile);
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
 
-  const [salaryBasis, setSalaryBasis] = useState<"monthly" | "daily">("monthly");
-  const [daysWorked, setDaysWorked]   = useState(0);
-  const [deductEPF, setDeductEPF]     = useState(true);
-  const [deductSOCSO, setDeductSOCSO] = useState(true);
-  const [deductEIS, setDeductEIS]     = useState(true);
-  const [salaryDay, setSalaryDay]     = useState(25);
+  // All salary inputs in one flat state — no split state race condition
+  const [basicSalary,       setBasicSalary]       = useState(0);
+  const [allowances,        setAllowances]         = useState<any[]>([]);
+  const [customDeductions,  setCustomDeductions]   = useState<any[]>([]);
+  const [otRate,            setOtRate]             = useState(1.5);
+  const [doublePayRate,     setDoublePayRate]      = useState(2.0);
+  const [hoursPerDay,       setHoursPerDay]        = useState(7.5);
+  const [dailyRateFormula,  setDailyRateFormula]   = useState("basic/26");
+  const [unpaidLeaveDays,   setUnpaidLeaveDays]    = useState(0);
+  const [annualLeaveDays,   setAnnualLeaveDays]    = useState(0);
+  const [medicalLeaveDays,  setMedicalLeaveDays]   = useState(0);
+  const [replacementDays,   setReplacementDays]    = useState(0);
+  const [otHours,           setOtHours]            = useState(0);
+  const [doublePayHours,    setDoublePayHours]      = useState(0);
+  const [salaryBasis,       setSalaryBasis]        = useState<"monthly"|"daily">("monthly");
+  const [daysWorked,        setDaysWorked]         = useState(0);
+  const [deductEPF,         setDeductEPF]          = useState(true);
+  const [deductSOCSO,       setDeductSOCSO]        = useState(true);
+  const [deductEIS,         setDeductEIS]          = useState(true);
+  const [salaryDay,         setSalaryDay]          = useState(25);
 
-  // Sync month/year into inputs whenever pay period changes
-  useEffect(() => {
-    setInputs((p) => ({ ...p, month: calcMonth, year: calcYear }));
-  }, [calcMonth, calcYear]);
+  // Build inputs object for SalaryCalculatorTab (it still uses the same Props shape)
+  const inputs: SalaryInputs = {
+    basicSalary, allowances, customDeductions,
+    otRate, doublePayRate, hoursPerDay, dailyRateFormula,
+    unpaidLeaveDays, annualLeaveDays, medicalLeaveDays, replacementDays,
+    otHours, doublePayHours,
+    month: calcMonth, year: calcYear,
+    salaryBasis, daysWorked, deductEPF, deductSOCSO, deductEIS,
+  };
+
+  const setInputs = (updater: any) => {
+    const next = typeof updater === "function" ? updater(inputs) : updater;
+    if (next.basicSalary       !== undefined) setBasicSalary(next.basicSalary);
+    if (next.allowances        !== undefined) setAllowances(next.allowances);
+    if (next.customDeductions  !== undefined) setCustomDeductions(next.customDeductions);
+    if (next.otRate            !== undefined) setOtRate(next.otRate);
+    if (next.doublePayRate     !== undefined) setDoublePayRate(next.doublePayRate);
+    if (next.hoursPerDay       !== undefined) setHoursPerDay(next.hoursPerDay);
+    if (next.dailyRateFormula  !== undefined) setDailyRateFormula(next.dailyRateFormula);
+    if (next.unpaidLeaveDays   !== undefined) setUnpaidLeaveDays(next.unpaidLeaveDays);
+    if (next.annualLeaveDays   !== undefined) setAnnualLeaveDays(next.annualLeaveDays);
+    if (next.medicalLeaveDays  !== undefined) setMedicalLeaveDays(next.medicalLeaveDays);
+    if (next.replacementDays   !== undefined) setReplacementDays(next.replacementDays);
+    if (next.otHours           !== undefined) setOtHours(next.otHours);
+    if (next.doublePayHours    !== undefined) setDoublePayHours(next.doublePayHours);
+  };
 
   useEffect(() => {
-    // Load saved profile — runs once on mount
+    // Load profile — each field set independently, no race condition
     fetch("/api/salary/profile")
       .then((r) => r.json())
-      .then((profile) => {
-        if (profile && profile.basicSalary !== undefined) {
-          setCalcMonth((cm) => {
-            setCalcYear((cy) => {
-              setInputs({
-                basicSalary:      profile.basicSalary      ?? 0,
-                allowances:       profile.allowances        ?? [],
-                customDeductions: profile.customDeductions  ?? [],
-                otRate:           profile.otRate            ?? 1.5,
-                doublePayRate:    profile.doublePayRate     ?? 2.0,
-                hoursPerDay:      profile.hoursPerDay       ?? 7.5,
-                dailyRateFormula: profile.dailyRateFormula  ?? "basic/26",
-                unpaidLeaveDays:  0,
-                annualLeaveDays:  0,
-                medicalLeaveDays: 0,
-                replacementDays:  0,
-                otHours:          0,
-                doublePayHours:   0,
-                month:            cm,
-                year:             cy,
-                salaryBasis:      profile.salaryBasis  ?? "monthly",
-                daysWorked:       0,
-                deductEPF:        profile.deductEPF    ?? true,
-                deductSOCSO:      profile.deductSOCSO  ?? true,
-                deductEIS:        profile.deductEIS    ?? true,
-              });
-              return cy;
-            });
-            return cm;
-          });
-          setSalaryBasis(profile.salaryBasis ?? "monthly");
-          setDeductEPF(profile.deductEPF     ?? true);
-          setDeductSOCSO(profile.deductSOCSO ?? true);
-          setDeductEIS(profile.deductEIS     ?? true);
-          setSalaryDay(profile.salaryDay     ?? 25);
-        }
+      .then((p) => {
+        if (!p || p.basicSalary === undefined) return;
+        setBasicSalary(p.basicSalary      ?? 0);
+        setAllowances(p.allowances         ?? []);
+        setCustomDeductions(p.customDeductions ?? []);
+        setOtRate(p.otRate                 ?? 1.5);
+        setDoublePayRate(p.doublePayRate   ?? 2.0);
+        setHoursPerDay(p.hoursPerDay       ?? 7.5);
+        setDailyRateFormula(p.dailyRateFormula ?? "basic/26");
+        setSalaryBasis(p.salaryBasis       ?? "monthly");
+        setDeductEPF(p.deductEPF           ?? true);
+        setDeductSOCSO(p.deductSOCSO       ?? true);
+        setDeductEIS(p.deductEIS           ?? true);
+        setSalaryDay(p.salaryDay           ?? 25);
       })
       .catch(() => {});
 
     fetch("/api/salary/months")
       .then((r) => r.json())
       .then((data) => setMonths(Array.isArray(data) ? data : []));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const breakdown = calcSalary({
-    ...inputs,
-    month: calcMonth,
-    year: calcYear,
-    salaryBasis,
-    daysWorked,
-    deductEPF,
-    deductSOCSO,
-    deductEIS,
+    basicSalary, allowances, customDeductions,
+    otRate, doublePayRate, hoursPerDay, dailyRateFormula,
+    unpaidLeaveDays, annualLeaveDays, medicalLeaveDays, replacementDays,
+    otHours, doublePayHours,
+    month: calcMonth, year: calcYear,
+    salaryBasis, daysWorked, deductEPF, deductSOCSO, deductEIS,
   });
 
   const showToast = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(""), 3500);
+    setTimeout(() => setToast(""), 3000);
   };
 
-  // FIX: check res.ok before toasting success
   const saveProfile = async () => {
     setSaving(true);
     try {
       const res = await fetch("/api/salary/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...inputs, salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay }),
+        body: JSON.stringify({
+          basicSalary, allowances, customDeductions,
+          otRate, doublePayRate, hoursPerDay, dailyRateFormula,
+          salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay,
+        }),
       });
-      if (res.ok) {
-        showToast("Default profile saved ✨");
-      } else {
-        showToast("Failed to save profile ❌");
-      }
+      showToast(res.ok ? "Default profile saved ✨" : "Failed to save profile ❌");
     } catch {
       showToast("Failed to save profile ❌");
     } finally {
@@ -148,7 +134,6 @@ export default function SalaryPage() {
     const existing = months.find((m) => m.month === calcMonth && m.year === calcYear);
 
     if (existing) {
-      // Month already exists — update plan items only via PUT
       const res = await fetch(`/api/salary/months/${existing.id}/plan-items`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -170,25 +155,27 @@ export default function SalaryPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...inputs,
-        month: calcMonth,
-        year: calcYear,
-        salaryBasis,
-        daysWorked,
-        deductEPF,
-        deductSOCSO,
-        deductEIS,
+        basicSalary, allowances, customDeductions,
+        otRate, doublePayRate, hoursPerDay, dailyRateFormula,
+        unpaidLeaveDays, annualLeaveDays, medicalLeaveDays, replacementDays,
+        otHours, doublePayHours,
+        month: calcMonth, year: calcYear,
+        salaryBasis, daysWorked, deductEPF, deductSOCSO, deductEIS,
         planItems,
       }),
     });
     if (res.ok) {
       const record = await res.json();
       setMonths((prev) => [record, ...prev]);
-      // Also auto-save profile so fixed fields persist
+      // Also auto-save profile
       await fetch("/api/salary/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...inputs, salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay }),
+        body: JSON.stringify({
+          basicSalary, allowances, customDeductions,
+          otRate, doublePayRate, hoursPerDay, dailyRateFormula,
+          salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay,
+        }),
       });
       showToast("Salary plan saved! ✅");
       setPlanItems([]);
@@ -221,7 +208,6 @@ export default function SalaryPage() {
           <p className="mt-1.5 text-sm text-white/50">Calculate, plan, and track your monthly salary.</p>
         </div>
 
-        {/* Tabs */}
         <div className="mb-6 flex gap-2 rounded-2xl border border-white/10 bg-white/5 p-1.5 backdrop-blur-xl">
           {([
             { key: "calculator", label: "Calculator",   Icon: Calculator   },
@@ -243,7 +229,7 @@ export default function SalaryPage() {
               <SalaryCalculatorTab
                 inputs={inputs} setInputs={setInputs}
                 calcMonth={calcMonth} setCalcMonth={setCalcMonth}
-                calcYear={calcYear} setCalcYear={setCalcYear}
+                calcYear={calcYear}   setCalcYear={setCalcYear}
                 breakdown={breakdown} saving={saving}
                 saveProfile={saveProfile}
                 onPlanClick={() => setTab("plan")}
