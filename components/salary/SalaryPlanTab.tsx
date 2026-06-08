@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle, Info } from "lucide-react";
+import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle } from "lucide-react";
 import { SectionCard, Input, fmt, MONTHS, SOURCE_TYPES, SOURCE_COLORS } from "./SalaryShared";
 import type { PlanItem, SourceType } from "./SalaryShared";
 
@@ -44,8 +44,7 @@ export default function SalaryPlanTab({
   const [newSourceType, setNewSourceType]           = useState<SourceType>("CUSTOM");
   const [editAmounts, setEditAmounts]               = useState<Record<string, string>>({});
 
-  const included     = planItems.filter((i) => i.isIncluded);
-  const planTotal    = included.reduce((s, i) => s + i.amount, 0);
+  const planTotal    = planItems.reduce((s, i) => s + i.amount, 0);
   const unallocated  = breakdown.expectedNet - planTotal;
   const isOverBudget = unallocated < 0;
 
@@ -85,9 +84,6 @@ export default function SalaryPlanTab({
     setNewLabel(""); setNewAmount("");
   };
 
-  const toggleIncluded = (i: number) =>
-    setPlanItems((prev) => prev.map((item, idx) => idx === i ? { ...item, isIncluded: !item.isIncluded } : item));
-
   const updateAmount = (i: number, val: string) =>
     setPlanItems((prev) => prev.map((item, idx) => idx === i ? { ...item, amount: parseFloat(val) || 0 } : item));
 
@@ -100,7 +96,7 @@ export default function SalaryPlanTab({
   const totalSuggested = allSuggestions.reduce((s, i) => s + i.amount, 0);
 
   const byType: Record<string, number> = {};
-  included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
+  planItems.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
 
   const colorMap: Record<string, string> = {
     DEBT: "#FF8C8C", COMMITMENT: "#C4B5FD",
@@ -216,22 +212,12 @@ export default function SalaryPlanTab({
         )}
       </div>
 
-      {/* Plan items list */}
+      {/* Plan items list — NO isIncluded toggle, all items always count */}
       {planItems.length > 0 && (
         <SectionCard title="Monthly Plan">
-          {/* Explainer */}
-          <div className="mb-3 flex items-start gap-2 rounded-2xl border border-white/8 bg-white/4 px-3 py-2.5">
-            <Info size={13} className="text-white/35 shrink-0 mt-0.5" />
-            <p className="text-[11px] text-white/40 leading-relaxed">
-              <span className="text-white/60 font-medium">✓ Included</span> — dikira dalam total, tap untuk skip.{" "}
-              <span className="text-white/60 font-medium">Skipped</span> — tak dikira, tap untuk include balik.
-              Tekan <span className="text-white/60 font-medium">Save Plan</span> kat bawah bila dah siap.
-            </p>
-          </div>
-
           <div className="space-y-2">
             {planItems.map((item, i) => (
-              <div key={i} className={`flex items-center gap-3 rounded-2xl px-3 py-3 border transition-all ${item.isIncluded ? "border-white/10 bg-white/5" : "border-white/5 bg-white/3 opacity-50"}`}>
+              <div key={i} className="flex items-center gap-3 rounded-2xl px-3 py-3 border border-white/10 bg-white/5">
                 <GripVertical size={14} className="text-white/20 shrink-0" />
                 <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>{item.sourceType}</span>
                 <span className="flex-1 text-sm text-white truncate">{item.label}</span>
@@ -241,17 +227,6 @@ export default function SalaryPlanTab({
                   onChange={(e) => updateAmount(i, e.target.value)}
                   className="w-24 rounded-xl border border-white/10 bg-white/8 px-2 py-1 text-xs text-white text-right outline-none focus:border-[#6A49FA]/50"
                 />
-                {/* State badge — shows current state, tap to toggle */}
-                <button
-                  onClick={() => toggleIncluded(i)}
-                  title={item.isIncluded ? "Tap to skip" : "Tap to include"}
-                  className={`shrink-0 rounded-xl px-2.5 py-1 text-xs font-medium transition ${
-                    item.isIncluded
-                      ? "bg-[#8EE3B5]/15 text-[#8EE3B5] border border-[#8EE3B5]/20"
-                      : "bg-white/5 text-white/30 border border-white/10"
-                  }`}>
-                  {item.isIncluded ? "✓ Included" : "Skipped"}
-                </button>
                 <button onClick={() => remove(i)} className="text-white/25 hover:text-[#FF8C8C] transition shrink-0">
                   <Trash2 size={14} />
                 </button>
@@ -260,7 +235,7 @@ export default function SalaryPlanTab({
           </div>
 
           <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-sm">
-            <span className="text-white/50">Total planned ({included.length}/{planItems.length} items)</span>
+            <span className="text-white/50">Total planned ({planItems.length} items)</span>
             <span className={`font-semibold ${isOverBudget ? "text-[#FF8C8C]" : "text-white"}`}>{fmt(planTotal)}</span>
           </div>
         </SectionCard>
