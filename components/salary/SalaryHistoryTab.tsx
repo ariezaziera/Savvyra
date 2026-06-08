@@ -63,20 +63,20 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     if (ok) showToast("Balances saved ✅");
   };
 
-  // Mark salary as received — just confirms receipt, does NOT cascade
-  // Per-item cascading is done by individual "Mark Paid" buttons on each plan item
+  // Mark salary as received — calls /mark-received which creates income transaction + cascades
   const markReceived = async (id: string) => {
     setMarking(id);
     try {
-      const res = await fetch(`/api/salary/months/${id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isMarkedReceived: true }),
+      const res = await fetch(`/api/salary/months/${id}/mark-received`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
       });
       if (res.ok) {
-        setMonths((prev) => prev.map((x) => x.id === id ? { ...x, isMarkedReceived: true } : x));
-        showToast("Salary confirmed received ✅ — you can now mark each planned item as paid.");
+        const updated = await res.json();
+        setMonths((prev) => prev.map((x) => x.id === id ? { ...x, ...updated, salaryPlanItems: x.salaryPlanItems } : x));
+        showToast("Salary confirmed received ✅ Income transaction created.");
       } else {
-        showToast("Failed ❌");
+        const e = await res.json().catch(() => ({}));
+        showToast(e.error ?? "Failed ❌");
       }
     } finally {
       setMarking(null);
