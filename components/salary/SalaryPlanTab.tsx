@@ -51,8 +51,31 @@ export default function SalaryPlanTab({
   useEffect(() => {
     const fetchSuggestions = async () => {
       setLoadingSuggestions(true);
-      const res = await fetch(`/api/salary/plan-suggestions?month=${calcMonth}&year=${calcYear}`);
-      if (res.ok) setSuggestions(await res.json());
+      const res = await fetch(`/api/salary/plan-suggestions?month=${calcMonth}&year=${calcYear}`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data);
+        // Auto-populate planItems if currently empty — user can remove what they don't want
+        if (planItems.length === 0) {
+          const all = [
+            ...data.commitments,
+            ...data.savings,
+            ...data.debts,
+            ...data.investments,
+          ];
+          if (all.length > 0) {
+            setPlanItems(all.map((s: any, idx: number) => ({
+              label:      s.label,
+              amount:     s.amount,
+              sourceType: s.sourceType,
+              sourceId:   s.sourceId,
+              isIncluded: true,
+              sortOrder:  idx,
+            })));
+            setAddedIds(new Set(all.map((s: any) => s.id)));
+          }
+        }
+      }
       setLoadingSuggestions(false);
     };
     fetchSuggestions();
