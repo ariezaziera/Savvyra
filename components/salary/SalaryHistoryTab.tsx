@@ -36,6 +36,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
   const patch = async (id: string, data: any) => {
     const res = await fetch(`/api/salary/months/${id}`, {
+        credentials: "include",
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
@@ -68,6 +69,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     setMarking(id);
     try {
       const res = await fetch(`/api/salary/months/${id}/mark-received`, {
+        credentials: "include",
         method: "POST", headers: { "Content-Type": "application/json" },
       });
       if (res.ok) {
@@ -88,6 +90,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     setPayingItem(itemId);
     try {
       const res = await fetch(`/api/salary/months/${monthId}/plan-items/${itemId}/mark-paid`, {
+        credentials: "include",
         method: "POST", headers: { "Content-Type": "application/json" },
       });
       if (res.ok) {
