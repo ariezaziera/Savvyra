@@ -21,7 +21,10 @@ export default function SalaryPage() {
   const [calcYear, setCalcYear]   = useState(now.getFullYear());
   const [planItems, setPlanItems] = useState<PlanItem[]>([]);
 
-  // All salary inputs in one flat state — no split state race condition
+  // Default plan items loaded from profile — used to pre-fill plan tab
+  const [defaultPlanItems, setDefaultPlanItems] = useState<PlanItem[]>([]);
+
+  // All salary inputs in one flat state
   const [basicSalary,       setBasicSalary]       = useState(0);
   const [allowances,        setAllowances]         = useState<any[]>([]);
   const [customDeductions,  setCustomDeductions]   = useState<any[]>([]);
@@ -42,7 +45,6 @@ export default function SalaryPage() {
   const [deductEIS,         setDeductEIS]          = useState(true);
   const [salaryDay,         setSalaryDay]          = useState(25);
 
-  // Build inputs object for SalaryCalculatorTab (it still uses the same Props shape)
   const inputs: SalaryInputs = {
     basicSalary, allowances, customDeductions,
     otRate, doublePayRate, hoursPerDay, dailyRateFormula,
@@ -74,7 +76,7 @@ export default function SalaryPage() {
     fetch("/api/salary/profile", { credentials: "include" })
       .then((r) => r.json())
       .then((p) => {
-        if (!p || p.basicSalary === undefined) return;
+        if (!p || p.error) return;
         setBasicSalary(p.basicSalary      ?? 0);
         setAllowances(p.allowances         ?? []);
         setCustomDeductions(p.customDeductions ?? []);
@@ -87,6 +89,10 @@ export default function SalaryPage() {
         setDeductSOCSO(p.deductSOCSO       ?? true);
         setDeductEIS(p.deductEIS           ?? true);
         setSalaryDay(p.salaryDay           ?? 25);
+        // Load saved default plan items
+        if (Array.isArray(p.defaultPlanItems) && p.defaultPlanItems.length > 0) {
+          setDefaultPlanItems(p.defaultPlanItems);
+        }
       })
       .catch(() => {});
 
@@ -122,11 +128,45 @@ export default function SalaryPage() {
           salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay,
         }),
       });
-      showToast(res.ok ? "Default profile saved ✨" : "Failed to save profile ❌");
-    } catch {
+      if (res.ok) {
+        showToast("Default profile saved ✨");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("Save profile failed:", res.status, err);
+        showToast("Failed to save profile ❌");
+      }
+    } catch (e) {
+      console.error("Save profile error:", e);
       showToast("Failed to save profile ❌");
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Save the current plan items as the default template for this user
+  const saveDefaultPlan = async (items: PlanItem[]) => {
+    try {
+      const res = await fetch("/api/salary/profile", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // Keep existing profile fields intact
+          basicSalary, allowances, customDeductions,
+          otRate, doublePayRate, hoursPerDay, dailyRateFormula,
+          salaryBasis, deductEPF, deductSOCSO, deductEIS, salaryDay,
+          // Save plan as default
+          defaultPlanItems: items,
+        }),
+      });
+      if (res.ok) {
+        setDefaultPlanItems(items);
+        showToast("Default monthly plan saved ✨");
+      } else {
+        showToast("Failed to save default plan ❌");
+      }
+    } catch {
+      showToast("Failed to save default plan ❌");
     }
   };
 
@@ -253,6 +293,8 @@ export default function SalaryPage() {
                 breakdown={breakdown}
                 planItems={planItems} setPlanItems={setPlanItems}
                 saving={saving} saveMonth={saveMonth}
+                defaultPlanItems={defaultPlanItems}
+                saveDefaultPlan={saveDefaultPlan}
               />
             </motion.div>
           )}
