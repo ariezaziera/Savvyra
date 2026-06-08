@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle } from "lucide-react";
+import { Trash2, Sparkles, ChevronDown, ChevronUp, Check, GripVertical, AlertTriangle, BookmarkCheck } from "lucide-react";
 import { SectionCard, Input, fmt, MONTHS, SOURCE_TYPES, SOURCE_COLORS } from "./SalaryShared";
 import type { PlanItem, SourceType } from "./SalaryShared";
 
@@ -28,12 +28,15 @@ type Props = {
   setPlanItems: React.Dispatch<React.SetStateAction<PlanItem[]>>;
   saving:    boolean;
   saveMonth: () => void;
+  defaultPlanItems: PlanItem[];
+  saveDefaultPlan: (items: PlanItem[]) => Promise<void>;
 };
 
 export default function SalaryPlanTab({
   calcMonth, calcYear, breakdown,
   planItems, setPlanItems,
   saving, saveMonth,
+  defaultPlanItems, saveDefaultPlan,
 }: Props) {
   const [suggestions, setSuggestions]               = useState<Suggestions | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -43,6 +46,7 @@ export default function SalaryPlanTab({
   const [newAmount, setNewAmount]                   = useState("");
   const [newSourceType, setNewSourceType]           = useState<SourceType>("CUSTOM");
   const [editAmounts, setEditAmounts]               = useState<Record<string, string>>({});
+  const [savingDefault, setSavingDefault]           = useState(false);
 
   const planTotal    = planItems.reduce((s, i) => s + i.amount, 0);
   const unallocated  = breakdown.expectedNet - planTotal;
@@ -55,24 +59,34 @@ export default function SalaryPlanTab({
       if (res.ok) {
         const data = await res.json();
         setSuggestions(data);
-        // Auto-populate planItems if currently empty — user can remove what they don't want
+
+        // Auto-populate:
+        // 1. If there are saved default plan items, use those first
+        // 2. Otherwise fall back to fetched suggestions
         if (planItems.length === 0) {
-          const all = [
-            ...data.commitments,
-            ...data.savings,
-            ...data.debts,
-            ...data.investments,
-          ];
-          if (all.length > 0) {
-            setPlanItems(all.map((s: any, idx: number) => ({
-              label:      s.label,
-              amount:     s.amount,
-              sourceType: s.sourceType,
-              sourceId:   s.sourceId,
-              isIncluded: true,
-              sortOrder:  idx,
-            })));
-            setAddedIds(new Set(all.map((s: any) => s.id)));
+          if (defaultPlanItems.length > 0) {
+            // Use saved default plan — re-index sortOrder
+            setPlanItems(defaultPlanItems.map((item, idx) => ({ ...item, sortOrder: idx })));
+            setAddedIds(new Set(defaultPlanItems.filter((i) => i.sourceId).map((i) => i.sourceId!)));
+          } else {
+            // Fall back to live suggestions
+            const all = [
+              ...data.commitments,
+              ...data.savings,
+              ...data.debts,
+              ...data.investments,
+            ];
+            if (all.length > 0) {
+              setPlanItems(all.map((s: any, idx: number) => ({
+                label:      s.label,
+                amount:     s.amount,
+                sourceType: s.sourceType,
+                sourceId:   s.sourceId,
+                isIncluded: true,
+                sortOrder:  idx,
+              })));
+              setAddedIds(new Set(all.map((s: any) => s.id)));
+            }
           }
         }
       }
@@ -112,6 +126,13 @@ export default function SalaryPlanTab({
 
   const remove = (i: number) =>
     setPlanItems((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleSaveDefault = async () => {
+    if (planItems.length === 0) return;
+    setSavingDefault(true);
+    await saveDefaultPlan(planItems);
+    setSavingDefault(false);
+  };
 
   const allSuggestions = suggestions
     ? [...suggestions.commitments, ...suggestions.savings, ...suggestions.debts, ...suggestions.investments]
@@ -235,7 +256,7 @@ export default function SalaryPlanTab({
         )}
       </div>
 
-      {/* Plan items list — NO isIncluded toggle, all items always count */}
+      {/* Plan items list */}
       {planItems.length > 0 && (
         <SectionCard title="Monthly Plan">
           <div className="space-y-2">
@@ -315,15 +336,36 @@ export default function SalaryPlanTab({
         </SectionCard>
       )}
 
-      {/* Save button */}
-      <button onClick={saveMonth} disabled={saving}
-        className="w-full rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
-        {saving ? "Saving…" : `💾 Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
-      </button>
+      {/* Action buttons */}
+      <div className="space-y-3">
+        {/* Save as default plan template */}
+        {planItems.length > 0 && (
+          <button
+            onClick={handleSaveDefault}
+            disabled={savingDefault}
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-[#8EE3B5]/30 bg-[#8EE3B5]/10 px-5 py-3 text-sm font-semibold text-[#8EE3B5] transition hover:bg-[#8EE3B5]/20 disabled:opacity-50"
+          >
+            <BookmarkCheck size={15} />
+            {savingDefault ? "Saving…" : "Save as Default Monthly Plan"}
+          </button>
+        )}
+
+        {/* Save this month */}
+        <button onClick={saveMonth} disabled={saving}
+          className="w-full rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
+          {saving ? "Saving…" : `💾 Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
+        </button>
+      </div>
 
       {planItems.length === 0 && (
         <p className="text-center text-xs text-white/30 -mt-2">
           Add items above, then tap Save to record your plan.
+        </p>
+      )}
+
+      {defaultPlanItems.length > 0 && planItems.length === 0 && (
+        <p className="text-center text-xs text-[#8EE3B5]/50">
+          ✓ Default plan loaded automatically
         </p>
       )}
     </div>
