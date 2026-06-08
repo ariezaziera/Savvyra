@@ -71,7 +71,7 @@ export default function SalaryPage() {
 
   useEffect(() => {
     // Load profile — each field set independently, no race condition
-    fetch("/api/salary/profile")
+    fetch("/api/salary/profile", { credentials: "include" })
       .then((r) => r.json())
       .then((p) => {
         if (!p || p.basicSalary === undefined) return;
@@ -90,7 +90,7 @@ export default function SalaryPage() {
       })
       .catch(() => {});
 
-    fetch("/api/salary/months")
+    fetch("/api/salary/months", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setMonths(Array.isArray(data) ? data : []));
   }, []);
@@ -114,6 +114,7 @@ export default function SalaryPage() {
     try {
       const res = await fetch("/api/salary/profile", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           basicSalary, allowances, customDeductions,
@@ -136,6 +137,7 @@ export default function SalaryPage() {
     if (existing) {
       const res = await fetch(`/api/salary/months/${existing.id}/plan-items`, {
         method: "PUT",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planItems }),
       });
@@ -153,6 +155,7 @@ export default function SalaryPage() {
 
     const res = await fetch("/api/salary/months", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         basicSalary, allowances, customDeductions,
@@ -170,6 +173,7 @@ export default function SalaryPage() {
       // Also auto-save profile
       await fetch("/api/salary/profile", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           basicSalary, allowances, customDeductions,
