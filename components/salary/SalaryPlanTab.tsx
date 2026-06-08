@@ -43,11 +43,10 @@ export default function SalaryPlanTab({
   const [newAmount, setNewAmount]                   = useState("");
   const [newSourceType, setNewSourceType]           = useState<SourceType>("CUSTOM");
   const [editAmounts, setEditAmounts]               = useState<Record<string, string>>({});
-  const [showIncludeInfo, setShowIncludeInfo]       = useState(false);
 
-  const included    = planItems.filter((i) => i.isIncluded);
-  const planTotal   = included.reduce((s, i) => s + i.amount, 0);
-  const unallocated = breakdown.expectedNet - planTotal;
+  const included     = planItems.filter((i) => i.isIncluded);
+  const planTotal    = included.reduce((s, i) => s + i.amount, 0);
+  const unallocated  = breakdown.expectedNet - planTotal;
   const isOverBudget = unallocated < 0;
 
   useEffect(() => {
@@ -100,7 +99,6 @@ export default function SalaryPlanTab({
     : [];
   const totalSuggested = allSuggestions.reduce((s, i) => s + i.amount, 0);
 
-  // By source type breakdown
   const byType: Record<string, number> = {};
   included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
 
@@ -124,7 +122,6 @@ export default function SalaryPlanTab({
           </span>
         </div>
 
-        {/* Over budget warning */}
         {isOverBudget && (
           <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[#FF8C8C]/25 bg-[#FF8C8C]/10 px-4 py-3">
             <AlertTriangle size={16} className="text-[#FF8C8C] shrink-0 mt-0.5" />
@@ -222,13 +219,13 @@ export default function SalaryPlanTab({
       {/* Plan items list */}
       {planItems.length > 0 && (
         <SectionCard title="Monthly Plan">
-          {/* Include/exclude explainer */}
+          {/* Explainer */}
           <div className="mb-3 flex items-start gap-2 rounded-2xl border border-white/8 bg-white/4 px-3 py-2.5">
             <Info size={13} className="text-white/35 shrink-0 mt-0.5" />
             <p className="text-[11px] text-white/40 leading-relaxed">
-              <span className="text-white/60 font-medium">✓ Include</span> — item is counted in your planned total.{" "}
-              <span className="text-white/60 font-medium">Skip</span> — kept in the list but excluded from total (e.g. optional spending).
-              Hit <span className="text-white/60 font-medium">Save Plan</span> below when done.
+              <span className="text-white/60 font-medium">✓ Included</span> — dikira dalam total, tap untuk skip.{" "}
+              <span className="text-white/60 font-medium">Skipped</span> — tak dikira, tap untuk include balik.
+              Tekan <span className="text-white/60 font-medium">Save Plan</span> kat bawah bila dah siap.
             </p>
           </div>
 
@@ -238,19 +235,22 @@ export default function SalaryPlanTab({
                 <GripVertical size={14} className="text-white/20 shrink-0" />
                 <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>{item.sourceType}</span>
                 <span className="flex-1 text-sm text-white truncate">{item.label}</span>
-                {/* Inline editable amount */}
                 <input
                   type="number"
                   value={item.amount}
                   onChange={(e) => updateAmount(i, e.target.value)}
                   className="w-24 rounded-xl border border-white/10 bg-white/8 px-2 py-1 text-xs text-white text-right outline-none focus:border-[#6A49FA]/50"
                 />
-                {/* Include / Skip toggle — clearly labelled */}
+                {/* State badge — shows current state, tap to toggle */}
                 <button
                   onClick={() => toggleIncluded(i)}
-                  title={item.isIncluded ? "Click to skip this item (exclude from total)" : "Click to include this item in total"}
-                  className={`shrink-0 rounded-xl px-2.5 py-1 text-xs font-medium transition ${item.isIncluded ? "bg-[#8EE3B5]/15 text-[#8EE3B5] border border-[#8EE3B5]/20" : "bg-white/5 text-white/30 border border-white/10"}`}>
-                  {item.isIncluded ? "✓ Include" : "Skip"}
+                  title={item.isIncluded ? "Tap to skip" : "Tap to include"}
+                  className={`shrink-0 rounded-xl px-2.5 py-1 text-xs font-medium transition ${
+                    item.isIncluded
+                      ? "bg-[#8EE3B5]/15 text-[#8EE3B5] border border-[#8EE3B5]/20"
+                      : "bg-white/5 text-white/30 border border-white/10"
+                  }`}>
+                  {item.isIncluded ? "✓ Included" : "Skipped"}
                 </button>
                 <button onClick={() => remove(i)} className="text-white/25 hover:text-[#FF8C8C] transition shrink-0">
                   <Trash2 size={14} />
@@ -259,7 +259,6 @@ export default function SalaryPlanTab({
             ))}
           </div>
 
-          {/* Total */}
           <div className="mt-3 pt-3 border-t border-white/10 flex justify-between text-sm">
             <span className="text-white/50">Total planned ({included.length}/{planItems.length} items)</span>
             <span className={`font-semibold ${isOverBudget ? "text-[#FF8C8C]" : "text-white"}`}>{fmt(planTotal)}</span>
@@ -291,7 +290,7 @@ export default function SalaryPlanTab({
         </div>
       </SectionCard>
 
-      {/* Breakdown by type with % bars */}
+      {/* Breakdown by type */}
       {Object.keys(byType).length > 0 && (
         <SectionCard title="Breakdown by Category">
           <div className="space-y-3">
@@ -318,7 +317,7 @@ export default function SalaryPlanTab({
         </SectionCard>
       )}
 
-      {/* Save button — always visible at bottom, labelled clearly */}
+      {/* Save button */}
       <button onClick={saveMonth} disabled={saving}
         className="w-full rounded-full bg-gradient-to-r from-[#6A49FA] to-[#9B7FFF] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_8px_24px_rgba(106,73,250,0.40)] transition hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50">
         {saving ? "Saving…" : `💾 Save ${MONTHS[calcMonth - 1]} ${calcYear} Plan`}
