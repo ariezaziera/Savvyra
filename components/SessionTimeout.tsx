@@ -5,8 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
 const INACTIVITY_TIME    = 5 * 60 * 1000; // 5 minutes
-const COUNTDOWN_TIME     = 15;          // 15 seconds
-const BACKGROUND_TIMEOUT = 5 * 60 * 1000;  // 5 minutes
+const COUNTDOWN_TIME     = 15;            // 15 seconds
+const BACKGROUND_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 const LAST_SEEN_KEY = "savvyra_last_seen";
 
@@ -64,11 +64,9 @@ export default function SessionTimeout() {
     setCountdown(COUNTDOWN_TIME);
     clearLastSeen();
 
-    // Clear both cookies
     document.cookie = "savvyra_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     fetch("/api/logout", { method: "POST" }).catch(() => {});
 
-    // ✅ This clears the NextAuth session cookie AND redirects to /login
     await signOut({ callbackUrl: "/login" });
   }, [router]);
 
@@ -78,10 +76,6 @@ export default function SessionTimeout() {
 
   /* ─────────────────────────────────────────────
      COUNTDOWN
-     ✅ Fix: setInterval only updates the counter.
-     Logout is triggered by a separate useEffect
-     watching countdown hit 0 — no side effects
-     inside setState.
   ───────────────────────────────────────────── */
   const startCountdown = useCallback(() => {
     setCountdown(COUNTDOWN_TIME);
@@ -98,9 +92,9 @@ export default function SessionTimeout() {
   }, []);
 
   useEffect(() => {
-      if (countdown === 0 && showModal) {
-        handleLogout();
-      }
+    if (countdown === 0 && showModal) {
+      handleLogout();
+    }
   }, [countdown, showModal, handleLogout]);
 
   /* ─────────────────────────────────────────────
@@ -217,12 +211,27 @@ export default function SessionTimeout() {
   }, [isPublicRoute, showModal, resetInactivityTimer]);
 
   /* ─────────────────────────────────────────────
-     BEFORE UNLOAD
+     BEFORE UNLOAD — only logout on actual tab/window close,
+     NOT on reload. We detect reload via performance.navigation
+     (legacy) or the Navigation Timing API.
   ───────────────────────────────────────────── */
   useEffect(() => {
     if (isPublicRoute) return;
 
     const onUnload = () => {
+      // Check if this is a reload — if so, skip the logout beacon
+      // so the session cookie survives the refresh.
+      const isReload =
+        (typeof performance !== "undefined" &&
+          performance.getEntriesByType("navigation").length > 0 &&
+          (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming).type === "reload") ||
+        // Fallback for older browsers
+        (typeof performance !== "undefined" &&
+          (performance.navigation?.type === 1));
+
+      if (isReload) return;
+
+      // Only fire for genuine tab/window close
       navigator.sendBeacon("/api/logout");
       clearLastSeen();
     };
