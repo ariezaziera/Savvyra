@@ -26,13 +26,16 @@ export async function POST(request: Request) {
     otRate:           parseFloat(body.otRate)            || 1.5,
     doublePayRate:    parseFloat(body.doublePayRate)     || 2.0,
     dailyRateFormula: body.dailyRateFormula              ?? "basic/26",
-    // ── New fields ──
     salaryDay:        parseInt(body.salaryDay)           || 2,
     hoursPerDay:      parseFloat(body.hoursPerDay)       || 7.5,
     salaryBasis:      body.salaryBasis                   ?? "monthly",
     deductEPF:        body.deductEPF  !== undefined ? Boolean(body.deductEPF)    : true,
     deductSOCSO:      body.deductSOCSO !== undefined ? Boolean(body.deductSOCSO) : true,
     deductEIS:        body.deductEIS  !== undefined ? Boolean(body.deductEIS)    : true,
+    // Default plan items for auto-populating the Plan tab
+    ...(body.defaultPlanItems !== undefined && {
+      defaultPlanItems: body.defaultPlanItems ?? [],
+    }),
   };
 
   const profile = await prisma.salaryProfile.upsert({
