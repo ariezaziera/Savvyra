@@ -5,7 +5,7 @@ import {
   Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X,
   AlertTriangle, CheckCircle2, RefreshCw, Lock,
 } from "lucide-react";
-import { SectionCard, Field, Input, fmt, MONTHS, SOURCE_COLORS } from "./SalaryShared";
+import { Field, Input, fmt, MONTHS, SOURCE_COLORS } from "./SalaryShared";
 import type { SalaryMonth, PlanItem } from "./SalaryShared";
 import type { Allowance, CustomDeduction } from "@/lib/salaryCalc";
 import { calcSalary } from "@/lib/salaryCalc";
@@ -34,15 +34,18 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting]             = useState(false);
 
+  // ── Helpers ──────────────────────────────────────────────
+
   const patch = async (id: string, data: any) => {
     const res = await fetch(`/api/salary/months/${id}`, {
-        credentials: "include",
-      method: "PATCH", headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
     if (res.ok) {
       const updated = await res.json();
-      setMonths((prev) => prev.map((m) => (m.id === id ? updated : m)));
+      setMonths((prev) => prev.map((m) => (m.id === id ? { ...m, ...updated } : m)));
     }
     return res.ok;
   };
@@ -64,17 +67,21 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     if (ok) showToast("Balances saved ✅");
   };
 
-  // Mark salary as received — calls /mark-received which creates income transaction + cascades
   const markReceived = async (id: string) => {
     setMarking(id);
     try {
       const res = await fetch(`/api/salary/months/${id}/mark-received`, {
         credentials: "include",
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
       if (res.ok) {
         const updated = await res.json();
-        setMonths((prev) => prev.map((x) => x.id === id ? { ...x, ...updated, salaryPlanItems: x.salaryPlanItems } : x));
+        setMonths((prev) =>
+          prev.map((x) =>
+            x.id === id ? { ...x, ...updated, salaryPlanItems: x.salaryPlanItems } : x
+          )
+        );
         showToast("Salary confirmed received ✅ Income transaction created.");
       } else {
         const e = await res.json().catch(() => ({}));
@@ -85,26 +92,24 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     }
   };
 
-  // Per-item mark as paid — creates transaction + updates linked module
+  // Per-item mark as paid — uses real DB response to update state
   const markItemPaid = async (monthId: string, itemId: string, itemLabel: string) => {
     setPayingItem(itemId);
     try {
-      const res = await fetch(`/api/salary/months/${monthId}/plan-items/${itemId}/mark-paid`, {
-        credentials: "include",
-        method: "POST", headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch(
+        `/api/salary/months/${monthId}/plan-items/${itemId}`,
+        {
+          credentials: "include",
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
       if (res.ok) {
-        // Mark item as paid in local state: sortOrder = -1 convention
-        setMonths((prev) => prev.map((m) => {
-          if (m.id !== monthId) return m;
-          const items = (m.salaryPlanItems ?? []) as PlanItem[];
-          return {
-            ...m,
-            salaryPlanItems: items.map((i) =>
-              i.id === itemId ? { ...i, sortOrder: -1 } : i
-            ),
-          };
-        }));
+        const updatedMonth = await res.json();
+        // Replace entire month record with fresh DB data (includes updated salaryPlanItems)
+        setMonths((prev) =>
+          prev.map((m) => (m.id === monthId ? { ...m, ...updatedMonth } : m))
+        );
         showToast(`${itemLabel} marked paid ✅`);
       } else {
         const e = await res.json().catch(() => ({}));
@@ -126,11 +131,19 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
   const handleDelete = async (id: string) => {
     setDeleting(true);
-    const res = await fetch(`/api/salary/months/${id}`, { method: "DELETE" });
-    if (res.ok) { setMonths((prev) => prev.filter((m) => m.id !== id)); showToast("Month deleted 🗑️"); }
+    const res = await fetch(`/api/salary/months/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    if (res.ok) {
+      setMonths((prev) => prev.filter((m) => m.id !== id));
+      showToast("Month deleted 🗑️");
+    }
     setDeleting(false);
     setConfirmDeleteId(null);
   };
+
+  // ── Empty state ──────────────────────────────────────────
 
   if (months.length === 0) {
     return (
@@ -139,6 +152,8 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
       </div>
     );
   }
+
+  // ── Render ───────────────────────────────────────────────
 
   return (
     <>
@@ -162,7 +177,9 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                 </div>
                 <div className="flex gap-3 w-full pt-1">
                   <button onClick={() => setConfirmDeleteId(null)}
-                    className="flex-1 rounded-full border border-white/15 bg-white/5 py-2.5 text-sm text-white/60 hover:text-white transition">Cancel</button>
+                    className="flex-1 rounded-full border border-white/15 bg-white/5 py-2.5 text-sm text-white/60 hover:text-white transition">
+                    Cancel
+                  </button>
                   <button onClick={() => handleDelete(confirmDeleteId)} disabled={deleting}
                     className="flex-1 rounded-full bg-[#FF8C8C]/20 border border-[#FF8C8C]/30 py-2.5 text-sm font-semibold text-[#FF8C8C] hover:bg-[#FF8C8C]/35 transition disabled:opacity-50">
                     {deleting ? "Deleting…" : "Yes, delete"}
@@ -176,19 +193,19 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
       <div className="space-y-4">
         {months.map((m) => {
-          const isExpanded = expandedMonth === m.id;
-          const isEditing  = editingMonth  === m.id;
-          const monthLabel = `${MONTHS[m.month - 1]} ${m.year}`;
+          const isExpanded   = expandedMonth === m.id;
+          const isEditing    = editingMonth  === m.id;
+          const monthLabel   = `${MONTHS[m.month - 1]} ${m.year}`;
           const allPlanItems = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
-          const included   = allPlanItems.filter((i) => i.isIncluded && i.sortOrder !== -1);
-          const paidItems  = allPlanItems.filter((i) => i.sortOrder === -1);
-          const planTotal  = included.reduce((s, i) => s + i.amount, 0);
-          const ei         = editInputs[m.id];
+          // sortOrder === -1 = paid
+          const included     = allPlanItems.filter((i) => i.isIncluded && i.sortOrder !== -1);
+          const paidItems    = allPlanItems.filter((i) => i.sortOrder === -1);
+          const planTotal    = included.reduce((s, i) => s + i.amount, 0);
+          const ei           = editInputs[m.id];
           const editBreakdown = isEditing && ei ? calcSalary({ ...ei, month: m.month, year: m.year }) : null;
-
-          const usable      = m.usableBalance ?? m.actualNet ?? 0;
-          const planExceeds = m.actualNet != null && planTotal > 0 && planTotal > usable;
-          const surplus     = usable - planTotal;
+          const usable       = m.usableBalance ?? m.actualNet ?? 0;
+          const planExceeds  = m.actualNet != null && planTotal > 0 && planTotal > usable;
+          const surplus      = usable - planTotal;
 
           const byType: Record<string, number> = {};
           included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
@@ -197,29 +214,61 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
             setEditInputs((prev) => ({
               ...prev,
               [m.id]: {
-                basicSalary: m.basicSalary, allowances: m.allowances as Allowance[],
-                customDeductions: m.customDeductions as CustomDeduction[],
-                otRate: m.otRate, doublePayRate: m.doublePayRate,
-                hoursPerDay: m.hoursPerDay ?? 7.5, dailyRateFormula: m.dailyRateFormula,
-                unpaidLeaveDays: m.unpaidLeaveDays, annualLeaveDays: m.annualLeaveDays,
-                medicalLeaveDays: m.medicalLeaveDays, replacementDays: m.replacementDays,
-                otHours: m.otHours, doublePayHours: m.doublePayHours,
-                month: m.month, year: m.year,
-                salaryBasis: "monthly" as const,
-                deductEPF: true, deductSOCSO: true, deductEIS: true,
+                basicSalary:      m.basicSalary,
+                allowances:       m.allowances       as Allowance[],
+                customDeductions: m.customDeductions  as CustomDeduction[],
+                otRate:           m.otRate,
+                doublePayRate:    m.doublePayRate,
+                hoursPerDay:      m.hoursPerDay       ?? 7.5,
+                dailyRateFormula: m.dailyRateFormula,
+                unpaidLeaveDays:  m.unpaidLeaveDays,
+                annualLeaveDays:  m.annualLeaveDays,
+                medicalLeaveDays: m.medicalLeaveDays,
+                replacementDays:  m.replacementDays,
+                otHours:          m.otHours,
+                doublePayHours:   m.doublePayHours,
+                month:            m.month,
+                year:             m.year,
+                salaryBasis:      "monthly" as const,
+                deductEPF:        true,
+                deductSOCSO:      true,
+                deductEIS:        true,
               },
             }));
             setEditingMonth(m.id);
           };
 
+          // Edit helpers — allowances
           const updateEA = (i: number, field: keyof Allowance, value: any) =>
-            setEditInputs((prev) => { const arr = [...prev[m.id].allowances]; arr[i] = { ...arr[i], [field]: value }; return { ...prev, [m.id]: { ...prev[m.id], allowances: arr } }; });
+            setEditInputs((prev) => {
+              const arr = [...prev[m.id].allowances];
+              arr[i] = { ...arr[i], [field]: value };
+              return { ...prev, [m.id]: { ...prev[m.id], allowances: arr } };
+            });
           const removeEA = (i: number) =>
-            setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i) } }));
+            setEditInputs((prev) => ({
+              ...prev,
+              [m.id]: {
+                ...prev[m.id],
+                allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i),
+              },
+            }));
+
+          // Edit helpers — custom deductions (fixed: was writing to customDeductTotal by mistake)
           const updateED = (i: number, field: keyof CustomDeduction, value: any) =>
-            setEditInputs((prev) => { const arr = [...prev[m.id].customDeductions]; arr[i] = { ...arr[i], [field]: value }; return { ...prev, [m.id]: { ...prev[m.id], customDeductTotal: arr } }; });
+            setEditInputs((prev) => {
+              const arr = [...prev[m.id].customDeductions];
+              arr[i] = { ...arr[i], [field]: value };
+              return { ...prev, [m.id]: { ...prev[m.id], customDeductions: arr } };
+            });
           const removeED = (i: number) =>
-            setEditInputs((prev) => ({ ...prev, [m.id]: { ...prev[m.id], customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i) } }));
+            setEditInputs((prev) => ({
+              ...prev,
+              [m.id]: {
+                ...prev[m.id],
+                customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i),
+              },
+            }));
 
           return (
             <div key={m.id} className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
@@ -239,7 +288,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       )}
                       {paidItems.length > 0 && (
                         <span className="rounded-full bg-[#C4B5FD]/15 px-2 py-0.5 text-[10px] font-semibold text-[#C4B5FD]">
-                          {paidItems.length} paid
+                          {paidItems.length}/{allPlanItems.filter(i => i.isIncluded).length} paid
                         </span>
                       )}
                     </div>
@@ -249,7 +298,9 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       {m.usableBalance != null && <> · Usable: <span className="text-[#C4B5FD]">{fmt(m.usableBalance)}</span></>}
                     </p>
                   </div>
-                  {isExpanded ? <ChevronUp size={18} className="text-white/40 mr-3" /> : <ChevronDown size={18} className="text-white/40 mr-3" />}
+                  {isExpanded
+                    ? <ChevronUp size={18} className="text-white/40 mr-3" />
+                    : <ChevronDown size={18} className="text-white/40 mr-3" />}
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(m.id); }}
                   className="h-8 w-8 rounded-xl flex items-center justify-center text-white/20 hover:text-[#FF8C8C] hover:bg-[#FF8C8C]/15 transition shrink-0">
@@ -264,25 +315,24 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                     <>
                       {/* Salary breakdown */}
                       <div className="space-y-2 text-sm">
-                        {[
-                          ["Basic Salary",  fmt(m.basicSalary)],
-                          ["Gross Salary",  fmt(m.grossSalary)],
-                        ].map(([label, val]) => (
-                          <div key={label} className="flex justify-between">
-                            <span className="text-white/45">{label}</span>
-                            <span className="text-white">{val}</span>
-                          </div>
-                        ))}
+                        <div className="flex justify-between">
+                          <span className="text-white/45">Basic Salary</span>
+                          <span className="text-white">{fmt(m.basicSalary)}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-t border-b border-white/10">
+                          <span className="text-white/55 font-medium">Gross Salary</span>
+                          <span className="text-white font-medium">{fmt(m.grossSalary)}</span>
+                        </div>
                         <div className="pt-1 space-y-1.5">
                           {[
-                            ["EPF", `− ${fmt(m.epfAmount)}`],
-                            ["SOCSO", `− ${fmt(m.socsoAmount)}`],
-                            ["EIS", `− ${fmt(m.eisAmount)}`],
-                            m.customDeductTotal > 0 ? ["Other Deductions", `− ${fmt(m.customDeductTotal)}`] : null,
-                          ].filter(Boolean).map(([label, val]: any) => (
+                            ["EPF",   fmt(m.epfAmount)],
+                            ["SOCSO", fmt(m.socsoAmount)],
+                            ["EIS",   fmt(m.eisAmount)],
+                            ...(m.customDeductTotal > 0 ? [["Other Deductions", fmt(m.customDeductTotal)]] : []),
+                          ].map(([label, val]) => (
                             <div key={label} className="flex justify-between text-xs">
                               <span className="text-white/35">{label}</span>
-                              <span className="text-[#FF8C8C]">{val}</span>
+                              <span className="text-[#FF8C8C]">− {val}</span>
                             </div>
                           ))}
                         </div>
@@ -292,17 +342,23 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       </div>
 
-                      {/* Actual Net input */}
+                      {/* Actual Net */}
                       <div>
                         <p className="text-xs text-white/45 uppercase tracking-wider mb-2">Actual Salary Received</p>
                         {m.actualNet != null ? (
                           <p className="text-lg font-bold text-[#8EE3B5]">{fmt(m.actualNet)}</p>
                         ) : (
                           <div className="flex gap-2">
-                            <Input value={actualNetInput[m.id] ?? ""} onChange={(e: any) => setActualNetInput((p) => ({ ...p, [m.id]: e.target.value }))}
-                              placeholder="Enter actual net" className="flex-1" />
+                            <Input
+                              value={actualNetInput[m.id] ?? ""}
+                              onChange={(e: any) => setActualNetInput((p) => ({ ...p, [m.id]: e.target.value }))}
+                              placeholder="Enter actual net"
+                              className="flex-1"
+                            />
                             <button onClick={() => submitActualNet(m.id)}
-                              className="rounded-2xl bg-[#6A49FA]/30 px-4 text-[#C4B5FD] hover:bg-[#6A49FA]/50 transition text-sm">Save</button>
+                              className="rounded-2xl bg-[#6A49FA]/30 px-4 text-[#C4B5FD] hover:bg-[#6A49FA]/50 transition text-sm">
+                              Save
+                            </button>
                           </div>
                         )}
                       </div>
@@ -314,8 +370,8 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                           {m.usableBalance != null ? (
                             <div className="grid grid-cols-3 gap-3 text-sm">
                               {[
-                                ["Bank Balance",   fmt(m.bankBalance ?? 0)],
-                                ["Fixed Reserve",  fmt(m.fixedReserve ?? 0)],
+                                ["Bank Balance",   fmt(m.bankBalance   ?? 0)],
+                                ["Fixed Reserve",  fmt(m.fixedReserve  ?? 0)],
                                 ["Usable Balance", fmt(m.usableBalance)],
                               ].map(([label, val]) => (
                                 <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
@@ -354,7 +410,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       )}
 
-                      {/* ── PLAN ITEMS with per-item Mark as Paid ── */}
+                      {/* ── Plan items with per-item Mark as Paid ── */}
                       {allPlanItems.length > 0 && (
                         <div>
                           <div className="flex items-center justify-between mb-3">
@@ -380,9 +436,10 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                                   <span className="flex-1 text-sm text-white">{item.label}</span>
                                   <span className="text-sm font-semibold text-white shrink-0">{fmt(item.amount)}</span>
                                   {usable > 0 && (
-                                    <span className="text-[10px] text-white/30 shrink-0">{((item.amount / usable) * 100).toFixed(0)}%</span>
+                                    <span className="text-[10px] text-white/30 shrink-0">
+                                      {((item.amount / usable) * 100).toFixed(0)}%
+                                    </span>
                                   )}
-                                  {/* Mark as Paid button */}
                                   <button
                                     onClick={() => item.id && canPay && markItemPaid(m.id, item.id, item.label)}
                                     disabled={!canPay || isPaying}
@@ -481,7 +538,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       </button>
                     </>
                   ) : (
-                    /* EDIT MODE */
+                    /* ── EDIT MODE ── */
                     <div className="space-y-5">
                       <p className="text-xs text-[#FBD38D]/80">✏ Editing {monthLabel} — changes will recalculate the breakdown.</p>
 
@@ -567,7 +624,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                           <X size={14} /> Cancel
                         </button>
                         <button onClick={() => saveMonthEdit(m.id)} disabled={saving}
-                          className="flex-1 rounded-full bg-[#6A49FA]/40 border border-[#6A49FA]/50 px-4 py-2.5 text-sm font-semibold text-[#C4B5FD] hover:bg-[#6A49FA]/60 transition flex items-center justify-center gap-2">
+                          className="flex-1 rounded-full bg-[#6A49FA]/40 border border-[#6A49FA]/50 px-4 py-2.5 text-sm font-semibold text-[#C4B5FD] hover:bg-[#6A49FA]/60 transition flex items-center justify-center gap-2 disabled:opacity-50">
                           <Check size={14} /> {saving ? "Saving…" : "Save Changes"}
                         </button>
                       </div>
