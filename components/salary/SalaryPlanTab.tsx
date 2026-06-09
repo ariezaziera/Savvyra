@@ -82,7 +82,7 @@ export default function SalaryPlanTab({
                 amount:     s.amount,
                 sourceType: s.sourceType,
                 sourceId:   s.sourceId,
-                isIncluded: true,
+                isIncluded: false,
                 sortOrder:  idx,
               })));
               setAddedIds(new Set(all.map((s: any) => s.id)));
