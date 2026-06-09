@@ -4,12 +4,13 @@ import { getUserIdFromRequest } from "@/lib/auth";
 import { calcSalary } from "@/lib/salaryCalc";
 
 // PATCH — full recalculate OR partial update (actualNet, bankBalance, etc.)
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { id } = await params;
   const body = await request.json();
-  const record = await prisma.salaryMonth.findUnique({ where: { id: params.id } });
+  const record = await prisma.salaryMonth.findUnique({ where: { id } });
   if (!record || record.userId !== userId)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -38,7 +39,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     });
 
     const updated = await prisma.salaryMonth.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         basicSalary:       parseFloat(body.basicSalary) || 0,
         allowances:        body.allowances ?? [],
@@ -68,7 +69,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   // Partial update — actualNet, bankBalance, fixedReserve, usableBalance, plan flags
   const updated = await prisma.salaryMonth.update({
-    where: { id: params.id },
+    where: { id },
     data: {
       ...(body.actualNet        !== undefined && { actualNet:        parseFloat(body.actualNet) }),
       ...(body.bankBalance      !== undefined && { bankBalance:      parseFloat(body.bankBalance) }),
@@ -84,14 +85,15 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   return NextResponse.json(updated);
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const record = await prisma.salaryMonth.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const record = await prisma.salaryMonth.findUnique({ where: { id } });
   if (!record || record.userId !== userId)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  await prisma.salaryMonth.delete({ where: { id: params.id } });
+  await prisma.salaryMonth.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }
