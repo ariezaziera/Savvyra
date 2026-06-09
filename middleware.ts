@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import jwt from "jsonwebtoken";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  const token = await getToken({
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-
-  const isLoggedIn = !!token;
-  const onboarded  = request.cookies.get("savvyra_onboarded")?.value;
 
   // PUBLIC ROUTES — always allow
   if (
@@ -22,6 +15,27 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.next();
   }
+
+  // Check NextAuth session token (Google + NextAuth credentials)
+  const nextAuthToken = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  // Check custom JWT cookie (credentials login via /api/auth/login)
+  let customJwtValid = false;
+  const savvyraToken = request.cookies.get("savvyra_token")?.value;
+  if (savvyraToken && process.env.JWT_SECRET) {
+    try {
+      jwt.verify(savvyraToken, process.env.JWT_SECRET);
+      customJwtValid = true;
+    } catch {
+      // Invalid or expired — treat as not logged in
+    }
+  }
+
+  const isLoggedIn = !!nextAuthToken || customJwtValid;
+  const onboarded  = request.cookies.get("savvyra_onboarded")?.value;
 
   // ONBOARDING — only for non-logged-in users
   if (pathname.startsWith("/onboarding")) {
