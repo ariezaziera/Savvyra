@@ -336,6 +336,7 @@ model SalaryProfile {
   deductEPF        Boolean     @default(true)
   deductSOCSO      Boolean     @default(true)
   deductEIS        Boolean     @default(true)
+  defaultPlanItems Json        @default("[]")
   updatedAt        DateTime    @updatedAt
   user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
