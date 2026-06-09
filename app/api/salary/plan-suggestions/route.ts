@@ -6,11 +6,7 @@ export async function GET(request: Request) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Active commitments this month
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year  = now.getFullYear();
-
+  // Active commitments
   const commitments = await prisma.commitment.findMany({
     where: { userId, isActive: true },
     orderBy: { amount: "desc" },
@@ -26,9 +22,19 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "asc" },
   });
 
-  // Active debts with monthly payment
+  // Exclude debts that already have an active linked commitment to avoid
+  // duplicate entries in the salary planner (FIXED debts auto-create one).
+  const linkedDebtIds = commitments
+    .filter((c) => c.debtId !== null)
+    .map((c) => c.debtId as string);
+
   const debts = await prisma.debt.findMany({
-    where: { userId, status: "ACTIVE", monthlyPayment: { gt: 0 } },
+    where: {
+      userId,
+      status: "ACTIVE",
+      monthlyPayment: { gt: 0 },
+      ...(linkedDebtIds.length > 0 && { id: { notIn: linkedDebtIds } }),
+    },
     orderBy: { monthlyPayment: "desc" },
   });
 
