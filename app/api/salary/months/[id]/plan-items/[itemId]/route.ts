@@ -101,10 +101,6 @@ export async function POST(
           savingsGoalId: item.sourceId,
         },
       });
-      await prisma.savingsGoal.update({
-        where: { id: item.sourceId },
-        data:  { currentAmount: { increment: item.amount } },
-      });
     }
 
     // ── DEBT ─────────────────────────────────────────────────
