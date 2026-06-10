@@ -5,7 +5,7 @@ import {
   Check, ChevronDown, ChevronUp, Pencil, Plus, Trash2, X,
   AlertTriangle, CheckCircle2, RefreshCw, Lock,
 } from "lucide-react";
-import { Field, Input, fmt, MONTHS, SOURCE_COLORS } from "./SalaryShared";
+import { Input, fmt, MONTHS, SOURCE_COLORS } from "./SalaryShared";
 import type { SalaryMonth, PlanItem } from "./SalaryShared";
 import type { Allowance, CustomDeduction } from "@/lib/salaryCalc";
 import { calcSalary } from "@/lib/salaryCalc";
@@ -22,19 +22,17 @@ const colorMap: Record<string, string> = {
 };
 
 export default function SalaryHistoryTab({ months, setMonths, showToast }: Props) {
-  const [expandedMonth, setExpandedMonth]   = useState<string | null>(null);
-  const [actualNetInput, setActualNetInput] = useState<Record<string, string>>({});
-  const [bankBalInput, setBankBalInput]     = useState<Record<string, string>>({});
-  const [reserveInput, setReserveInput]     = useState<Record<string, string>>({});
-  const [editingMonth, setEditingMonth]     = useState<string | null>(null);
-  const [editInputs, setEditInputs]         = useState<Record<string, any>>({});
-  const [saving, setSaving]                 = useState(false);
-  const [marking, setMarking]               = useState<string | null>(null);
-  const [payingItem, setPayingItem]         = useState<string | null>(null);
+  const [expandedMonth, setExpandedMonth]     = useState<string | null>(null);
+  const [actualNetInput, setActualNetInput]   = useState<Record<string, string>>({});
+  const [bankBalInput, setBankBalInput]       = useState<Record<string, string>>({});
+  const [reserveInput, setReserveInput]       = useState<Record<string, string>>({});
+  const [editingMonth, setEditingMonth]       = useState<string | null>(null);
+  const [editInputs, setEditInputs]           = useState<Record<string, any>>({});
+  const [saving, setSaving]                   = useState(false);
+  const [marking, setMarking]                 = useState<string | null>(null);
+  const [payingItem, setPayingItem]           = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [deleting, setDeleting]             = useState(false);
-
-  // ── Helpers ──────────────────────────────────────────────
+  const [deleting, setDeleting]               = useState(false);
 
   const patch = async (id: string, data: any) => {
     const res = await fetch(`/api/salary/months/${id}`, {
@@ -92,21 +90,16 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     }
   };
 
-  // Per-item mark as paid — uses real DB response to update state
   const markItemPaid = async (monthId: string, itemId: string, itemLabel: string) => {
     setPayingItem(itemId);
     try {
-      const res = await fetch(
-        `/api/salary/months/${monthId}/plan-items/${itemId}`,
-        {
-          credentials: "include",
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const res = await fetch(`/api/salary/months/${monthId}/plan-items/${itemId}`, {
+        credentials: "include",
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
       if (res.ok) {
         const updatedMonth = await res.json();
-        // Replace entire month record with fresh DB data (includes updated salaryPlanItems)
         setMonths((prev) =>
           prev.map((m) => (m.id === monthId ? { ...m, ...updatedMonth } : m))
         );
@@ -143,8 +136,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     setConfirmDeleteId(null);
   };
 
-  // ── Empty state ──────────────────────────────────────────
-
   if (months.length === 0) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-white/40 text-sm">
@@ -153,11 +144,8 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
     );
   }
 
-  // ── Render ───────────────────────────────────────────────
-
   return (
     <>
-      {/* Confirm Delete Modal */}
       {confirmDeleteId && (() => {
         const m = months.find((x) => x.id === confirmDeleteId);
         if (!m) return null;
@@ -193,19 +181,18 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
       <div className="space-y-4">
         {months.map((m) => {
-          const isExpanded   = expandedMonth === m.id;
-          const isEditing    = editingMonth  === m.id;
-          const monthLabel   = `${MONTHS[m.month - 1]} ${m.year}`;
-          const allPlanItems = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
-          // sortOrder === -1 = paid
-          const included     = allPlanItems.filter((i) => i.isIncluded && i.sortOrder !== -1);
-          const paidItems    = allPlanItems.filter((i) => i.sortOrder === -1);
-          const planTotal    = included.reduce((s, i) => s + i.amount, 0);
-          const ei           = editInputs[m.id];
+          const isExpanded    = expandedMonth === m.id;
+          const isEditing     = editingMonth  === m.id;
+          const monthLabel    = `${MONTHS[m.month - 1]} ${m.year}`;
+          const allPlanItems  = (m.salaryPlanItems ?? m.planItems ?? []) as PlanItem[];
+          const included      = allPlanItems.filter((i) => i.isIncluded && i.sortOrder !== -1);
+          const paidItems     = allPlanItems.filter((i) => i.sortOrder === -1);
+          const planTotal     = included.reduce((s, i) => s + i.amount, 0);
+          const ei            = editInputs[m.id];
           const editBreakdown = isEditing && ei ? calcSalary({ ...ei, month: m.month, year: m.year }) : null;
-          const usable       = m.usableBalance ?? m.actualNet ?? 0;
-          const planExceeds  = m.actualNet != null && planTotal > 0 && planTotal > usable;
-          const surplus      = usable - planTotal;
+          const usable        = m.usableBalance ?? m.actualNet ?? 0;
+          const planExceeds   = m.actualNet != null && planTotal > 0 && planTotal > usable;
+          const surplus       = usable - planTotal;
 
           const byType: Record<string, number> = {};
           included.forEach((i) => { byType[i.sourceType] = (byType[i.sourceType] ?? 0) + i.amount; });
@@ -215,11 +202,11 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
               ...prev,
               [m.id]: {
                 basicSalary:      m.basicSalary,
-                allowances:       m.allowances       as Allowance[],
-                customDeductions: m.customDeductions  as CustomDeduction[],
+                allowances:       m.allowances      as Allowance[],
+                customDeductions: m.customDeductions as CustomDeduction[],
                 otRate:           m.otRate,
                 doublePayRate:    m.doublePayRate,
-                hoursPerDay:      m.hoursPerDay       ?? 7.5,
+                hoursPerDay:      m.hoursPerDay      ?? 7.5,
                 dailyRateFormula: m.dailyRateFormula,
                 unpaidLeaveDays:  m.unpaidLeaveDays,
                 annualLeaveDays:  m.annualLeaveDays,
@@ -238,7 +225,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
             setEditingMonth(m.id);
           };
 
-          // Edit helpers — allowances
           const updateEA = (i: number, field: keyof Allowance, value: any) =>
             setEditInputs((prev) => {
               const arr = [...prev[m.id].allowances];
@@ -248,13 +234,9 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
           const removeEA = (i: number) =>
             setEditInputs((prev) => ({
               ...prev,
-              [m.id]: {
-                ...prev[m.id],
-                allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i),
-              },
+              [m.id]: { ...prev[m.id], allowances: prev[m.id].allowances.filter((_: any, idx: number) => idx !== i) },
             }));
 
-          // Edit helpers — custom deductions (fixed: was writing to customDeductTotal by mistake)
           const updateED = (i: number, field: keyof CustomDeduction, value: any) =>
             setEditInputs((prev) => {
               const arr = [...prev[m.id].customDeductions];
@@ -264,10 +246,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
           const removeED = (i: number) =>
             setEditInputs((prev) => ({
               ...prev,
-              [m.id]: {
-                ...prev[m.id],
-                customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i),
-              },
+              [m.id]: { ...prev[m.id], customDeductions: prev[m.id].customDeductions.filter((_: any, idx: number) => idx !== i) },
             }));
 
           return (
@@ -310,7 +289,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
 
               {/* Expanded */}
               {isExpanded && (
-                <div className="px-6 pb-6 space-y-5 border-t border-white/10 pt-5">
+                <div className="px-5 pb-6 space-y-5 border-t border-white/10 pt-5">
                   {!isEditing ? (
                     <>
                       {/* Salary breakdown */}
@@ -363,32 +342,44 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         )}
                       </div>
 
-                      {/* Bank balance + reserve */}
+                      {/* Balance Planning */}
                       {m.actualNet != null && (
                         <div className="space-y-3">
                           <p className="text-xs text-white/45 uppercase tracking-wider">Balance Planning</p>
                           {m.usableBalance != null ? (
-                            <div className="grid grid-cols-3 gap-3 text-sm">
+                            <div className="grid grid-cols-3 gap-2">
                               {[
-                                ["Bank Balance",   fmt(m.bankBalance   ?? 0)],
-                                ["Fixed Reserve",  fmt(m.fixedReserve  ?? 0)],
-                                ["Usable Balance", fmt(m.usableBalance)],
+                                ["Bank",    fmt(m.bankBalance  ?? 0)],
+                                ["Reserve", fmt(m.fixedReserve ?? 0)],
+                                ["Usable",  fmt(m.usableBalance)],
                               ].map(([label, val]) => (
                                 <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                                  <p className="text-xs text-white/35">{label}</p>
-                                  <p className={`font-semibold mt-1 text-sm ${label === "Usable Balance" ? "text-[#C4B5FD]" : "text-white"}`}>{val}</p>
+                                  <p className="text-[10px] text-white/35">{label}</p>
+                                  <p className={`font-semibold mt-1 text-xs ${label === "Usable" ? "text-[#C4B5FD]" : "text-white"}`}>{val}</p>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <div className="grid grid-cols-2 gap-2">
-                                <Field label="Current Bank Balance (RM)">
-                                  <Input value={bankBalInput[m.id] ?? ""} onChange={(e: any) => setBankBalInput((p) => ({ ...p, [m.id]: e.target.value }))} placeholder="0.00" className="w-full" />
-                                </Field>
-                                <Field label="Fixed Reserve (RM)">
-                                  <Input value={reserveInput[m.id] ?? ""} onChange={(e: any) => setReserveInput((p) => ({ ...p, [m.id]: e.target.value }))} placeholder="0.00" className="w-full" />
-                                </Field>
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <p className="text-[10px] text-white/40 mb-1">Bank Balance (RM)</p>
+                                  <Input
+                                    value={bankBalInput[m.id] ?? ""}
+                                    onChange={(e: any) => setBankBalInput((p) => ({ ...p, [m.id]: e.target.value }))}
+                                    placeholder="0.00"
+                                    className="w-full"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-[10px] text-white/40 mb-1">Fixed Reserve (RM)</p>
+                                  <Input
+                                    value={reserveInput[m.id] ?? ""}
+                                    onChange={(e: any) => setReserveInput((p) => ({ ...p, [m.id]: e.target.value }))}
+                                    placeholder="0.00"
+                                    className="w-full"
+                                  />
+                                </div>
                               </div>
                               <button onClick={() => submitBalances(m.id)}
                                 className="rounded-2xl bg-[#6A49FA]/30 px-4 py-2 text-sm text-[#C4B5FD] hover:bg-[#6A49FA]/50 transition w-full">
@@ -410,7 +401,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       )}
 
-                      {/* ── Plan items with per-item Mark as Paid ── */}
+                      {/* Plan items */}
                       {allPlanItems.length > 0 && (
                         <div>
                           <div className="flex items-center justify-between mb-3">
@@ -423,23 +414,17 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                           </div>
 
                           <div className="space-y-2">
-                            {/* Unpaid items */}
                             {included.map((item) => {
                               const isPaying = payingItem === item.id;
                               const canPay   = m.isMarkedReceived;
                               return (
                                 <div key={item.id ?? item.label}
-                                  className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/10 bg-white/5">
-                                  <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>
+                                  className="flex items-center gap-2 rounded-2xl px-3 py-3 border border-white/10 bg-white/5">
+                                  <span className={`rounded-lg px-1.5 py-0.5 text-[10px] font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>
                                     {item.sourceType}
                                   </span>
-                                  <span className="flex-1 text-sm text-white">{item.label}</span>
+                                  <span className="flex-1 text-sm text-white truncate min-w-0">{item.label}</span>
                                   <span className="text-sm font-semibold text-white shrink-0">{fmt(item.amount)}</span>
-                                  {usable > 0 && (
-                                    <span className="text-[10px] text-white/30 shrink-0">
-                                      {((item.amount / usable) * 100).toFixed(0)}%
-                                    </span>
-                                  )}
                                   <button
                                     onClick={() => item.id && canPay && markItemPaid(m.id, item.id, item.label)}
                                     disabled={!canPay || isPaying}
@@ -459,17 +444,16 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                               );
                             })}
 
-                            {/* Paid items */}
                             {paidItems.length > 0 && (
                               <>
                                 <p className="text-[10px] text-white/30 uppercase tracking-wider pt-2">Paid</p>
                                 {paidItems.map((item) => (
                                   <div key={item.id ?? item.label}
-                                    className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-[#8EE3B5]/15 bg-[#8EE3B5]/5 opacity-70">
-                                    <span className={`rounded-xl px-2 py-0.5 text-xs font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>
+                                    className="flex items-center gap-2 rounded-2xl px-3 py-3 border border-[#8EE3B5]/15 bg-[#8EE3B5]/5 opacity-70">
+                                    <span className={`rounded-lg px-1.5 py-0.5 text-[10px] font-medium shrink-0 ${SOURCE_COLORS[item.sourceType]}`}>
                                       {item.sourceType}
                                     </span>
-                                    <span className="flex-1 text-sm text-white/60 line-through">{item.label}</span>
+                                    <span className="flex-1 text-sm text-white/60 line-through truncate min-w-0">{item.label}</span>
                                     <span className="text-sm text-white/40 shrink-0">{fmt(item.amount)}</span>
                                     <CheckCircle2 size={16} className="text-[#8EE3B5] shrink-0" />
                                   </div>
@@ -478,7 +462,6 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                             )}
                           </div>
 
-                          {/* % breakdown bars */}
                           {Object.keys(byType).length > 0 && (
                             <div className="mt-4 space-y-2.5">
                               {Object.entries(byType).map(([type, total]) => {
@@ -512,7 +495,7 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                         </div>
                       )}
 
-                      {/* Confirm Salary Received button */}
+                      {/* Confirm Salary Received */}
                       {!m.isMarkedReceived && m.actualNet != null && (
                         <button
                           onClick={() => markReceived(m.id)}
@@ -538,19 +521,21 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       </button>
                     </>
                   ) : (
-                    /* ── EDIT MODE ── */
+                    /* EDIT MODE */
                     <div className="space-y-5">
                       <p className="text-xs text-[#FBD38D]/80">✏ Editing {monthLabel} — changes will recalculate the breakdown.</p>
 
                       <div className="space-y-3">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Basic Pay</p>
                         <div className="grid grid-cols-2 gap-3">
-                          <Field label="Basic Salary (RM)">
+                          <div>
+                            <p className="text-[10px] text-white/40 mb-1">Basic Salary (RM)</p>
                             <Input value={ei.basicSalary || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], basicSalary: +e.target.value } }))} className="w-full" />
-                          </Field>
-                          <Field label="Hours / Day">
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-white/40 mb-1">Hours / Day</p>
                             <Input value={ei.hoursPerDay || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], hoursPerDay: +e.target.value } }))} placeholder="7.5" className="w-full" />
-                          </Field>
+                          </div>
                         </div>
                       </div>
 
@@ -572,20 +557,20 @@ export default function SalaryHistoryTab({ months, setMonths, showToast }: Props
                       <div className="space-y-2">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Leave</p>
                         <div className="grid grid-cols-2 gap-3">
-                          <Field label="Unpaid"><Input value={ei.unpaidLeaveDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], unpaidLeaveDays: +e.target.value } }))} placeholder="days" className="w-full" /></Field>
-                          <Field label="Annual"><Input value={ei.annualLeaveDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], annualLeaveDays: +e.target.value } }))} placeholder="days" className="w-full" /></Field>
-                          <Field label="Medical"><Input value={ei.medicalLeaveDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], medicalLeaveDays: +e.target.value } }))} placeholder="days" className="w-full" /></Field>
-                          <Field label="Replacement"><Input value={ei.replacementDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], replacementDays: +e.target.value } }))} placeholder="days" className="w-full" /></Field>
+                          <div><p className="text-[10px] text-white/40 mb-1">Unpaid</p><Input value={ei.unpaidLeaveDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], unpaidLeaveDays: +e.target.value } }))} placeholder="days" className="w-full" /></div>
+                          <div><p className="text-[10px] text-white/40 mb-1">Annual</p><Input value={ei.annualLeaveDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], annualLeaveDays: +e.target.value } }))} placeholder="days" className="w-full" /></div>
+                          <div><p className="text-[10px] text-white/40 mb-1">Medical</p><Input value={ei.medicalLeaveDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], medicalLeaveDays: +e.target.value } }))} placeholder="days" className="w-full" /></div>
+                          <div><p className="text-[10px] text-white/40 mb-1">Replacement</p><Input value={ei.replacementDays || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], replacementDays: +e.target.value } }))} placeholder="days" className="w-full" /></div>
                         </div>
                       </div>
 
                       <div className="space-y-2">
                         <p className="text-xs text-white/45 uppercase tracking-wider">Overtime</p>
                         <div className="grid grid-cols-2 gap-3">
-                          <Field label="OT Hours"><Input value={ei.otHours || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], otHours: +e.target.value } }))} placeholder="hrs" className="w-full" /></Field>
-                          <Field label="OT Rate (×)"><Input value={ei.otRate || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], otRate: +e.target.value } }))} placeholder="1.5" className="w-full" /></Field>
-                          <Field label="Double Pay Hrs"><Input value={ei.doublePayHours || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], doublePayHours: +e.target.value } }))} placeholder="hrs" className="w-full" /></Field>
-                          <Field label="Double Pay Rate (×)"><Input value={ei.doublePayRate || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], doublePayRate: +e.target.value } }))} placeholder="2.0" className="w-full" /></Field>
+                          <div><p className="text-[10px] text-white/40 mb-1">OT Hours</p><Input value={ei.otHours || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], otHours: +e.target.value } }))} placeholder="hrs" className="w-full" /></div>
+                          <div><p className="text-[10px] text-white/40 mb-1">OT Rate (×)</p><Input value={ei.otRate || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], otRate: +e.target.value } }))} placeholder="1.5" className="w-full" /></div>
+                          <div><p className="text-[10px] text-white/40 mb-1">Double Pay Hrs</p><Input value={ei.doublePayHours || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], doublePayHours: +e.target.value } }))} placeholder="hrs" className="w-full" /></div>
+                          <div><p className="text-[10px] text-white/40 mb-1">Double Pay Rate (×)</p><Input value={ei.doublePayRate || ""} onChange={(e: any) => setEditInputs((p) => ({ ...p, [m.id]: { ...p[m.id], doublePayRate: +e.target.value } }))} placeholder="2.0" className="w-full" /></div>
                         </div>
                       </div>
 
