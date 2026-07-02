@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
-const INACTIVITY_TIME    = 20 * 60 * 1000; // 20 min idle on-screen
-const BACKGROUND_TIMEOUT = 30 * 60 * 1000; // 30 min backgrounded/app-switched
+const INACTIVITY_TIME    = 24 * 60 * 60 * 1000; // 24 hours
+const BACKGROUND_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 const COUNTDOWN_TIME     = 15;            // 15 seconds
 
 const LAST_SEEN_KEY = "savvyra_last_seen";
